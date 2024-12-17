@@ -1,0 +1,241 @@
+{% extends 'base.html' %}
+{% block title %}Manage Categories{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.3.11/themes/default/style.min.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
+<style>
+    .category-management {
+        display: flex;
+        height: calc(100vh - 56px);
+    }
+    .category-tree {
+        width: 300px;
+        padding: 20px;
+        border-right: 1px solid #ccc;
+    }
+    .category-details {
+        flex-grow: 1;
+        padding: 20px;
+    }
+    .search-bar {
+        margin-bottom: 20px;
+    }
+    .breadcrumb {
+        margin-bottom: 20px;
+    }
+    #category-info input {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+    .action-buttons {
+        margin-top: 20px;
+    }
+    .action-buttons button {
+        margin-right: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="/">Home</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'question_bank:question_list' %}">Question Bank</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Category</li>
+    </ol>
+</nav>
+
+<div class="manage-wrap">
+    <button id="add-category" class="btn btn-primary">Add Category</button>
+    <button id="save-category" class="btn btn-success">Save Changes</button>
+    <button id="delete-category" class="btn btn-danger">Delete Category</button>
+</div>
+
+<h4 class="fw-bold mb-3"><i class="fas fa-cog me-2"></i>{% if question %}Edit{% else %}Create{% endif %} Question</h4>
+
+{% include 'snippets/messages.html' %}
+
+<div class="category-management">
+    <div class="category-tree">
+        <div class="search-bar">
+            <input type="text" id="category-search" class="form-control" placeholder="Search categories...">
+        </div>
+        <div id="category-tree"></div>
+        
+    </div>
+    <div class="category-details">
+        <div class="breadcrumb" id="category-breadcrumb"></div>
+        <h2 id="selected-category">Select a category</h2>
+        <div id="category-info">
+            <input type="text" id="category-name" class="form-control" placeholder="Category Name">
+            
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.3.11/jstree.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+<script>
+$(function() {
+    var selectedNode = null;
+
+    $('#category-tree').jstree({
+        'core' : {
+            'data' : {
+                'url' : '{% url "question_bank:get_categories" %}',
+                'data' : function (node) {
+                    return { 'id' : node.id };
+                }
+            },
+            'check_callback' : true,
+            'themes': {
+                'responsive': true
+            }
+        },
+        "plugins" : [ "dnd", "search", "state", "wholerow", "contextmenu" ],
+        "contextmenu": {
+            "items": function($node) {
+                return {
+                    "Create": {
+                        "label": "Create",
+                        "action": function(obj) {
+                            $node = $('#category-tree').jstree('create_node', $node);
+                            $('#category-tree').jstree('edit', $node);
+                        }
+                    },
+                    "Rename": {
+                        "label": "Rename",
+                        "action": function(obj) {
+                            $('#category-tree').jstree('edit', $node);
+                        }
+                    },
+                    "Delete": {
+                        "label": "Delete",
+                        "action": function(obj) {
+                            if(confirm('Are you sure you want to delete this category?')) {
+                                $('#category-tree').jstree('delete_node', $node);
+                            }
+                        }
+                    }
+                };
+            }
+        }
+    }).on('select_node.jstree', function(e, data) {
+        selectedNode = data.node;
+        updateBreadcrumb(data.node);
+        updateCategoryInfo(data.node);
+    }).on('move_node.jstree', function(e, data) {
+        $.post('{% url "question_bank:update_category" %}', {
+            id: data.node.id,
+            parent: data.parent
+        }).done(function(response) {
+            if (response.status === 'success') {
+                toastr.success('Category moved successfully');
+            } else {
+                toastr.error('Failed to move category');
+                $.jstree.reference('#category-tree').refresh();
+            }
+        });
+    }).on('rename_node.jstree', function(e, data) {
+        $.post('{% url "question_bank:update_category" %}', {
+            id: data.node.id,
+            name: data.text
+        }).done(function(response) {
+            if (response.status === 'success') {
+                toastr.success('Category renamed successfully');
+            } else {
+                toastr.error('Failed to rename category');
+                $.jstree.reference('#category-tree').refresh();
+            }
+        });
+    }).on('delete_node.jstree', function(e, data) {
+        $.post('{% url "question_bank:delete_category" %}', {
+            id: data.node.id
+        }).done(function(response) {
+            if (response.status === 'success') {
+                toastr.success('Category deleted successfully');
+            } else {
+                toastr.error('Failed to delete category');
+                $.jstree.reference('#category-tree').refresh();
+            }
+        });
+    }).on('create_node.jstree', function(e, data) {
+        $.post('{% url "question_bank:create_category" %}', {
+            name: data.node.text,
+            parent: data.parent
+        }).done(function(response) {
+            if (response.status === 'success') {
+                data.instance.set_id(data.node, response.id);
+                toastr.success('Category created successfully');
+            } else {
+                toastr.error('Failed to create category');
+                $.jstree.reference('#category-tree').refresh();
+            }
+        });
+    });
+
+    var searchTimeout = false;
+    $('#category-search').keyup(function() {
+        if(searchTimeout) { clearTimeout(searchTimeout); }
+        searchTimeout = setTimeout(function() {
+            var v = $('#category-search').val();
+            $('#category-tree').jstree(true).search(v);
+        }, 250);
+    });
+
+    function updateBreadcrumb(node) {
+        var path = $('#category-tree').jstree(true).get_path(node, ' > ');
+        $('#category-breadcrumb').text(path);
+    }
+
+    function updateCategoryInfo(node) {
+        $('#selected-category').text(node.text);
+        $('#category-name').val(node.text);
+    }
+
+    $('#save-category').click(function() {
+        if (!selectedNode) return;
+
+        $.post('{% url "question_bank:update_category" %}', {
+            id: selectedNode.id,
+            name: $('#category-name').val(),
+        }).done(function(response) {
+            if (response.status === 'success') {
+                toastr.success('Category updated successfully');
+                $.jstree.reference('#category-tree').refresh();
+            } else {
+                toastr.error('Failed to update category');
+            }
+        });
+    });
+
+    $('#delete-category').click(function() {
+        if (!selectedNode) return;
+
+        if (confirm('Are you sure you want to delete this category?')) {
+            $.post('{% url "question_bank:delete_category" %}', {
+                id: selectedNode.id
+            }).done(function(response) {
+                if (response.status === 'success') {
+                    toastr.success('Category deleted successfully');
+                    $.jstree.reference('#category-tree').refresh();
+                } else {
+                    toastr.error('Failed to delete category');
+                }
+            });
+        }
+    });
+
+    $('#add-category').click(function() {
+        var parentNode = selectedNode ? selectedNode : '#';
+        var newNode = $('#category-tree').jstree('create_node', parentNode, {"text" : "New Category"});
+        if(newNode) {
+            $('#category-tree').jstree('edit', newNode);
+        }
+    });
+});
+</script>
+{% endblock %}

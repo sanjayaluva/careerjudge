@@ -1,0 +1,232 @@
+{% load static %}
+
+<style>
+	.top-side {
+		background-size: cover;
+		background-position: top center;
+	}
+</style>
+
+<div id="side-nav">
+	<div class="main-menu">
+		<div class="top-side text-center py-4" style="background-image: url({% static 'img/dotted.jpg' %});">
+			<div class="desktop-hide">
+				<div class="toggle-btn" onclick="toggleSidebar()">
+					<i class="fas fa-times"></i>
+				</div>
+			</div>
+			<a href="/">
+				<!-- <img src="{% static 'img/dj-lms.png' %}" width="110px" alt="Logo Career Judge"> -->
+				Career Judge
+			</a>
+			<p class="text-orange">
+				<mark>
+					<i class="far fa-hand-point-right"></i>
+					{{ request.user.get_user_role }}
+				</mark>
+			</p>
+		</div>
+		{% url 'user_list' as usr %}
+		{% url 'group_list' as grp %}
+		{% url 'group_edit' as grped %}
+		{% url 'user_import' as imp %}
+		{% url 'counselling_booking' as coun %}
+		{% url 'counselling_category_list' as cat %}
+		{% url 'counselling_availability' as avail %}
+		
+		{% url 'training_list' as train %}
+		{% url 'training_category_list' as train_cat %}
+		{% url 'training_booking_list' as train_book %}
+
+		
+		
+		
+		{% comment %}
+		{% url 'home' as hom %} {% url 'dashboard' as dash %} {% url 'profile' as prof %}
+		{% url 'user_list' as usr %}
+		{% url 'student_list' as stu %} {% url 'course_allocation_view' as cav %}
+		{% url 'programs' as pro %} {% url 'session_list' as sess %} {% url 'semester_list' as sem %}
+		{% url 'add_score' as ascore %} {% url 'grade_results' as vr %}{% url 'ass_results' as ar %}
+		{% url 'course_registration' as cr %} {% url 'edit_profile' as ep %} {% url 'change_password' as cp %}
+		{% url 'quiz_progress' as qpr %} {% url 'quiz_marking' as qce %} {% url 'user_course_list' as ucl %}
+		{% url 'admin_panel' as admin_p %}
+		{% endcomment %}
+		<ul>
+			{#% if request.user.is_superuser %#}
+			<li class="{% if request.path == dash %}active{% endif %}">
+				<a href="{% url 'dashboard' %}"><i class="fas fa-tachometer-alt"></i>Dashboard</a>
+			</li>
+			{#% endif %#}
+			
+			{% if perms.user.view_user %}
+			<li class="{% if request.path == usr %}active{% endif %}">
+				<a href="{% url 'user_list' %}"><i class="fas fa-chalkboard-teacher"></i>Users</a>
+			</li>
+			{% endif %}
+			
+			{% if perms.auth.view_group or perms.auth.change_group %}
+			<li class="{% if request.path == grp or request.path == grped %}active{% endif %}">
+				<a href="{% url 'group_list' %}"><i class="fa fa-users"></i>Roles</a>
+			</li>
+			{% endif %}
+
+			{% if perms.user.import_user %}
+			<li class="{% if request.path == imp %}active{% endif %}">
+				<a href="{% url 'user_import' %}"><i class="fa fa-user-plus"></i>Import User</a>
+			</li>
+			{% endif %}
+
+			{% if perms.counselling.view_booking %}
+			<li class="{% if request.path == coun %}active{% endif %}">
+				<a href="{% url 'counselling_booking_list' %}"><i class="fa fa-user-md"></i>Counselling Bookings</a>
+			</li>
+			{% endif %}
+
+			{% if perms.counselling.view_category %}
+			<li class="{% if request.path == cat %}active{% endif %}">
+				<a href="{% url 'counselling_category_list' %}"><i class="fa fa-list"></i>Counselling Category</a>
+			</li>
+			{% endif %}
+
+			{% if perms.counselling.update_availability %}
+			<li class="{% if request.path == avail %}active{% endif %}">
+				<a href="{% url 'counselling_availability' %}"><i class="fa fa-calendar-check"></i>Update Timeslots</a>
+			</li>
+			{% endif %}
+			
+
+			{% if perms.training.view_training_training or perms.training.add_training_training %}
+			<li class="{% if request.path == train %}active{% endif %}">
+				<a href="{% url 'training_list' %}"><i class="fa fa-calendar-check"></i>Training</a>
+			</li>
+			{% endif %}
+
+			{% if perms.training.training_category_view or perms.training.training_category_add or perms.training.training_category_delete or perms.training.training_category_change  %}
+			<li class="{% if request.path == train_cat %}active{% endif %}">
+				<a href="{% url 'training_category_list' %}"><i class="fa fa-calendar-check"></i>Training Category</a>
+			</li>
+			{% endif %}
+
+			{% if perms.training.add_training_booking or perms.training.list_training_booking %}
+			<li class="{% if request.path == train_book %}active{% endif %}">
+				<a href="{% url 'training_booking_list' %}"><i class="fa fa-calendar-check"></i>Training Registration</a>
+			</li>
+			{% endif %}
+
+			{% url 'question_bank:manage_categories' as qb_category %}
+			
+			{% if perms.question_bank.qb_category_view %}
+			<li class="{% if request.path == qb_category %}active{% endif %}">
+				<a href="{% url 'question_bank:manage_categories' %}"><i class="fas fa-home"></i>QB Category</a>
+			</li>
+			{% endif %}
+			
+			{% url 'question_bank:question_list' as question_list %}
+
+			{% if perms.question_bank.add_question %}
+			<li class="{% if request.path == question_list %}active{% endif %}">
+				<a href="{% url 'question_bank:question_list' %}"><i class="fas fa-home"></i>Question Bank</a>
+			</li>
+			{% endif %}
+			
+			{% url 'assessment_list' as assessment_list %}
+
+			{% if perms.assessment.view_assessment %}
+			<li class="{% if request.path == assessment_list %}active{% endif %}">
+				<a href="{% url 'assessment_list' %}"><i class="fas fa-home"></i>Assessment</a>
+			</li>
+			{% endif %}
+
+			{% comment %}
+			<li class="{% if request.path == prof %}active{% endif %}">
+				<a href="{% url 'profile' %}"><i class="fas fa-user"></i>Profile</a>
+			</li>
+
+			{% if request.user.is_superuser %}
+			<li class="{% if request.path == admin_p %}active{% endif %}">
+				<a href="{% url 'admin_panel' %}"><i class="fas fa-user-tie"></i>Admin Panel</a>
+			</li>
+			<li class="{% if request.path == lec %}active{% endif %}">
+				<a href="{% url 'lecturer_list' %}"><i class="fas fa-chalkboard-teacher"></i>Lecturers</a>
+			</li>
+			<li class="{% if request.path == stu %}active{% endif %}">
+				<a href="{% url 'student_list' %}"><i class="fas fa-user-graduate"></i>Students</a>
+			</li>
+			{% endif %}
+
+			{% if request.user.is_lecturer or request.user.is_student %}
+			<li class="{% if request.path == ucl %}active{% endif %}">
+				<a href="{% url 'user_course_list' %}"><i class="fas fa-book"></i>My Courses</a>
+			</li>
+			{% endif %}
+
+			<li class="{% if request.path == pro %}active{% endif %}">
+				<a href="{% url 'programs' %}"><i class="fas fa-book-open"></i>Programs & Courses</a>
+			</li>
+
+			{% if request.user.is_superuser or request.user.is_lecturer %}
+			<li class="{% if request.path == qce %}active{% endif %}">
+				<a href="{% url 'quiz_marking' %}"><i class="fas fa-check-double"></i>Complete Exams</a>
+			</li>
+			{% endif %}
+
+			{% if request.user.is_superuser %}
+			<li class="{% if request.path == qpr %}active{% endif %}">
+				<a href="{% url 'quiz_progress' %}"><i class="fas fa-record-vinyl"></i>Quiz Progress Rec</a>
+			</li>
+			<li class="{% if request.path == cav %}active{% endif %}">
+				<a href="{% url 'course_allocation_view' %}"><i class="fas fa-tasks"></i>Course Allocation</a>
+			</li>
+			<li class="{% if request.path == sess %}active{% endif %}">
+				<a href="{% url 'session_list' %}"><i class="fas fa-calendar-week"></i>Manage Session</a>
+			</li>
+			<li class="{% if request.path == sem %}active{% endif %}">
+				<a href="{% url 'semester_list' %}"><i class="fas fa-calendar-alt"></i>Manage Semester</a>
+			</li>
+			{% endif %}
+
+			{% if request.user.is_lecturer %}
+			<li class="{% if request.path == ascore %}active{% endif %}">
+				<a href="{% url 'add_score' %}"><i class="fas fa-table"></i>Manage Score</a>
+			</li>
+			{% endif %}
+
+			{% if request.user.is_student %}
+			<li class="{% if request.path == qpr %}active{% endif %}">
+				<a href="{% url 'quiz_progress' %}"><i class="fas fa-record-vinyl"></i>Quiz Progress Rec</a>
+			</li>
+			<li class="{% if request.path == vr %}active{% endif %}">
+				<a href="{% url 'grade_results' %}"><i class="fa fa-spell-check"></i>Grade Results</a>
+			</li>
+			<li class="{% if request.path == ar %}active{% endif %}">
+				<a href="{% url 'ass_results' %}"><i class="fa fa-list-ol"></i> Assesment Results</a>
+			</li>
+			<li class="{% if request.path == cr %}active{% endif %}">
+				<a href="{% url 'course_registration' %}"><i class="fas fa-plus"></i>Add &amp; Drop Course</a>
+			</li>
+			{% endif %}
+			{% endcomment %}
+			<br />
+			<p class="ml-3">&RightArrow; Others</p>
+			{% comment %}
+			<li class="{% if request.path == ep %}active{% endif %}">
+				<a href="{% url 'edit_profile' %}"><i class="fas fa-cogs"></i>Account Setting</a>
+			</li>
+			{% endcomment %}
+			<li class="{% if request.path == cp %}active{% endif %}">
+				<a href="{% url 'password_change' %}"><i class="fas fa-key"></i>Change Password</a>
+			</li>
+		</ul>
+	</div>
+
+	<footer class="card-footer mt-5 pt-3 pb-5 px-2">
+		<div class="col-12">
+			<p class="small m-0">
+				Read our <a href="#"> Privacy </a> and <a href="#"> Terms of use. </a>
+				<br />Career Judge &copy; <script>document.write(new Date().getFullYear());</script>
+				<br />
+			</p>
+			
+		</div>
+	</footer>
+</div>

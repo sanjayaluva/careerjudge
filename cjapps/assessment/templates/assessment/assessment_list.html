@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="/">Home</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'question_bank:question_list' %}">Assessment</a></li>
+      <li class="breadcrumb-item active" aria-current="page">List</li>
+    </ol>
+</nav>
+
+<div class="manage-wrap">
+    <a href="{% url 'assessment_create' %}" class="btn btn-success">Create Assessment</a>
+</div>
+
+<h4 class="fw-bold mb-3"><i class="fas fa-cog me-2"></i>Assessment List</h4>
+
+{% include 'snippets/messages.html' %}
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Title</th>
+            <th>Published</th>
+            <th>Created At</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for assessment in assessments %}
+        <tr>
+            <td>{{ assessment.title }}</td>
+            <td>{{ assessment.published|yesno }}</td>
+            <td>{{ assessment.created_at|date }}</td>
+            <td>
+                <div class="dropdown">
+                    <button class="btn btn-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fa fa-ellipsis-vertical"></i>
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{% url 'assessment_take' assessment.pk %}"><i class="fas fa-list-check"></i> Take Assessment</a></li>
+                        <li><a class="dropdown-item" href="{% url 'assessment_update' assessment.pk %}"><i class="fas fa-edit"></i> Edit</a></li>
+                        <li><a class="dropdown-item" href="{% url 'assessment_delete' assessment.pk %}"><i class="fas fa-trash"></i> Delete</a></li>
+                    </ul>
+                </div>
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="4">No Assessment available.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% if is_paginated %}
+    <nav aria-label="Page navigation">
+        <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+            <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}" aria-label="Previous">
+                <span aria-hidden="true">&laquo;</span>
+            </a>
+            </li>
+        {% endif %}
+
+        {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+            <li class="page-item active"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+            <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+            {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+            <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}" aria-label="Next">
+                <span aria-hidden="true">&raquo;</span>
+            </a>
+            </li>
+        {% endif %}
+        </ul>
+    </nav>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,44 @@
+{% load assessment_tags %}
+<div id="question-wrapper" 
+     data-question-id="{{ question.id }}" 
+     data-question-type="fib_paragraph">
+
+    <div class="question-header mb-4">
+        <h5 class="question-number">Question {{ question_number }}</h5>
+        <h4 class="question-title">{{ question.title }}</h4>
+        
+        <!-- {% if question.objectives %}
+        <div class="question-objectives">
+            {{ question.objectives.html|safe }}
+        </div>
+        {% endif %} -->
+    </div>
+
+    <div class="paragraph-container" data-interval="{{ question.paragraph_interval }}">
+        <div class="paragraph-content">
+            <p>{{ text_parts.display_text|safe }}</p>
+            <div class="time-display alert alert-info mb-3"></div>
+            <div class="card p-4">
+                {{ question.paragraph.html|safe }}
+            </div>
+        </div>
+
+        <div class="question-content d-none">
+            <div class="question-text mb-4">
+                {{ text_parts.display_text|safe }}
+            </div>
+
+            <div class="fib-inputs mt-4">
+                {% for i in answers|length|get_range %}
+                <div class="input-group mb-3">
+                    <span class="input-group-text">Answer {{ forloop.counter }}</span>
+                    <input type="text" class="form-control fib-input" 
+                           id="fib-input-{{ forloop.counter0 }}"
+                           data-index="{{ forloop.counter0 }}"
+                           placeholder="Enter answer {{ forloop.counter }}">
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>

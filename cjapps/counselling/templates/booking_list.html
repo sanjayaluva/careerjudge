@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }} | Career Judge{% endblock title %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block content %}
+
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="/">Home</a></li>
+      <li class="breadcrumb-item"><a href="{#% url 'counselling_booking' %#}">Counselling Bookings</a></li>
+      <li class="breadcrumb-item active" aria-current="page">List</li>
+    </ol>
+</nav>
+
+{% if perms.counselling.add_booking %}
+<div class="manage-wrap">
+    <a class="btn btn-sm btn-primary" href="{% url 'counselling_booking_add' %}"><i class="fas fa-plus"></i> Book Counselling</a>
+</div>
+{% endif %}
+
+<h4 class="fw-bold mb-3"><i class="fas fa-cog me-2"></i>Booking List</h4>
+
+{% include 'snippets/messages.html' %}
+
+<div class="table-responsive table-shadow table-light table-striped m-0 mt-3">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th> Booking Date </th>
+                <th> Timeslot </th>
+                <th> Counsellor </th>
+                <th> Category </th>
+                <th> Paid </th>
+                <th> Booked at </th>
+                <th> Status </th>
+                {% if perms.counselling.cancel_booking %}
+                <th> Action </th>
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for booking in page_obj %}
+            <tr>
+                <td>{{ forloop.counter }}.</td>
+                <td>{{ booking.date }}</td>
+                <td>{{ booking.get_timeslot_display }}</td>
+                <td>{{ booking.counsellor.get_full_name }}</td>
+                <td>{{ booking.category }}</td>
+                <td>{{ booking.paid|yesno:"Yes,No" }}</td>
+                <td>{{ booking.booked }}</td>
+                <td>{{ booking.get_status_display }}</td>
+                {% if perms.counselling.cancel_booking and not booking.status == booking.STATUS_CANCELLED %}
+                <td>
+                    <div class="dropdown">
+                        <button class="btn btn-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fa fa-ellipsis-vertical"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'counselling_booking_cancel' booking.id %}"><i class="fas fa-edit"></i> Cancel Booking</a></li>
+                        </ul>
+                    </div>
+                </td>
+                {% else %}
+                <td></td>
+                {% endif %}
+
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="9">
+                    <span class="text-danger">
+                    No Bookings.
+                    {% if perms.counselling.add_booking %}
+                    <a href="{% url 'counselling_booking_add' %}">
+                        <i class="primary" style="font-size: 22px;">
+                            Book Now.
+                        </i>
+                    </a>
+                    {% endif %}
+                    </span>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    
+    <div class="pagination">
+        <span class="step-links">
+            {% if page_obj.has_previous %}
+                <a href="?page=1">&laquo; first</a>
+                <a href="?page={{ page_obj.previous_page_number }}">previous</a>
+            {% endif %}
+
+            <span class="current">
+                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+            </span>
+
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}">next</a>
+                <a href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
+            {% endif %}
+        </span>
+    </div>
+</div>
+{% endblock content %}

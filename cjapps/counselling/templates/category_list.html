@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }} | Career Judge{% endblock title %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block content %}
+
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="/">Home</a></li>
+      <li class="breadcrumb-item"><a href="{#% url 'user_list' %#}">Counselling Category</a></li>
+      <li class="breadcrumb-item active" aria-current="page">List</li>
+    </ol>
+</nav>
+
+{% if perms.counselling.add_category %}
+<div class="manage-wrap">
+    <a class="btn btn-sm btn-primary" href="{% url 'counselling_category_add' %}"><i class="fas fa-plus"></i> Add Category</a>
+</div>
+{% endif %}
+
+<h4 class="fw-bold mb-3"><i class="fas fa-cog me-2"></i>Category List</h4>
+
+{% include 'snippets/messages.html' %}
+
+<div class="table-responsive table-shadow table-light table-striped m-0 mt-3">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th> Name </th>
+                <th> Description </th>
+                {% if perms.counselling.change_category %}
+                <th> Action </th>
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for group in page_obj  %}
+            <tr>
+                <td> {{ forloop.counter }}.</td>
+                <td>{{ group.name }}</td>
+                <td>{{ group.desc }}</td>
+                {% if perms.counselling.change_category %}
+                <td>
+                    <div class="dropdown">
+                        <button class="btn btn-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fa fa-ellipsis-vertical"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'counselling_category_edit' group.id %}"><i class="fas fa-edit"></i> Update</a></li>
+                        </ul>
+                    </div>
+                </td>
+                {% endif %}
+
+                {% empty %}
+                <tr>
+                  <td colspan="6">
+                  <span class="text-danger">
+                    No User.
+                    {% if perms.counselling.add_category %}
+                    <a href="{% url 'counselling_category_add' %}">
+                    <i class="primary" style="font-size: 22px;">
+                       Add Category Now.
+                    </i>
+                    {% endif %}
+                    </a>
+                  </span>
+                </td>
+                </tr>
+
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="pagination">
+        <span class="step-links">
+            {% if page_obj.has_previous %}
+                <a href="?page=1">&laquo; first</a>
+                <a href="?page={{ page_obj.previous_page_number }}">previous</a>
+            {% endif %}
+
+            <span class="current">
+                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+            </span>
+
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}">next</a>
+                <a href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
+            {% endif %}
+        </span>
+    </div>
+</div>
+{% endblock content %}

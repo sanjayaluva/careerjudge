@@ -1,0 +1,896 @@
+{% extends 'base.html' %}
+{% load static crispy_forms_tags %}
+
+{% block content %}
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="/">Home</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'assessment_list' %}">Assessment</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Create</li>
+    </ol>
+</nav>
+
+<div class="manage-wrap">
+    <button class="btn btn-sm btn-primary" onclick="outside_form_submit('assessment-form')"><i class="fas fa-plus"></i> Save Assessment</button>
+</div>
+
+<h4 class="fw-bold mb-3"><i class="fas fa-cog me-2"></i>{% if assessment %}Edit{% else %}Create{% endif %} Assessment</h4>
+
+{% include 'snippets/messages.html' %}
+
+<!-- Normal page content -->
+<div class="container">
+    {% comment %} <h2>{% if assessment %}Update{% else %}Create{% endif %} Assessment</h2> {% endcomment %}
+    <form method="post" id="assessment-form" enctype="multipart/form-data">
+        {% csrf_token %}
+        <ul class="nav nav-tabs mb-3" id="assessmentTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="info-tab" data-bs-toggle="tab" data-bs-target="#info" type="button" role="tab" aria-controls="info" aria-selected="true">Basic Information</button>
+            </li>
+            {% if assessment %}
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="structure-tab" data-bs-toggle="tab" data-bs-target="#structure" type="button" role="tab" aria-controls="structure" aria-selected="false">Structure</button>
+            </li>
+            {% endif %}
+        </ul>
+        <div class="tab-content mb-4" id="assessmentTabsContent">
+            <div class="tab-pane fade show active" id="info" role="tabpanel" aria-labelledby="info-tab">
+                {{ form.title|as_crispy_field }}
+                <div class="row">
+                    <div class="col-6">
+                        {{ form.objective|as_crispy_field }}
+                    </div>
+                    <div class="col-6">
+                        {{ form.description|as_crispy_field }}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-6">
+                        {{ form.instructions|as_crispy_field }}
+                        {{ form.duration_minutes|as_crispy_field }}
+                    </div>
+                    <div class="col-6">
+                        {{ form.description_img|as_crispy_field }}
+                        {{ form.instructions_img|as_crispy_field }}
+                    </div>
+                </div>
+            </div>
+            {% if assessment %}
+            <div class="tab-pane fade" id="structure" role="tabpanel" aria-labelledby="structure-tab">
+                <div class="row">
+                    <div class="col-9">
+                        <div class="mb-3">
+                            <input type="text" id="search-input" class="form-control form-control-sm d-inline-block w-auto" placeholder="Search nodes">
+                            <button type="button" id="add-main-section" class="btn btn-sm btn-primary">Add Main Section</button>
+                            <button type="button" id="expand-all" class="btn btn-sm btn-secondary">Expand All</button>
+                            <button type="button" id="collapse-all" class="btn btn-sm btn-secondary">Collapse All</button>
+                        </div>
+                        <div id="jstree"></div>
+                    </div>
+                    <div class="col-3">
+                        <!-- New section for level-based counts -->
+                        <div id="level-counts" class="">
+                            <div id="assigned-count"></div>
+                            <div id="delivery-count"></div>
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ form.display_order.id_for_label }}"><h6><b>Question Display Order:</b></h6></label>
+                            {{ form.display_order }}
+                            {% if form.display_order.errors %}
+                            <div class="invalid-feedback">
+                                {{ form.display_order.errors }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif%}
+        </div>
+    </form>
+
+    <!-- Question Selection modal -->
+    <form id="questionSearchForm">
+    <div class="modal fade" id="questionModal" tabindex="-1" aria-labelledby="questionModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header px-3 py-2">
+                    <h5 class="modal-title" id="questionModalLabel">Question Search</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-4">
+                            {{ search_form.title }}
+                            {{ search_form.difficulty_level }}
+                        </div>
+                        <div class="col-4">
+                            {{ search_form.category }}
+                            {{ search_form.cognitive_level }}
+                        </div>
+                        <div class="col-4">
+                            {{ search_form.type }}
+                            {{ search_form.exposure_limit }}
+                        </div>
+                    </div>
+                    <div id="searchResults" class=""></div>
+                </div>
+                <div class="modal-footer  px-1 py-1">
+                    <button type="submit" class="btn btn-primary me-auto">Search Questions</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-danger" id="addSelectedQuestions">Select Questions</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    </form>
+    <!-- Question search modal end -->
+    
+    <!-- Question Score modal -->
+    <form id="questionScoreForm">
+    <div class="modal fade" id="questionScoreModal" tabindex="-1" aria-labelledby="questionScoreModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header px-3 py-2">
+                    <h5 class="modal-title" id="questionScoreModalLabel">Question Score</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="scoreModalBody">
+                    
+                </div>
+                <div class="modal-footer  px-1 py-1">
+                    <!--button type="submit" class="btn btn-primary me-auto">Search Questions</button-->
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-danger" id="saveScores">Save Scores</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    </form>
+    <!-- Question score modal end -->
+</div>
+{% endblock %}
+
+{% block extra_head %}
+    {% include 'django_quill/media.html' %}
+{% endblock %}
+
+{% block js %}
+<script>
+    // validate and submit form if the submit button is outside the form.
+    function outside_form_submit(form_id = '') {
+        var form = document.getElementById(form_id);
+        if (form.checkValidity()) {
+            form.submit();
+        } else {
+            // open first tab to correct validation issues.
+            var triggerEl = $('#assessmentTabs.nav .nav-item button:first').get(0);
+            var tabTrigger = new bootstrap.Tab(triggerEl);
+            tabTrigger.show()
+            
+            // highlight invalid field
+            form.reportValidity()
+        }
+    }
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<!--link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.3.12/themes/default/style.min.css" /-->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.3.15/themes/default/style.min.css" />
+<style>
+    /* Colors for different section levels */
+    .jstree-node > .jstree-anchor[aria-level="1"] { color: #3d8bfd } /* Blue for level 1 */
+    .jstree-node > .jstree-anchor[aria-level="2"] { color: #8540f5; } /* Green for level 2 */
+    .jstree-node > .jstree-anchor[aria-level="3"] { color: #de5c9d; } /* Purple for level 3 */
+    .jstree-node > .jstree-anchor[aria-level="4"] { color: #fd9843; } /* Orange for level 4 */
+
+    /* Color for questions */
+    .jstree-node.question-node > .jstree-anchor { color: #479f76; } /* Red for questions */
+
+    .bd-blue-100{color:#000;background-color:#cfe2ff}.bd-blue-200{color:#000;background-color:#9ec5fe}.bd-blue-300{color:#000;background-color:#6ea8fe}.bd-blue-400{color:#000;background-color:#3d8bfd}.bd-blue-500{color:#fff;background-color:#0d6efd}.bd-blue-600{color:#fff;background-color:#0a58ca}.bd-blue-700{color:#fff;background-color:#084298}.bd-blue-800{color:#fff;background-color:#052c65}.bd-blue-900{color:#fff;background-color:#031633}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+    {% if assessment %}
+    <!--script src="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.3.12/jstree.min.js"></script-->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.3.15/jstree.min.js"></script>
+    <script>
+        $(function() {
+
+            var assessmentId = '{{ assessment.pk|default:"" }}';
+            var url = '/assessment/' + assessmentId + '/structure/';
+
+            var $tree = $('#jstree');
+
+            $('button[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
+                if ($(e.target).attr('data-bs-target') === '#structure') {
+
+                    if (!$tree.jstree(true)) {
+                        $tree.jstree({
+                            'core' : {
+                                'check_callback' : function(operation, node, parent, position, more) {
+                                    if (operation === 'move_node') {
+                                        if (!node || !parent || !parent.children) {
+                                            return false;
+                                        }
+
+                                        // Case 1: Dragging sections
+                                        if (node && node.type === 'section') {
+                                            // Check if the total level count would exceed 4
+                                            if (parent.parents.length + 1 > 4) {
+                                                return false;
+                                            }
+                                            
+                                            // Check if the parent already has question children
+                                            if (parent.children && parent.children.some(childId => this.get_node(childId).type === 'question')) {
+                                                return false;
+                                            }
+
+                                            // Check if the move would result in more than 4 levels
+                                            var newLevel = parent.parents.length + 1;
+                                            if (newLevel > 4) {
+                                                return false;
+                                            }
+                                            
+                                            // Check if moving the node would cause its children to exceed 4 levels
+                                            if (node.children_d && node.children_d.length > 0) {
+                                                var maxChildDepth = Math.max(...node.children_d.map(childId => 
+                                                    this.get_node(childId).parents.length
+                                                )) - node.parents.length;
+                                                if (newLevel + maxChildDepth > 4) {
+                                                    return false;
+                                                }
+                                            }
+                                        }
+                                        
+                                        // Case 2: Dragging questions
+                                        if (node && node.type === 'question') {
+                                            // Allow dropping only into sections that already have questions or have no children
+                                            if (!(parent.children && parent.children.some(childId => this.get_node(childId).type === 'question')) && 
+                                                !(parent.children && parent.children.length === 0)) {
+                                                return false;
+                                            }
+                                        }
+                                    }
+                                    return true;
+                                },
+                                /*'data' : {
+                                    'url' : url,
+                                    'data' : function (node) {
+                                        return { 'id' : node.id };
+                                    }
+                                }*/
+                                'data': function(node, callback) {
+                                    $.getJSON('/assessment/{{ assessment.pk }}/structure/', function(data) {
+                                        level_counts = data.level_counts || {};
+                                        callback(data.structure.filter(Boolean));  // Filter out any null nodes
+                                        //updateLevelCounts();
+                                        //savedDeliveryCounts
+                                    });
+                                }
+                            },
+                            'plugins' : [ 'dnd', 'contextmenu', 'types', 'search' ],
+                            'types' : {
+                                'section' : {
+                                    'icon' : 'fas fa-folder'
+                                },
+                                'question' : {
+                                    'icon' : 'fas fa-file',
+                                    'valid_children' : []
+                                }
+                            },
+                            'contextmenu': {
+                                'items': function(node) {
+                                    var tree = $.jstree.reference(node);
+                                    var items = {
+                                        'create': {
+                                            'label': 'Create Sub Section',
+                                            'action': function(data) {
+                                                var inst = $.jstree.reference(data.reference);
+                                                var obj = inst.get_node(data.reference);
+                                                //var nodeType = obj.parents.length === 4 ? 'question' : 'section';
+                                                inst.create_node(obj, { 'text': 'Sub Section', 'type': 'section' }, 'last', function (new_node) {
+                                                    setTimeout(function () { inst.edit(new_node); },0);
+                                                });
+                                            }
+                                        },
+                                        'attach_question': {
+                                            'label': 'Attach Question',
+                                            'action': function(data) {
+                                                var inst = $.jstree.reference(data.reference);
+                                                var obj = inst.get_node(data.reference);
+                                                
+                                                resetSearchForm();
+                                                $('#questionModal').data('nodeId', obj.id).modal('show');
+                                            }
+                                        },
+                                        'score': {
+                                            'label': 'Set Score',
+                                            'action': function(data) {
+                                                var inst = $.jstree.reference(data.reference);
+                                                var obj = inst.get_node(data.reference);
+                                                if (obj.type === 'question') {
+                                                    openScoreModal(obj.id);//data.questionId
+                                                }
+                                            }
+                                        },
+                                        'rename': {
+                                            'label': 'Rename',
+                                            'action': function(data) {
+                                                var inst = $.jstree.reference(data.reference);
+                                                var obj = inst.get_node(data.reference);
+                                                
+                                                inst.edit(obj);
+                                            }
+                                        },
+                                        'delete': {
+                                            'label': 'Delete',
+                                            'action': function(data) {
+                                                var inst = $.jstree.reference(data.reference);
+                                                var obj = inst.get_node(data.reference);
+                                                
+                                                inst.delete_node(obj);
+                                            }
+                                        }
+                                    };
+                                    if (node && node.type !== 'question') {
+                                        delete items.score;
+                                    }
+                                    if (node && node.type === 'question') {
+                                        delete items.rename;
+                                    }
+                                    if (node && node.type === 'question' || node.parents.length >= 4 || tree.get_node(node.children[0]).type === 'question') {
+                                        delete items.create;
+                                    }
+                                    if (node && node.type == 'question' || (node.children.length !== 0 && tree.get_node(node.children[0]).type !== 'question')) {
+                                        delete items.attach_question;
+                                    }
+                                    return items;
+                                }
+                            }
+                        }).on('move_node.jstree rename_node.jstree delete_node.jstree create_node.jstree', function(e, data) {
+                            updateLevelCounts();
+                            saveLevelInfo();
+                        }).on('ready.jstree', function() {
+                            $('#jstree').jstree('open_all');
+                            
+                            updateLevelCounts(level_counts);
+                        }).on('create_node.jstree', function(e, data) {
+                            $.ajax({
+                                url: '/assessment/{{ assessment.pk }}/structure/',
+                                type: 'POST',
+                                data: JSON.stringify({
+                                    action: 'create',
+                                    type: data.node.type,
+                                    text: data.node.text,
+                                    parent_id: data.parent === '#' ? null : data.parent,
+                                    order: data.position,
+                                    question_id: data.node.data ? data.node.data.questionId : null
+                                }),
+                                contentType: 'application/json',
+                                success: function(response) {
+                                    //data.instance.set_id(data.node, response.id);
+                                    if (response && response.id) {
+                                        data.instance.set_id(data.node, response.id);
+                                    }
+                                }
+                            });
+                        }).on('rename_node.jstree', function(e, data) {
+                            $.ajax({
+                                url: '/assessment/{{ assessment.pk }}/structure/',
+                                type: 'POST',
+                                data: JSON.stringify({
+                                    action: 'edit',
+                                    id: data.node.id,
+                                    text: data.text
+                                }),
+                                contentType: 'application/json'
+                            });
+                        }).on('delete_node.jstree', function(e, data) {
+                            $.ajax({
+                                url: '/assessment/{{ assessment.pk }}/structure/',
+                                type: 'POST',
+                                data: JSON.stringify({
+                                    action: 'delete',
+                                    id: data.node.id
+                                }),
+                                contentType: 'application/json'
+                            });
+                        }).on('move_node.jstree', function(e, data) {
+                            $.ajax({
+                                url: '/assessment/{{ assessment.pk }}/structure/',
+                                type: 'POST',
+                                data: JSON.stringify({
+                                    action: 'move',
+                                    id: data.node.id,
+                                    parent: data.parent,
+                                    position: data.position
+                                }),
+                                contentType: 'application/json'
+                            });
+                        });
+
+                        $('#expand-all').on('click', function() {
+                            $tree.jstree('open_all');
+                        });
+                        
+                        $('#collapse-all').on('click', function() {
+                            $tree.jstree('close_all');
+                        });
+
+                        var to = false;
+                        $('#search-input').keyup(function () {
+                            if(to) { clearTimeout(to); }
+                            to = setTimeout(function () {
+                                var v = $('#search-input').val();
+                                $tree.jstree(true).search(v);
+                            }, 250);
+                        });
+                    }
+                }
+            });
+
+            function resetSearchForm() {
+                $('#questionSearchForm')[0].reset();
+                $('#searchResults').empty();
+            }
+
+            function saveLevelInfo() {
+                var levelCounts = getLevelCounts();
+                
+                $.ajax({
+                    url: '/assessment/{{ assessment.pk }}/structure/',
+                    type: 'POST',
+                    data: JSON.stringify({
+                        action: 'level',
+                        level_counts: levelCounts
+                    }),
+                    contentType: 'application/json'
+                });
+            }
+
+            /*function saveTree() {
+                var json = $('#jstree').jstree(true).get_json('#', {flat:false});
+                var levelCounts = getLevelCounts();
+            
+                function processNode(node) {
+                    var processedNode = {
+                        text: node.text,
+                        type: node.type,
+                        order: node.order
+                    };
+                    if (node.type === 'question') {
+                        processedNode.data = { questionId: node.data.questionId };
+                    }
+                    if (node.children) {
+                        processedNode.children = node.children.map(processNode);
+                    }
+                    return processedNode;
+                }
+            
+                var processedJson = json.map(processNode);
+            
+                $.ajax({
+                    url: '/assessment/{{ assessment.pk }}/structure/',
+                    type: 'POST',
+                    data: JSON.stringify({
+                        structure: processedJson,
+                        level_counts: levelCounts
+                    }),
+                    contentType: 'application/json',
+                    headers: {
+                        'X-CSRFToken': $('input[name=csrfmiddlewaretoken]').val()
+                    },
+                    success: function(data) {
+                        console.log('Tree saved successfully');
+                    }
+                });
+            }*/
+
+            /*function saveTree() {
+                var json = $('#jstree').jstree(true).get_json('#', {flat:false});
+                var levelCounts = getLevelCounts();
+
+                $.ajax({
+                    url: url,
+                    type: 'POST',
+                    data: JSON.stringify({
+                        structure: json,
+                        level_counts: levelCounts
+                    }),
+                    contentType: 'application/json',
+                    headers: {
+                        'X-CSRFToken': $('input[name=csrfmiddlewaretoken]').val()
+                    },
+                    success: function(data) {
+                        console.log('Tree saved successfully');
+                    }
+                });
+            }*/
+
+            $('#add-main-section').on('click', function() {
+                $tree.jstree('create_node', '#', { 'text': 'Main Section', 'type': 'section' }, 'last');
+            });
+
+            // Handle form submission
+            $(document).on('submit', '#questionSearchForm', function(e) {
+                e.preventDefault();
+                $.ajax({
+                    url: '/assessment/question/search',
+                    method: 'GET',
+                    data: $(this).serialize(),
+                    success: function(data) {
+                        displaySearchResults(data);
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("Error searching questions:", error);
+                    }
+                });
+            });
+
+            function displaySearchResults(questions) {
+                var resultsHtml = '<table class="table tabls-sm mb-0"><thead><tr><th>Select</th><th>Title</th><th>Type</th><th>Difficulty</th></tr></thead><tbody>';
+                questions.forEach(function(question) {
+                    resultsHtml += `<tr>
+                        <td><input type="checkbox" class="question-select" data-id="${question.id}" data-title="${question.title}"></td>
+                        <td>${question.title}</td>
+                        <td>${question.type}</td>
+                        <td>${question.difficulty_level}</td>
+                    </tr>`;
+                });
+                resultsHtml += '</tbody></table>';
+                $('#searchResults').html(resultsHtml);
+            }
+
+            // Handle adding selected questions to the tree
+            $('#addSelectedQuestions').on('click', function() {
+                var questionExist = false;
+                var selectedNode = $('#jstree').jstree('get_selected')[0];
+                var selectedQuestions = $('.question-select:checked').map(function() {
+                    return {
+                        id: $(this).data('id'),
+                        title: $(this).data('title')
+                    };
+                }).get();
+
+                if (selectedQuestions.length === 0) {
+                    alert('Please select at least one question to add.');
+                    return;
+                }
+
+                //if (confirm(`Are you sure you want to add ${selectedQuestions.length} question(s) to the selected section?`)) {
+                    let addedCount = 0;
+                    selectedQuestions.forEach(function(question) {
+                        if (!checkQuestionExist(question.id)) {
+                            $('#jstree').jstree('create_node', selectedNode, {
+                                id: question.id,
+                                text: question.title,
+                                type: 'question',
+                                data: { questionId: question.id },
+                                li_attr: { class: 'question-node' },
+                            }, 'last');
+                            addedCount++;
+                        }
+                    });
+            
+                    $('#jstree').jstree('open_node', selectedNode);
+                    $('#questionModal').modal('hide');
+                    alert(`Added ${addedCount} new question(s) to the tree.`);
+                //}
+
+                /*selectedQuestions.forEach(function(question) {
+                    if (!checkQuestionExist(question.id)) {
+                        var nodeId = $('#jstree').jstree('create_node', selectedNode, {
+                            id: question.id,
+                            text: question.title,
+                            type: 'question',
+                            data: { questionId: question.id },
+                            li_attr: { class: 'question-node' },
+                        }, 'last');
+                        $('#jstree').jstree('open_node', selectedNode);
+                        //console.log(addedQuestionIds);
+                    } else {
+                        questionExist = true;
+                    }
+                });
+
+                if (questionExist) {
+                    alert('Question already exists in the tree.');
+                } else {
+                    $('#questionModal').modal('hide');
+                }*/
+            });
+
+            function checkQuestionExist(questionId) {
+                var exists = false;
+                function traverse(node) {
+                    //if (!node) return false;
+                    if (node.type === 'question' && node.data && node.data.questionId && node.data.questionId.toString() === questionId.toString()) {
+                        exists = true;
+                        return true; // Stop traversal
+                    } else if (node.children) {
+                        return node.children.some(traverse);
+                    }
+                    return false;
+                }
+                
+                var treeData = $('#jstree').jstree(true).get_json('#', {flat: false});
+                if (treeData) treeData.some(traverse);
+                
+                return exists;
+            }
+            
+            {% comment %} function openScoreModal(questionId) {
+                $.ajax({
+                    url: '/assessment/question/options/' + questionId + '/',
+                    method: 'GET',
+                    success: function(data) {
+                        var modalBody = $('#scoreModalBody');
+                        modalBody.empty();
+                        modalBody.append(`
+                            <div class="row"><div class="col-6">
+                                <label for="correct_score" class="form-label">Correct Score</label>
+                                <input type="number" class="form-control" id="correct_score" value="${data.correct_score}" step="0.1">
+                            </div>
+                            <div class="col-6">
+                                <label for="incorrect_score" class="form-label">Incorrect Score</label>
+                                <input type="number" class="form-control" id="incorrect_score" value="${data.incorrect_score}" step="0.1">
+                            </div></div>
+                        `);
+                        if (data && Array.isArray(data)) {
+                            data.forEach(function(option, index) {
+                                modalBody.append(`
+                                    <div class="mb-3">
+                                        <label for="score${option.id}" class="form-label">${option.text}</label>
+                                        <input type="number" class="form-control" id="score${option.id}" value="${option.score}" step="0.1">
+                                    </div>
+                                `);
+                            });
+                        }
+                        $('#questionScoreModal').data('questionId', questionId).modal('show');
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("Error fetching question data:", error);
+                    }
+                });
+            }
+
+            $('#saveScores').on('click', function() {
+                var questionId = $('#questionScoreModal').data('questionId');
+                var data = {
+                    correct_score: parseFloat($('#correct_score').val()),
+                    incorrect_score: parseFloat($('#incorrect_score').val()),
+                    options: {}
+                };
+                $('#scoreModalBody input[id^="score"]').each(function() {
+                    data.options[this.id.replace('score', '')] = parseFloat($(this).val());
+                });
+                
+                $.ajax({
+                    url: '/assessment/question/' + questionId + '/set-scores/',
+                    method: 'POST',
+                    data: JSON.stringify(data),
+                    contentType: 'application/json',
+                    headers: {
+                        'X-CSRFToken': $('input[name=csrfmiddlewaretoken]').val()
+                    },
+                    success: function(response) {
+                        console.log('Scores saved successfully');
+                        $('#questionScoreModal').modal('hide');
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error saving scores:', error);
+                    }
+                });
+            }); {% endcomment %}
+
+            function openScoreModal(questionId) {
+                $.ajax({
+                    url: '/assessment/question/options/' + questionId + '/',
+                    method: 'GET',
+                    success: function(data) {
+                        var modalBody = $('#scoreModalBody');
+                        modalBody.empty();
+                        modalBody.append(`
+                                <div class="row"><div class="col-6">
+                                    <label for="right_score" class="form-label">Right Score</label>
+                                    <input type="number" class="form-control" id="right_score" value="${data.right_score}" step="0.1">
+                                </div>
+                                <div class="col-6">
+                                    <label for="wrong_score" class="form-label">Wrong Score</label>
+                                    <input type="number" class="form-control" id="wrong_score" value="${data.wrong_score}" step="0.1">
+                                </div></div>
+                        `);
+                        $('#questionScoreModal').attr('data-node-id', questionId).modal('show');
+                        
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("Error fetching question data:", error);
+                    }
+                });
+            }
+            
+            $('#saveScores').on('click', function() {
+                var nodeId = $('#questionScoreModal').attr('data-node-id');
+                var data = {
+                    right_score: parseFloat($('#right_score').val()),
+                    wrong_score: parseFloat($('#wrong_score').val())
+                };
+                
+                $.ajax({
+                    url: '/assessment/question/' + nodeId + '/set-scores/',
+                    method: 'POST',
+                    data: JSON.stringify(data),
+                    contentType: 'application/json',
+                    headers: {
+                        'X-CSRFToken': $('input[name=csrfmiddlewaretoken]').val()
+                    },
+                    success: function(response) {
+                        console.log('Scores saved successfully');
+                        $('#questionScoreModal').modal('hide');
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error saving scores:', error);
+                    }
+                });
+            });
+            
+            function openBulkScoreModal() {
+                var selectedQuestions = $('#jstree').jstree('get_selected');
+                var modalBody = $('#bulkScoreModalBody');
+                modalBody.empty();
+                modalBody.append(`
+                    <div class="row">
+                        <div class="col-6">
+                            <label for="bulk_right_score" class="form-label">Right Score</label>
+                            <input type="number" class="form-control" id="bulk_right_score" step="0.1">
+                        </div>
+                        <div class="col-6">
+                            <label for="bulk_wrong_score" class="form-label">Wrong Score</label>
+                            <input type="number" class="form-control" id="bulk_wrong_score" step="0.1">
+                        </div>
+                    </div>
+                `);
+                $('#bulkScoreModal').modal('show');
+            }
+            
+            $('#saveBulkScores').on('click', function() {
+                var selectedQuestions = $('#jstree').jstree('get_selected');
+                var data = {
+                    right_score: parseFloat($('#bulk_right_score').val()),
+                    wrong_score: parseFloat($('#bulk_wrong_score').val()),
+                    question_ids: selectedQuestions
+                };
+                
+                $.ajax({
+                    url: '/assessment/questions/set-bulk-scores/',
+                    method: 'POST',
+                    data: JSON.stringify(data),
+                    contentType: 'application/json',
+                    headers: {
+                        'X-CSRFToken': $('input[name=csrfmiddlewaretoken]').val()
+                    },
+                    success: function(response) {
+                        console.log('Bulk scores saved successfully');
+                        $('#bulkScoreModal').modal('hide');
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error saving bulk scores:', error);
+                    }
+                });
+            });
+            
+
+            var level_counts = {};
+            function updateLevelCounts(savedDeliveryCounts = {}) {
+                var totalQuestions = {};
+                
+                function traverse(node, level) {
+                    if (node.type === 'question') {
+                        totalQuestions[level] = (totalQuestions[level] || 0) + 1;
+                    } else if (node.children) {
+                        node.children.forEach(child => traverse(child, level + 1));
+                    }
+                }
+                
+                var treeData = $tree.jstree(true).get_json('#', {flat: false});
+                if (treeData) treeData.forEach(node => traverse(node, 0));
+    
+                var totalHtml = '<h6><b>Assigned Count:</b></h6>';
+                var deliveryHtml = '<h6><b>Delivery Count:</b></h6>';
+                
+                for (var level in totalQuestions) {
+                    totalHtml += `<div class="mb-2">
+                        <label>Level-${level}: ${totalQuestions[level]}</label>
+                    </div>`;
+                    var savedCount = savedDeliveryCounts[level] ? savedDeliveryCounts[level].delivery : totalQuestions[level];
+                    deliveryHtml += `<div class="mb-2">
+                        <label for="delivery-${level}">Level-${level}:</label>
+                        <input type="number" id="delivery-${level}" class="form-control form-control-sm" 
+                            value="${savedCount}" 
+                            min="1" max="${totalQuestions[level]}">
+                    </div>`;
+                }
+                
+                $('#assigned-count').html(totalHtml);
+                $('#delivery-count').html(deliveryHtml);
+            }
+
+            function getLevelCounts() {
+                var levelCounts = {};
+                $('#delivery-count input[type="number"]').each(function() {
+                    var level = this.id.split('-')[1];
+                    levelCounts[level] = {
+                        total: parseInt($('#assigned-count').find(`label:contains("Level-${level}:")`).text().split(':')[1].trim()),
+                        delivery: parseInt($(this).val())
+                    };
+                });
+                return levelCounts;
+            }
+
+            $(document).on('change', '#delivery-count input[type="number"]', function() {
+                saveLevelInfo();
+            });
+            
+
+
+            function traverseSequential() {
+                let questions = [];
+                function traverse(node) {
+                    if (node.type === 'question') {
+                        questions.push(node.data.questionId.toString());
+                    } else {
+                        node.children.forEach(traverse);
+                    }
+                }
+                var treeData = $tree.jstree(true).get_json('#', {flat: false});
+                if (treeData) treeData.forEach(traverse);
+                return questions;
+            }
+            
+            function getRandomQuestions() {
+                let questions = traverseSequential();
+                return questions.sort(() => Math.random() - 0.5);
+            }
+            
+            function traverseSections() {
+                let sections = [];
+                function traverse(node) {
+                    if (node.type === 'section') {
+                        sections.push(node.id);
+                        node.children.forEach(traverse);
+                    }
+                }
+                var treeData = $tree.jstree(true).get_json('#', {flat: false})
+                if(treeData) treeData.forEach(traverse);
+                return sections;
+            }
+            
+            function getQuestionsForSection(sectionId) {
+                let questions = [];
+                function traverse(node) {
+                    if (node.id === sectionId) {
+                        node.children.forEach(child => {
+                            if (child.type === 'question') {
+                                questions.push(child.id);
+                            } else {
+                                traverse(child);
+                            }
+                        });
+                    } else if (node.type === 'section') {
+                        node.children.forEach(traverse);
+                    }
+                }
+                var treeData = $tree.jstree(true).get_json('#', {flat: false})
+                if(treeData) treeData.forEach(traverse);
+                return questions;
+            }
+
+        });
+
+    </script>
+    {% endif %}
+{% endblock %}
+

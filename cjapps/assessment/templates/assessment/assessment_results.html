@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="results-container">
+    <h2>Assessment Results</h2>
+    
+    <div class="assessment-info">
+        <h3>{{ session.assessment.title }}</h3>
+        <p>Completed on: {{ session.end_time }}</p>
+    </div>
+
+    <div class="results-summary">
+        <div class="score-card">
+            <h4>Score Summary</h4>
+            <div class="score-details">
+                <div class="total-questions">
+                    Total Questions: {{ session.assessment.get_total_questions }}
+                </div>
+                <div class="attempted">
+                    Questions Attempted: {{ answers.count }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="detailed-results">
+        <h4>Question-wise Results</h4>
+        {% for answer in answers %}
+        <div class="question-result">
+            <div class="question-header">
+                <span class="question-number">Question {{ forloop.counter }}</span>
+                <span class="question-title">{{ answer.question.title }}</span>
+            </div>
+            <div class="answer-details">
+                <div class="your-answer">
+                    Your Answer: {{ answer.answer }}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+.results-container {
+    max-width: 800px;
+    margin: 20px auto;
+    padding: 20px;
+}
+
+.assessment-info {
+    margin-bottom: 30px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 5px;
+}
+
+.score-card {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 30px;
+}
+
+.score-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-top: 15px;
+}
+
+.question-result {
+    background: #fff;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 5px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.question-header {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 10px;
+}
+
+.question-number {
+    font-weight: bold;
+    color: #666;
+}
+
+.answer-details {
+    padding-left: 20px;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,24 @@
+<div id="question-wrapper" data-question-id="{{ question.id }}" data-question-type="cus_match">
+    <div class="question-header">
+        <span class="question-number">Question {{ question.number }}</span>
+        <div class="question-text">{{ question.text.html|safe }}</div>
+    </div>
+    <button id="reset-matches" class="btn btn-secondary mb-3">Reset Matches</button>
+    <div class="match-container">
+        <div class="match-left">
+            {% for item in question.left_items %}
+            <div class="match-item" draggable="true" data-item-id="{{ item.id }}">
+                {{ item.left_item }}
+            </div>
+            {% endfor %}
+        </div>
+        <div class="match-right">
+            {% for item in question.right_items %}
+            <div class="match-dropzone" data-item-id="{{ item.id }}">
+                <div class="match-item-target">{{ item.right_item }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    
+</div>

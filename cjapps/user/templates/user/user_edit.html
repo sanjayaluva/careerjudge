@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }} | Career Judge{% endblock title %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block content %}
+
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="/">Home</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'user_list' %}">Users</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Update</li>
+    </ol>
+</nav>
+
+<h4 class="fw-bold mb-3"><i class="fas fa-cog me-2"></i>User Update Form</h4>
+
+{% include 'snippets/messages.html' %}
+
+<form action="" method="POST" enctype="multipart/form-data">{% csrf_token %}
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <div class="card">
+                <p class="form-title">Profile Information</p>
+                <div class="card-body">
+                    {{ form.first_name|as_crispy_field }}
+                    {{ form.middle_name|as_crispy_field }}
+                    {{ form.last_name|as_crispy_field }}
+                    {{ form.email|as_crispy_field }}
+                    {{ form.phone|as_crispy_field }}
+                    {% if user.is_corpindividual %}
+                    {{ form.gender|as_crispy_field }}
+                    {{ form.dob|as_crispy_field }}
+                    {% endif %}
+                    {% if user.is_individual or user.is_psychometrician or user.is_reviewer or user.is_trainer or user.is_counsellor %}
+                    {{ form.gender|as_crispy_field }}
+                    {{ form.dob|as_crispy_field }}
+                    {{ form.state|as_crispy_field }}
+                    {{ form.country|as_crispy_field }}
+                    {{ form.occupation|as_crispy_field }}
+                    {{ form.cur_position|as_crispy_field }}
+                    {{ form.work_exp|as_crispy_field }}
+                    {{ form.high_education|as_crispy_field }}
+                    {% endif %}
+                    {% if user.is_individual %}
+                    {{ form.edu_level|as_crispy_field }}
+                    {{ form.institution_name|as_crispy_field }}
+                    {{ form.institution_place|as_crispy_field }}
+                    {{ form.location|as_crispy_field }}
+                    {{ form.assess_pack_alloc|as_crispy_field }}
+                    {% endif %}
+                    {% if user.is_corpadmin or user.is_corpexclusive %}
+                    {{ form.group_name|as_crispy_field }}
+                    {{ form.org_name|as_crispy_field }}
+                    {{ form.manager_name|as_crispy_field }}
+                    {{ form.pan_tan|as_crispy_field }}
+                    {% endif %}
+                    {% if user.is_psychometrician or user.is_reviewer or user.is_trainer or user.is_counsellor or user.is_channelpartner %}
+                    {{ form.pan|as_crispy_field }}
+                    {{ form.bank_ac|as_crispy_field }}
+                    {{ form.bank_name|as_crispy_field }}
+                    {{ form.bank_branch|as_crispy_field }}
+                    {{ form.bank_ifsc|as_crispy_field }}
+                    {% endif %}
+                    {% if user.is_reviewer or user.is_trainer or user.is_counsellor %}
+                    {{ form.domain_exp|as_crispy_field }}
+                    {{ form.user_bio|as_crispy_field }}
+                    {% endif %}
+                    {% if user.is_channelpartner %}
+                    {{ form.chp_agency_name|as_crispy_field }}
+                    {{ form.chp_agrmt_id|as_crispy_field }}
+                    {{ form.chp_contr_period|as_crispy_field }}
+                    {{ form.chp_region|as_crispy_field }}
+                    {% endif %}
+
+                    {% if user.is_psychometrician or user.is_reviewer or user.is_trainer or user.is_counsellor %}
+                    {{ form.contact_address|as_crispy_field }}
+                    {{ form.perm_address|as_crispy_field }}
+                    {% elif user.is_corpadmin or user.is_corpexclusive %}
+                    {{ form.off_address|as_crispy_field }}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <p class="form-title">Others</p>
+                <div class="card-body">
+                    {{ form.picture|as_crispy_field }}
+                </div>
+            </div>
+        </div>
+    </div>
+    <input class="btn btn-primary" type="submit" value="Save">
+</form>
+{% endblock content %}

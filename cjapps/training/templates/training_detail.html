@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }} | Career Judge{% endblock title %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block content %}
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="/">Home</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'training_list' %}">Training</a></li>
+      <li class="breadcrumb-item active" aria-current="page">View</li>
+    </ol>
+</nav>
+
+<h4 class="fw-bold mb-3"><i class="fas fa-cog me-2"></i>Booking View</h4>
+
+{% include 'snippets/messages.html' %}
+
+<form action="" method="POST" id="training_booking_form">{% csrf_token %}
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <div class="card">
+                <p class="form-title">Training Information</p>
+                <div class="card-body">
+                    <div class="container m-0 p-0">
+                        <div class="row">
+                            <div class="col-9 pe-0">
+                                {{ training.title }}
+                                {{ training.category }}
+                                {{ training.get_type_display }}
+                                {{ training.duration }}
+                                {{ training.get_duration_type_display }}
+                                {{ training.created_by }}
+                            </div>
+                            <div class="col-3 ps-0 d-flex flex-column">
+                                {{ training.objectives }}
+                                {{ training.desc_text }}
+                                {{ training.desc_img }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <p class="form-title">Others</p>
+                <div class="card-body">
+                    {#{ form.counselee|as_crispy_field }#}
+                    {#{ form.topic|as_crispy_field }#}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+</form>
+{% endblock content %}
+
+{% block js %}
+<script>
+    $(function(){
+        
+    });
+</script>
+{% endblock js %}

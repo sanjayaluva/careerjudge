@@ -1,0 +1,145 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }} | Career Judge{% endblock title %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block content %}
+    <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+        <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">Home</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'user_list' %}">Users</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Import</li>
+        </ol>
+    </nav>
+
+    <h4 class="fw-bold mb-3"><i class="fas fa-cog me-2"></i>User Import Form</h4>
+
+    {% include 'snippets/messages.html' %}
+
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <div class="card">
+                <p class="form-title">Import User</p>
+                <div class="card-body">
+                    
+                    <h1>Importar {{ opts.app_label }}</h1>
+
+                    {% if confirm_form %}
+                    <form action="{% url 'user_import' %}" method="POST">
+                        {% csrf_token %}
+                        {{ confirm_form.as_p|crispy }}
+                        <p>
+                        Below is a preview of data to be imported. If you are satisfied with the results, click 'Confirm import'
+                        </p>
+                        <div class="submit-row">
+                        <input type="submit" class="btn" name="confirm" value="Confirm import">
+                        </div>
+                    </form>
+
+                    {% else %}
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+
+                        <p>
+                        This importer will import the following fields:
+                        {% for f in fields  %}
+                            {% if forloop.counter0 %}
+                            , 
+                            {% endif %}
+                            <tt>{{ f }}</tt>
+                        {% endfor %}
+                        </p>
+
+                        <fieldset class="module aligned">
+                        {% for field in form %}
+                            <div class="form-row">
+                            {{ field.errors }}
+
+                            {{ field.label_tag }}
+
+                            {{ field|as_crispy_field }}
+
+                            {% if field.field.help_text %}
+                            <p class="help">{{ field.field.help_text|safe }}</p>
+                            {% endif %}
+                            </div>
+                        {% endfor %}
+                        </fieldset>
+
+                        <div class="submit-row">
+                        <input type="submit" class="btn" value="Submit">
+                        </div>
+                    </form>
+                    {% endif %}
+
+                    {% if result %}
+                        {% if result.has_errors %}
+                            <h2>Errors</h2>
+                            <ul>
+                                {% for error in result.base_errors  %}
+                                    <li>{{ error.error }}</li>
+                                {% endfor %}
+                                {% for line, errors in result.row_errors %}
+                                    {% for error in errors %}
+                                        <li>
+                                        Line number: {{ line }} - {{ error.error }}
+                                        <div class="traceback">{{ error.traceback|linebreaks }}</div>
+                                        </li>
+                                    {% endfor %}
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <h2>Preview</h2>
+                            <table>
+                            <thead>
+                            <tr>
+                                <th></th>
+                                {% for field in fields %}
+                                <th>{{ field }}</th>
+                                {% endfor %}
+                            </tr>
+                            </thead>
+                            {% for row in result.rows %}
+                                <tr>
+                                    <td>
+                                    {% if row.import_type == 'new' %}
+                                        New
+                                    {% elif row.import_type == 'skip' %}
+                                        Skipped
+                                    {% elif row.import_type == 'delete' %}
+                                        Delete
+                                    {% elif row.import_type == 'update' %}
+                                        Update
+                                    {% endif %}
+                                    </td>
+                                {% for field in row.diff %}
+                                <td>
+                                    {{ field }}
+                                </td>
+                                {% endfor %}
+                                </tr>
+                            {% endfor %}
+                            </table>
+                        {% endif %}
+                    {% endif %}
+
+                    <!--form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        {{ form|crispy }}
+                        {{ cform }}
+
+                        {#{ form2|crispy }#}
+                        <button type="submit" class="btn btn-primary">Upload</button>
+                        <a href="/media/downloads/user_import.csv" class="">Download example CSV</a>
+                    </form-->
+
+                    {{ result.has_errors }}
+                    {% for r in result.rows %}
+                    {{ r  }}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}

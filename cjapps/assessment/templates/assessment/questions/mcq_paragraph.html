@@ -1,0 +1,50 @@
+<div id="question-wrapper" 
+     data-question-id="{{ question.id }}" 
+     data-question-type="mcq_paragraph">
+
+    <div class="question-header mb-4">
+        <h5 class="question-number">Question {{ question_number }}</h5>
+        <h4 class="question-title">{{ question.title }}</h4>
+        
+        <!-- {% if question.objectives %}
+        <div class="question-objectives">
+            {{ question.objectives.html|safe }}
+        </div>
+        {% endif %} -->
+    </div>
+
+    <div class="paragraph-container" data-interval="{{ question.paragraph_interval }}">
+        <div class="paragraph-content">
+            <div class="question-text mb-4">
+                {{ question.text.html|safe }}
+            </div>
+            <div class="time-display alert alert-info mb-3"></div>
+            <div class="card p-4">
+                {{ question.paragraph.html|safe }}
+            </div>
+        </div>
+
+        <div class="question-content d-none">
+            <div class="question-text mb-4">
+                {{ question.text.html|safe }}
+            </div>
+
+            <div class="options-container">
+                {% for option in question.options.all %}
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" 
+                           name="answer" id="option{{ option.id }}" 
+                           value="{{ option.id }}">
+                    <label class="form-check-label" for="option{{ option.id }}">
+                        {{ option.text|safe }}
+                        {% if option.image %}
+                        <img src="{{ option.image.url }}" class="img-fluid mt-2">
+                        {% endif %}
+                    </label>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+

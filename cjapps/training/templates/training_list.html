@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }} | Career Judge{% endblock title %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block content %}
+
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="/">Home</a></li>
+      <li class="breadcrumb-item"><a href="{#% url 'user_list' %#}">Training</a></li>
+      <li class="breadcrumb-item active" aria-current="page">List</li>
+    </ol>
+</nav>
+
+{% if perms.training.add_training %}
+<div class="manage-wrap">
+    <a class="btn btn-sm btn-primary" href="{% url 'training_add' %}"><i class="fas fa-plus"></i> Create Training</a>
+</div>
+{% endif %}
+
+<h4 class="fw-bold mb-3"><i class="fas fa-cog me-2"></i> Training List</h4>
+
+{% include 'snippets/messages.html' %}
+
+<div class="m-0 mt-3">
+    <table class="table table-responsive table-shadow table-light table-striped">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th> Title </th>
+                <th> Type </th>
+                <th> Duration </th>
+                <th> Category </th>
+                <th> Amount </th>
+                {% if perms.training.delete_training %}
+                <th> Action </th>
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for training in page_obj  %}
+            <tr>
+                <td>{{ forloop.counter }}.</td>
+                <td>{{ training.title }}</td>
+                <td>{{ training.get_type_display }}</td>
+                <td>{{ training.duration_str }}</td>
+                <td>{{ training.category }}</td>
+                <td>{{ training.amount }}</td>
+                {% if perms.training.delete_training %}
+                <td>
+                    <div class="dropdown">
+                        <button class="btn btn-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fa fa-ellipsis-vertical"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'training_view' training.id %}"><i class="fas fa-edit"></i> View</a></li>
+                            {% if perms.training.change_training %}
+                            
+                            {% if training.active %}
+                            <li><a class="dropdown-item" href="{% url 'training_activate' training.id %}"><i class="fas fa-times"></i> Deactivate</a></li>
+                            {% else %}
+                            <li><a class="dropdown-item" href="{% url 'training_activate' training.id %}"><i class="fas fa-check"></i> Activate</a></li>
+                            {% endif %}
+
+                            <li><a class="dropdown-item" href="{% url 'training_edit' training.id %}"><i class="fas fa-edit"></i> Update</a></li>
+                            {% endif %}
+                            {% if perms.training.delete_training %}
+                            <li><a class="dropdown-item" href="{% url 'training_delete' training.id %}"><i class="fas fa-trash"></i> Delete</a></li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </td>
+                {% endif %}
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6">
+                    <span class="text-danger">
+                        No User.
+                        {% if perms.training.add_training %}
+                        <a href="{% url 'training_add' %}">
+                        <i class="primary" style="font-size: 22px;">
+                        Add Training Category Now.
+                        </i>
+                        {% endif %}
+                        </a>
+                    </span>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="pagination">
+        <span class="step-links">
+            {% if page_obj.has_previous %}
+                <a href="?page=1">&laquo; first</a>
+                <a href="?page={{ page_obj.previous_page_number }}">previous</a>
+            {% endif %}
+
+            <span class="current">
+                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+            </span>
+
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}">next</a>
+                <a href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
+            {% endif %}
+        </span>
+    </div>
+</div>
+{% endblock content %}

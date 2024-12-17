@@ -1,0 +1,13 @@
+<div id="question-wrapper" data-question-id="{{ question.id }}" data-question-type="cus_hotspot_multiple">
+    <div class="question-header">
+        <span class="question-number">Question {{ question.number }}</span>
+        <div class="question-text">{{ question.text.html|safe }}</div>
+    </div>
+    <div class="hotspot-container">
+        <img src="{{ question.image.url }}" id="hotspotImage" style="display: none;">
+        <canvas id="hotspot-canvas"></canvas>
+    </div>
+    <input type="hidden" id="selectedShape" name="selectedShape" value="">
+</div>
+{{ question.hotspot_items|json_script:"hotspot-data" }}
+<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script> -->

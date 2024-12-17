@@ -1,0 +1,3348 @@
+{% extends 'base.html' %}
+{% load static crispy_forms_tags %}
+
+{% block content %}
+
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="/">Home</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'question_bank:question_list' %}">Question Bank</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Create</li>
+    </ol>
+</nav>
+
+<div class="manage-wrap">
+    <button class="btn btn-sm btn-primary" onclick="outside_form_submit('question-form')"><i class="fas fa-plus"></i> SaveQuestion</button>
+</div>
+
+<h4 class="fw-bold mb-3"><i class="fas fa-cog me-2"></i>{% if question %}Edit{% else %}Create{% endif %} Question</h4>
+
+{% include 'snippets/messages.html' %}
+
+<div class="container mt-4">
+    <form method="post" enctype="multipart/form-data" id="question-form">
+        {% csrf_token %}
+
+        <ul class="nav nav-tabs mb-3" id="questionTabs" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link active" id="basic-tab" data-toggle="tab" href="#basic" role="tab">Basic Info</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="category-tab" data-toggle="tab" href="#category" role="tab">Category</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="content-tab" data-toggle="tab" href="#content" role="tab">Content</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="options-tab" data-toggle="tab" href="#options" role="tab">Options</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="preview-tab" data-toggle="tab" href="#preview" role="tab">Preview</a>
+            </li>
+        </ul>
+
+        <div class="tab-content mb-4" id="questionTabsContent">
+            <div class="tab-pane fade show active" id="basic" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-6">{{ basic_form.title|as_crispy_field }}</div>
+                    <div class="col-md-6">{{ basic_form.type|as_crispy_field }}</div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">{{ basic_form.difficulty_level|as_crispy_field }}</div>
+                    <div class="col-md-6">{{ basic_form.cognitive_level|as_crispy_field }}</div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">{{ basic_form.exposure_limit|as_crispy_field }}</div>
+                    <div class="col-md-6">{{ basic_form.case_sensitive|as_crispy_field }}</div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">{{ basic_form.instructions|as_crispy_field }}</div>
+                    <div class="col-md-6">{{ basic_form.objectives|as_crispy_field }}</div>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="category" role="tabpanel">
+                {{ basic_form.category|as_crispy_field }}
+                <div id="category-tree"></div>
+            </div>
+            <div class="tab-pane fade" id="content" role="tabpanel">
+                {{ basic_form.text|as_crispy_field }}
+                {{ basic_form.paragraph|as_crispy_field }}
+                {{ basic_form.image|as_crispy_field }}
+                {{ basic_form.audio|as_crispy_field }}
+                {{ basic_form.video|as_crispy_field }}
+
+                <div id="question-type-fields" class="mt-4">
+                    
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="options" role="tabpanel">
+                <div id="option-fields">
+                    <div id="mcq-fields">
+                        <h6>Answer Options:</h6>
+                        {{ option_formset.management_form }}
+                        <table class="table" id="option-table" >
+                            <thead>
+                                <tr>
+                                    <th>Text</th>
+                                    <th>Image</th>
+                                    <th>Is Correct</th>
+                                    <th>Delete</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for form in option_formset %}
+                                    <tr class="option-form">
+                                        <td>{{ form.text }}</td>
+                                        <td>{{ form.image }}</td>
+                                        <td>{{ form.is_correct }}</td>
+                                        <td>{{ form.DELETE }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        <button type="button" data-formset="option" class="btn btn-secondary add-row">Add Option</button>
+                        <script type="text/html" id="option-empty-form">
+                            <tr class="option-form">
+                                <td>{{ option_formset.empty_form.text }}</td>
+                                <td>{{ option_formset.empty_form.image }}</td>
+                                <td>{{ option_formset.empty_form.is_correct }}</td>
+                                <td>{{ option_formset.empty_form.DELETE }}</td>
+                            </tr>
+                        </script>
+                    </div>
+
+                    <div id="fib-fields">
+                        <h6>Fill in the Blank Answers:</h6>
+                        {{ answer_formset.management_form }}
+                        <table class="table" id="answer-table">
+                            <thead>
+                                <tr>
+                                    <th>Text</th>
+                                    {% comment %} <th>Delete</th> {% endcomment %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for form in answer_formset %}
+                                    <tr class="answer-form">
+                                        <td>{{ form.text }}</td>
+                                        {% comment %} <td>{{ form.DELETE }}</td> {% endcomment %}
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        <!--button type="button" data-formset="answer" class="btn btn-secondary add-row">Add Answer</button-->
+                        <script type="text/html" id="answer-empty-form">
+                            <tr class="answer-form">
+                                <td>{{ answer_formset.empty_form.text }}</td>
+                                {% comment %} <td>{{ answer_formset.empty_form.DELETE }}</td> {% endcomment %}
+                            </tr>
+                        </script>
+                    </div>
+
+                    <div id="grid-fields" class="mt-4">
+                        <h6>Grid Selection Items:</h6>
+                        <div class="row">
+                            <div class="col-2">
+                                {{ basic_form.grid_cols|as_crispy_field }}
+                            </div>
+                            <div class="col-2">
+                                {{ basic_form.grid_rows|as_crispy_field }}
+                            </div>
+                            <div class="col-2">
+                                {{ basic_form.grid_type|as_crispy_field }}
+                            </div>
+                        </div>
+                        <div id="grid-options">
+                            {{ grid_formset.management_form }}
+                            <table id="grid-table" class="table table-bordered"></table>
+                        </div>
+                        
+                        {% comment %} <div id="option-popup" style="display: none;">
+                            <div id="popup-content"></div>
+                            <button id="select-option">Select</button>
+                        </div>
+                        <button id="view-all-options">View All Options</button> {% endcomment %}
+                    </div>
+
+                    <div id="hotspot-fields">
+                        <div class="hotspot-container">
+                            <h4>Hotspot Question</h4> <!-- Single/Multiple Answer -->
+                            <div class="row">
+                                <div class="col-md-8">
+                                    {{ basic_form.hotspot_items|as_crispy_field }}
+                                    <div class="canvas-container">
+                                        <canvas id="hotspot-canvas"></canvas>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="canvas-controls mt-2">
+                                        <button type="button" id="rectBtn" class="btn btn-sm btn-primary d-inline">Rectangle</button>
+                                        <button type="button" id="circleBtn" class="btn btn-sm btn-primary d-inline">Circle</button>
+                                        <button type="button" id="polygonBtn" class="btn btn-sm btn-primary d-inline">Polygon</button>
+                                        <button type="button" id="deleteBtn" class="btn btn-sm btn-danger float-end">Delete</button>
+                                        
+                                        <!--button type="button" id="add-hotspot" class="btn btn-sm btn-primary d-inline"><i class="fas fa-plus"></i> Add Hotspot</button>
+                                        <button type="button" id="delete-hotspot" class="btn btn-sm btn-danger d-inline"><i class="fas fa-trash"></i> Delete Selected</button-->
+                                    </div>
+                                    <div class="hotspot-list">
+                                        <h5>Hotspot Areas</h5>
+                                        <ul id="hotspot-areas" class="list-group">
+                                            <!-- Hotspot areas will be dynamically added here -->
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <script>
+                                
+                            </script>
+                        </div>
+                    </div>
+
+                    <div id="matching-fields" class="mt-4">
+                        <h6>Match the Following:</h6>
+                        {{ match_formset.management_form }}
+                        <table class="table table-bordered table-hover" id="match-table">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>Left Item</th>
+                                    <th>Right Item</th>
+                                    <th>Delete</th>
+                                </tr>
+                            </thead>
+                            <tbody id="match-pairs-list">
+                                {% for matching_pair_form in match_formset %}
+                                    <tr class="match-pair-form">
+                                        <td>{{ matching_pair_form.left_item }}</td>
+                                        <td>{{ matching_pair_form.right_item }}</td>
+                                        <td>{{ matching_pair_form.DELETE }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        <button type="button"  data-formset="match" class="btn btn-outline-primary add-row">Add Matching Pair</button>
+                        <script type="text/html" id="match-empty-form">
+                            <tr class="option-form">
+                                <td>{{ match_formset.empty_form.left_item }}</td>
+                                <td>{{ match_formset.empty_form.right_item }}</td>
+                                <td>{{ match_formset.empty_form.DELETE }}</td>
+                            </tr>
+                        </script>
+                    </div>
+
+                    <div id="flash-fields" class="mt-4">
+                        <h6>Flash List (Text / Image):</h6>
+                        <div class="row">
+                            <div class="col-3">
+                                {{ basic_form.flash_items_count|as_crispy_field }}
+                            </div>
+                            <div class="col-3">
+                                {{ basic_form.timer_interval|as_crispy_field }}
+                            </div>
+                        </div>
+
+                        {{ flash_formset.management_form }}
+                        <table class="table table-bordered table-hover" id="flash-table">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>Word</th>
+                                    <th>Image</th>
+                                    <th>Delete</th>
+                                </tr>
+                            </thead>
+                            <tbody id="flash-cards-list">
+                                {% for flash_card_form in flash_formset %}
+                                    <tr class="flash-card-form">
+                                        <td>{{ flash_card_form.text }}</td>
+                                        <td>{{ flash_card_form.image }}</td>
+                                        <td>{{ flash_card_form.DELETE }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        <button type="button" data-formset="flash" class="btn btn-outline-primary add-row">Add Flash Card</button>
+                        <script type="text/html" id="flash-empty-form">
+                            <tr class="option-form">
+                                <td>{{ flash_formset.empty_form.text }}</td>
+                                <td>{{ flash_formset.empty_form.image }}</td>
+                                <td>{{ flash_formset.empty_form.DELETE }}</td>
+                            </tr>
+                        </script>
+                    </div>
+
+                    <div id="rating-scale" class="mt-4">
+                        <div class="row mb-2">
+                            <div class="col-2">
+                                <h6 class="mt-2 mb-0">Rating (Psycometric):</h6>
+                            </div>
+                            <div class="col">
+                                <button type="button" id="forward-numbering" class="btn btn-sm btn-primary">Forward Numbering</button>
+                                <button type="button" id="reverse-numbering" class="btn btn-sm btn-secondary">Reverse Numbering</button>
+                            </div>
+                        </div>
+                        {{ rating_formset.management_form }}
+                        <table class="table table-bordered table-hover" id="rating-table">
+                            <thead>
+                                <tr>
+                                    <th>Text / Legend</th>
+                                    <th>Rating Value</th>
+                                    <th>Delete</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for form in rating_formset %}
+                                    <tr>
+                                        <td>{{ form.id }}{{ form.item }}</td>
+                                        <td>{{ form.rating }}</td>
+                                        <td>
+                                            <button type="button" class="btn btn-sm btn-danger delete-row">Delete</button>
+                                            {{ form.DELETE }}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        <button type="button" data-formset="rating" class="btn btn-outline-primary add-row">Add Rating</button>
+                        <script type="text/html" id="rating-empty-form">
+                            <tr>
+                                <td>{{ rating_formset.empty_form.item }}</td>
+                                <td>{{ rating_formset.empty_form.rating }}</td>
+                                <td>
+                                    <button type="button" class="btn btn-sm btn-danger delete-row">Delete</button>
+                                    {{ rating_formset.empty_form.DELETE }}
+                                </td>
+                            </tr>
+                        </script>
+                    </div>
+                    
+                    <div id="ranking-scale" class="mt-4">
+                        <div class="container">
+                            <!-- Left Panel: Categories, Subcategories, and Statements -->
+                            <div class="panel" id="left_tree_panel">
+                                <h2>Categories & Statements</h2>
+                                <div id="left_tree"></div>
+                            </div>
+                
+                            <!-- Right Panel: Rank Groups -->
+                            <div class="panel" id="right_tree_panel">
+                                <h2>Rank Groups</h2>
+                                <div id="right_tree"></div>
+                                <button type="button" id="add_rank_group">Add Rank Group</button>
+                            </div>
+                        </div>
+                
+                        <input type="hidden" name="combined_data" id="combined_data">
+                        {% comment %} <div class="container">
+                            <!-- Left Panel: Hierarchical Structure (Categories/Subcategories/Statements) -->
+                            <div class="tree-panel">
+                                <h2>Categories & Statements</h2>
+                                <div class="dd" id="category_tree">
+                                    <ol class="dd-list">
+                                        <li class="dd-item" data-id="cat1">
+                                            <div class="dd-handle editable" contenteditable="true">Category 1</div>
+                                            <ol class="dd-list">
+                                                <li class="dd-item" data-id="subcat1">
+                                                    <div class="dd-handle editable" contenteditable="true">Subcategory 1</div>
+                                                    <ol class="dd-list">
+                                                        <li class="dd-item" data-id="stmt1">
+                                                            <div class="dd-handle editable" contenteditable="true">Statement 1</div>
+                                                        </li>
+                                                        <li class="dd-item" data-id="stmt2">
+                                                            <div class="dd-handle editable" contenteditable="true">Statement 2</div>
+                                                        </li>
+                                                    </ol>
+                                                </li>
+                                            </ol>
+                                        </li>
+                                    </ol>
+                                </div>
+                            </div>
+                            
+                            <!-- Right Panel: Rank Groups -->
+                            <div class="rank-group-panel">
+                                <h2>Rank Groups</h2>
+                                <div id="rank_groups">
+                                    <!-- Each Rank Group will be added here -->
+                                </div>
+                                <button type="button" id="add_rank_group">Add Rank Group</button>
+                            </div>
+                        </div>
+                        
+                        <input type="hidden" name="combined_data" id="combined_data"> {% endcomment %}
+                        {% comment %} <div class="container">
+                            <!-- Left Panel: Hierarchical Structure (Categories/Subcategories/Statements) -->
+                            <div class="tree-panel">
+                                <h2>Categories & Statements</h2>
+                                <div id="category_tree"></div>
+                            </div>
+                            
+                            <!-- Right Panel: Rank Groups -->
+                            <div class="rank-group-panel">
+                                <h2>Rank Groups</h2>
+                                <div id="rank_groups">
+                                    <!-- Each Rank Group will be added here as a draggable card -->
+                                </div>
+                                <button type="button" id="add_rank_group">Add Rank Group</button>
+                            </div>
+                        </div>
+                        
+                        <input type="hidden" name="combined_data" id="combined_data"> {% endcomment %}
+
+                        {% comment %} <div class="row">
+                            <div id="categories-container" class="col"></div>
+                            <div id="rank-groups-container" class="col"></div>
+                        </div>
+                        <input type="hidden" id="ranking-structure" name="ranking_structure"> {% endcomment %}
+
+                        <div id="ranking-category-fields" class="mt-4">
+                            <h6>Ranking Categories and Statements:</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6>Categories and Statements</h6>
+                                    <div id="categories-tree"></div>
+                                    <button type="button" id="add-category" class="btn btn-sm btn-outline-primary mt-2">Add Category</button>
+                                    <button type="button" id="add-subcategory" class="btn btn-sm btn-outline-secondary mt-2">Add Subcategory</button>
+                                    <button type="button" id="add-statement" class="btn btn-sm btn-outline-info mt-2">Add Statement</button>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Rank Groups</h6>
+                                    <div id="rank-groups-tree"></div>
+                                    <button type="button" id="add-rank-group" class="btn btn-sm btn-outline-primary mt-2">Add Rank Group</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {% comment %} <div id="ranking-category-fields" class="mt-4">
+                            <h6>Ranking Categories and Statements:</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6>Categories</h6>
+                                    <div id="ranking-categories-tree"></div>
+                                    <button type="button" id="add-category" class="btn btn-sm btn-outline-primary mt-2">Add Category</button>
+                                    <button type="button" id="add-subcategory" class="btn btn-sm btn-outline-secondary mt-2">Add Subcategory</button>
+                                </div>
+                                <div class="col-md-6">
+                                    <div id="rank-groups-container" class="mt-4">
+                                        <h6>Rank Groups</h6>
+                                        <div id="rank-groups-list"></div>
+                                        <button type="button" id="add-rank-group" class="btn btn-sm btn-outline-primary mt-2">Add Rank Group</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div> {% endcomment %}
+                        
+
+                        <h6>Ranking (Psycometric):</h6>
+                        {{ ranking_formset.management_form }}
+                        <table class="table table-bordered table-hover" id="ranking-table">
+                            <thead>
+                                <tr>
+                                    <th>Text</th>
+                                    <th>Value</th>
+                                    <th>Delete</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for form in ranking_formset %}
+                                    <tr>
+                                        <td>{{ form.id }}{{ form.text }}</td>
+                                        <td>{{ form.value }}</td>
+                                        <td>{{ form.DELETE }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        <button type="button" data-formset="ranking" class="btn btn-outline-primary add-row">Add Ranking</button>
+                        <script type="text/html" id="ranking-empty-form">
+                            <tr>
+                                <td>{{ ranking_formset.empty_form.text }}</td>
+                                <td>{{ ranking_formset.empty_form.value }}</td>
+                                <td>{{ ranking_formset.empty_form.DELETE }}</td>
+                            </tr>
+                        </script>
+                    </div>
+
+                    {% comment %} <div id="ranking-scale" class="mt-4">
+                        <h6>{{ question.text }}</h6>
+                        <form method="post">
+                            {% csrf_token %}
+                            {{ ranking_formset.management_form }}
+                            <table class="table" id="ranking-table">
+                                <thead>
+                                    <tr>
+                                        <th>Item</th>
+                                        <th>Rank</th>
+                                        <th>Delete</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for form in ranking_formset %}
+                                        <tr>
+                                            <td>{{ form.item }}</td>
+                                            <td>{{ form.rank }}</td>
+                                            <td>
+                                                <button type="button" class="btn btn-sm btn-danger delete-row">Delete</button>
+                                                {{ form.DELETE }}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                            <button type="button" class="btn btn-primary add-ranking">Add Ranking Option</button>
+                            <script type="text/html" id="ranking-empty-form">
+                                <tr>
+                                    <td>{{ ranking_formset.empty_form.item }}</td>
+                                    <td>{{ ranking_formset.empty_form.rank }}</td>
+                                    <td>{{ ranking_formset.empty_form.DELETE }}</td>
+                                </tr>
+                            </script>
+                        </form>
+                    </div>
+
+                    <div id="rank-rate-scale" class="mt-4">
+                        <h6>{{ question.text }}</h6>
+                        <form method="post">
+                            {% csrf_token %}
+                            {{ ranknrate_formset.management_form }}
+                            <table class="table" id="rank-rate-table">
+                                <thead>
+                                    <tr>
+                                        <th>Item</th>
+                                        <th>Rank</th>
+                                        <th>Rating</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for form in ranknrate_formset %}
+                                        <tr>
+                                            <td>{{ form.item }}</td>
+                                            <td>{{ form.rank }}</td>
+                                            <td>{{ form.rating }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                            <button type="submit" class="btn btn-primary">Submit</button>
+                        </form>
+                    </div>
+                    
+                    <div id="rating-scale" class="mt-4">
+                        <h6>{{ question.text }}</h6>
+                        <form method="post">
+                            {% csrf_token %}
+                            {{ rating_formset.management_form }}
+                            <table id="rating-table" class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Item</th>
+                                        <th>Rating</th>
+                                        <th>Delete</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for form in rating_formset %}
+                                        <tr>
+                                            <td>{{ form.item }}</td>
+                                            <td>{{ form.rating }}</td>
+                                            <td>
+                                                <button type="button" class="btn btn-sm btn-danger delete-row">Delete</button>
+                                                {{ form.DELETE }}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                            <button type="button" class="btn btn-primary add-rating">Add Rating Option</button>
+                            <script type="text/html" id="rating-empty-form">
+                                <tr>
+                                    <td>{{ rating_formset.empty_form.item }}</td>
+                                    <td>{{ rating_formset.empty_form.rating }}</td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-danger delete-row">Delete</button>
+                                        {{ rating_formset.empty_form.DELETE }}
+                                    </td>
+                                </tr>
+                            </script>
+                        </form>
+                    </div>
+
+                    <div id="forced1-scale" class="mt-4">
+                        <h6>{{ question.text }}</h6>
+                        <form method="post">
+                            {% csrf_token %}
+                            {{ forcedsingle_formset.management_form }}
+                            {% for form in forcedsingle_formset %}
+                                <div class="row mb-3">
+                                    <div class="col-5">
+                                        <input type="radio" name="{{ form.prefix }}-choice" value="left" required> {{ form.left_option }}
+                                    </div>
+                                    <div class="col-2 text-center">OR</div>
+                                    <div class="col-5">
+                                        <input type="radio" name="{{ form.prefix }}-choice" value="right"> {{ form.right_option }}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                            <button type="submit" class="btn btn-primary">Submit</button>
+                        </form>
+                    </div>
+
+                    <div id="forced2-scale" class="mt-4">
+                        <h6>{{ question.text }}</h6>
+                        <form method="post">
+                            {% csrf_token %}
+                            {{ forcedtwo_formset.management_form }}
+                            {% for form in forcedtwo_formset %}
+                                <div class="row mb-3">
+                                    <div class="col-5">
+                                        <input type="radio" name="{{ form.prefix }}-choice" value="left" required> {{ form.left_option }}
+                                        <br>
+                                        {{ form.left_rating }}
+                                    </div>
+                                    <div class="col-2 text-center">OR</div>
+                                    <div class="col-5">
+                                        <input type="radio" name="{{ form.prefix }}-choice" value="right"> {{ form.right_option }}
+                                        <br>
+                                        {{ form.right_rating }}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                            <button type="submit" class="btn btn-primary">Submit</button>
+                        </form>
+                    </div> {% endcomment %}
+
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="preview" role="tabpanel">
+                <h3>Question Preview</h3>
+                <div id="preview-content" class="border p-3 mt-3"></div>
+            </div>
+        </div>
+
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_head %}
+{% include 'django_quill/media.html' %}
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.3.12/themes/default/style.min.css" />
+
+<!--link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/nestable2/1.6.0/nestable.min.css"-->
+<style>
+    .container {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 20px;
+    }
+    .panel {
+        width: 45%;
+        border: 1px solid #ccc;
+        padding: 10px;
+    }
+    .panel h2 {
+        text-align: center;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.3.12/jstree.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+
+<script>
+    $(document).ready(function() {
+        // Data for the left tree (categories, subcategories, and statements)
+        var leftTreeData = [
+            {
+                "id": "cat1",
+                "text": "Category 1",
+                "children": [
+                    {
+                        "id": "subcat1",
+                        "text": "Subcategory 1",
+                        "children": [
+                            { "id": "stmt1", "text": "Statement 1", "type": "statement" },
+                            { "id": "stmt2", "text": "Statement 2", "type": "statement" }
+                        ]
+                    },
+                    {
+                        "id": "stmt3",
+                        "text": "Statement 3",
+                        "type": "statement"
+                    }
+                ]
+            },
+            {
+                "id": "cat2",
+                "text": "Category 2",
+                "children": [
+                    { "id": "stmt4", "text": "Statement 4", "type": "statement" },
+                    { "id": "stmt5", "text": "Statement 5", "type": "statement" }
+                ]
+            }
+        ];
+    
+        // Initialize left jsTree
+        $('#left_tree').jstree({
+            'core': {
+                'data': leftTreeData,
+                'check_callback': true // Enable editing
+            },
+            "types": {
+                "default": { "icon": "jstree-folder" },
+                "statement": { "icon": "jstree-file" }
+            },
+            "plugins": ["types", "dnd", "contextmenu", "edit"]
+        });
+    
+        // Initialize right jsTree
+        $('#right_tree').jstree({
+            'core': {
+                'data': [],
+                'check_callback': true // Enable adding/removing nodes
+            },
+            "types": {
+                "default": { "icon": "jstree-folder" },
+                "statement": { "icon": "jstree-file" }
+            },
+            "plugins": ["types", "dnd", "edit"]
+        });
+    
+        // Add a rank group to the right tree
+        $('#add_rank_group').on('click', function() {
+            var rankGroupId = 'rank_group_' + (new Date()).getTime();
+            $('#right_tree').jstree('create_node', '#', { "id": rankGroupId, "text": "Rank Group", "type": "default" });
+        });
+    
+        // Drag-and-drop logic for copying statements to rank groups
+        $('#left_tree').on('move_node.jstree', function(e, data) {
+            // If moved to the right tree
+            if (data.parent === "#right_tree") {
+                var draggedNodeId = data.node.id;
+                var draggedNodeText = data.node.text;
+    
+                // Prevent duplicate dragging of the same statement to the same rank group
+                var targetRankGroup = $('#right_tree').jstree(true).get_node(data.parent);
+                if (targetRankGroup.children.includes(draggedNodeId)) {
+                    alert("You can't add the same statement twice in the same rank group.");
+                    return false;
+                }
+    
+                // Clone the statement into the target rank group
+                $('#right_tree').jstree('create_node', targetRankGroup, {
+                    "id": draggedNodeId,
+                    "text": draggedNodeText,
+                    "type": "statement"
+                });
+    
+                // Prevent removal from left tree
+                $('#left_tree').jstree(true).refresh();
+            }
+        });
+    
+        // Form submission and JSON creation
+        $('form').submit(function(e) {
+            e.preventDefault();
+    
+            var leftTreeData = $('#left_tree').jstree(true).get_json('#', { flat: true });
+            var rightTreeData = $('#right_tree').jstree(true).get_json('#', { flat: true });
+    
+            var combinedData = {
+                "leftTree": leftTreeData,
+                "rightTree": rightTreeData
+            };
+    
+            $('#combined_data').val(JSON.stringify(combinedData));
+            this.submit();
+        });
+    });    
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
+{% comment %} <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/nestable2/1.6.0/jquery.nestable.min.js"></script>
+<script>
+    $(document).ready(function() {
+        // Initialize Nestable for the left panel
+        $('#category_tree').nestable({
+            group: 1,
+            maxDepth: 3 // Allow up to 3 levels deep
+        });
+
+        // Handle Rank Groups Creation
+        let rankGroupCounter = 0;
+        $('#add_rank_group').click(function() {
+            rankGroupCounter++;
+            const rankGroupHtml = `
+                <div class="rank-group" id="rank_group_${rankGroupCounter}">
+                    <h3>Rank Group ${rankGroupCounter}</h3>
+                    <div class="statement-drop-area" data-rank-group-index="${rankGroupCounter}"></div>
+                </div>`;
+            $('#rank_groups').append(rankGroupHtml);
+        });
+
+        // Handle the Nestable item drop
+        $('#category_tree').on('change', function() {
+            // Handle the logic after a change (i.e., after moving items)
+            console.log("Categories updated:", $(this).nestable('serialize'));
+        });
+
+        // On form submit, collect all data into combined JSON
+        $('form').submit(function() {
+            const combinedData = {
+                categories: $(this).find('#category_tree').nestable('serialize'),
+                rankGroups: []
+            };
+
+            $('.rank-group').each(function(index, group) {
+                const groupId = $(group).attr('id');
+                const statements = $(group).find('.statement-drop-area .dd-item').map(function() {
+                    return $(this).data('id');
+                }).get();
+                combinedData.rankGroups.push({ groupId, statements });
+            });
+
+            $('#combined_data').val(JSON.stringify(combinedData));
+        });
+    });
+</script> {% endcomment %}
+{% comment %} <script>
+    // Example data for jsTree
+    const categoryData = [
+        {
+            "id": "cat1",
+            "text": "Category 1",
+            "children": [
+                {
+                    "id": "subcat1",
+                    "text": "Subcategory 1",
+                    "children": [
+                        { "id": "stmt1", "text": "Statement 1" },
+                        { "id": "stmt2", "text": "Statement 2" }
+                    ]
+                }
+            ]
+        }
+    ];
+
+    // Initialize jsTree
+    $('#category_tree').jstree({
+        'core': {
+            'data': categoryData,
+            'check_callback': true
+        },
+        "plugins": ["dnd", "wholerow"]
+    });
+
+    // Handle Rank Groups Creation
+    let rankGroupCounter = 0;
+    $('#add_rank_group').click(function() {
+        rankGroupCounter++;
+        const rankGroupHtml = `
+            <div class="rank-group" id="rank_group_${rankGroupCounter}">
+                <h3>Rank Group ${rankGroupCounter}</h3>
+                <div class="statement-drop-area"></div>
+            </div>`;
+        $('#rank_groups').append(rankGroupHtml);
+
+        // Make the new rank group a sortable drop area
+        Sortable.create(document.querySelector(`#rank_group_${rankGroupCounter} .statement-drop-area`), {
+            group: 'statements',
+            onAdd: function (evt) {
+                const statementId = evt.item.dataset.id;
+                console.log('Statement dropped with ID: ', statementId);
+                // Validation logic for statements
+            }
+        });
+    });
+
+    // Drag-and-drop handling from jsTree to Rank Groups
+    $('#category_tree').on('move_node.jstree', function (e, data) {
+        // Logic to ensure dragging statements from jsTree to rank group
+        // And enforce validation rules (e.g., one statement per category per rank group)
+    });
+
+    // On form submit, collect all data into combined JSON
+    $('form').submit(function() {
+        const combinedData = {
+            categories: $('#category_tree').jstree(true).get_json(),
+            rankGroups: []
+        };
+        $('.rank-group').each(function(index, group) {
+            const groupId = $(group).attr('id');
+            const statements = [];
+            $(group).find('.statement-drop-area p').each(function() {
+                statements.push($(this).data('id'));
+            });
+            combinedData.rankGroups.push({ groupId, statements });
+        });
+
+        $('#combined_data').val(JSON.stringify(combinedData));
+    });
+</script> {% endcomment %}
+{% comment %} <script>
+    let categories = [];
+    let rankGroups = [];
+
+    $(document).ready(function() {
+        // Generate unique IDs
+        function generateUUID() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+
+        // Add new category
+        $('#add_category').click(function() {
+            const categoryName = $('#new_category_name').val();
+            if (categoryName) {
+                const newCategory = {
+                    id: generateUUID(),
+                    name: categoryName,
+                    subcategories: [],
+                    statements: []
+                };
+                categories.push(newCategory);
+                renderCategoryList();
+                $('#new_category_name').val('');
+            }
+        });
+
+        // Add new subcategory under the last category
+        $(document).on('click', '.add-subcategory', function() {
+            const categoryIndex = $(this).data('category-index');
+            const subcategoryName = $(this).prev('.new-subcategory-text').val();
+            if (subcategoryName) {
+                categories[categoryIndex].subcategories.push({
+                    id: generateUUID(),
+                    name: subcategoryName,
+                    statements: []
+                });
+                renderCategoryList();
+            }
+        });
+
+        // Add new statement to either category or subcategory
+        $(document).on('click', '.add-statement', function() {
+            const categoryIndex = $(this).data('category-index');
+            const subcategoryIndex = $(this).data('subcategory-index');
+            const statementText = $(this).prev('.new-statement-text').val();
+            if (statementText) {
+                const newStatement = {
+                    id: generateUUID(),
+                    text: statementText
+                };
+                if (subcategoryIndex !== undefined) {
+                    categories[categoryIndex].subcategories[subcategoryIndex].statements.push(newStatement);
+                } else {
+                    categories[categoryIndex].statements.push(newStatement);
+                }
+                renderCategoryList();
+            }
+        });
+
+        // Render the category, subcategory, and statement list
+        function renderCategoryList() {
+            $('#category_list').empty();
+            categories.forEach((category, categoryIndex) => {
+                let categoryHtml = `<div class="category">
+                                        <h3>${category.name}</h3>
+                                        <input type="text" class="new-subcategory-text" placeholder="New Subcategory (optional)">
+                                        <button type="button" class="add-subcategory" data-category-index="${categoryIndex}">Add Subcategory</button>
+                                        <input type="text" class="new-statement-text" placeholder="New Statement">
+                                        <button type="button" class="add-statement" data-category-index="${categoryIndex}">Add Statement</button>`;
+                // Render subcategories
+                category.subcategories.forEach((subcategory, subcategoryIndex) => {
+                    categoryHtml += `<div class="subcategory">
+                                        <h4>${subcategory.name}</h4>
+                                        <input type="text" class="new-statement-text" placeholder="New Statement">
+                                        <button type="button" class="add-statement" data-category-index="${categoryIndex}" data-subcategory-index="${subcategoryIndex}">Add Statement</button>`;
+                    // Render statements under subcategory
+                    subcategory.statements.forEach(statement => {
+                        categoryHtml += `<p class="draggable-statement" data-id="${statement.id}" data-category-index="${categoryIndex}" data-subcategory-index="${subcategoryIndex}">${statement.text}</p>`;
+                    });
+                    categoryHtml += `</div>`;
+                });
+
+                // Render statements directly under category
+                category.statements.forEach(statement => {
+                    categoryHtml += `<p class="draggable-statement" data-id="${statement.id}" data-category-index="${categoryIndex}">${statement.text}</p>`;
+                });
+
+                categoryHtml += `</div>`;
+                $('#category_list').append(categoryHtml);
+            });
+
+            makeStatementsDraggable();
+        }
+
+        // Add new rank group
+        $('#add_rank_group').click(function() {
+            const rankGroup = {
+                id: generateUUID(),
+                statements: []
+            };
+            rankGroups.push(rankGroup);
+            renderRankGroupList();
+        });
+
+        // Render the rank group list
+        function renderRankGroupList() {
+            $('#rank_group_list').empty();
+            rankGroups.forEach((group, index) => {
+                let groupHtml = `<div class="rank-group">
+                                    <h4>Rank Group</h4>
+                                    <div class="drop-area" data-rank-group-index="${index}">`;
+                group.statements.forEach(statement => {
+                    groupHtml += `<p class="dropped-statement" data-id="${statement.id}">${statement.text}</p>`;
+                });
+                groupHtml += `</div></div>`;
+                $('#rank_group_list').append(groupHtml);
+            });
+
+            makeDropAreasSortable();
+        }
+
+        // Make statements draggable
+        function makeStatementsDraggable() {
+            $('.draggable-statement').draggable({
+                helper: 'clone',
+                revert: 'invalid'
+            });
+        }
+
+        // Make rank groups sortable (drop areas)
+        function makeDropAreasSortable() {
+            $('.drop-area').sortable({
+                connectWith: '.drop-area',
+                receive: function(event, ui) {
+                    const statementId = ui.item.data('id');
+                    const statementText = ui.item.text();
+                    const rankGroupIndex = $(this).data('rank-group-index');
+                    
+                    const statement = {
+                        id: statementId,
+                        text: statementText
+                    };
+
+                    // Add the statement to the rank group
+                    rankGroups[rankGroupIndex].statements.push(statement);
+                    renderRankGroupList();
+                }
+            });
+        }
+
+        // When form is submitted, combine data
+        $('form').submit(function() {
+            $('#combined_data').val(JSON.stringify({ categories, rankGroups }));
+        });
+    });
+</script> {% endcomment %}
+
+{% comment %} <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
+<script>
+let categories = [];
+let rankGroups = [];
+
+function renderCategories(categories, container) {
+    categories.forEach(category => {
+        const categoryEl = document.createElement('div');
+        categoryEl.className = 'category';
+        categoryEl.innerHTML = `
+            <h3>${category.name}</h3>
+            <ul class="statements-list" data-category-id="${category.id}"></ul>
+        `;
+        container.appendChild(categoryEl);
+        
+        new Sortable(categoryEl.querySelector('.statements-list'), {
+            group: {
+                name: 'shared',
+                pull: 'clone',
+                put: false
+            },
+            sort: false,
+            onClone: function(evt) {
+                evt.item.innerHTML += ' (Drag to rank group)';
+            }
+        });
+
+        category.statements.forEach(statement => {
+            const statementEl = document.createElement('li');
+            statementEl.textContent = statement.text;
+            statementEl.dataset.statementId = statement.id;
+            categoryEl.querySelector('.statements-list').appendChild(statementEl);
+        });
+
+        if (category.subcategories && category.subcategories.length > 0) {
+            const subcategoriesContainer = document.createElement('div');
+            subcategoriesContainer.className = 'subcategories';
+            categoryEl.appendChild(subcategoriesContainer);
+            renderCategories(category.subcategories, subcategoriesContainer);
+        }
+    });
+}
+
+function renderRankGroups() {
+    const container = document.getElementById('rank-groups-container');
+    container.innerHTML = '';
+    rankGroups.forEach(group => {
+        const groupEl = document.createElement('div');
+        groupEl.className = 'rank-group';
+        groupEl.innerHTML = `
+            <h4>${group.name}</h4>
+            <ul class="rank-list" data-group-id="${group.id}"></ul>
+        `;
+        container.appendChild(groupEl);
+
+        new Sortable(groupEl.querySelector('.rank-list'), {
+            group: 'shared',
+            onAdd: function(evt) {
+                const statementId = evt.item.dataset.statementId;
+                const categoryId = evt.from.dataset.categoryId;
+                group.statements.push({ id: statementId, categoryId: categoryId, order: evt.newIndex });
+            },
+            onRemove: function(evt) {
+                const statementId = evt.item.dataset.statementId;
+                group.statements = group.statements.filter(s => s.id !== statementId);
+            },
+            onUpdate: function(evt) {
+                group.statements.forEach((s, index) => s.order = index);
+            }
+        });
+    });
+}
+
+// Initialize categories and rank groups
+fetch('/question-bank/questions/get-rank-categories')
+    .then(response => response.json())
+    .then(data => {
+        categories = data;
+        renderCategories(categories, document.getElementById('categories-container'));
+    });
+
+fetch('/question-bank/questions/get-rank-groups/')
+    .then(response => response.json())
+    .then(data => {
+        rankGroups = data;
+        renderRankGroups();
+    });
+
+// Save question
+document.getElementById('save-question').addEventListener('click', function() {
+    const questionData = {
+        title: document.getElementById('question-title').value,
+        description: document.getElementById('question-description').value,
+        categories: categories,
+        rankGroups: rankGroups
+    };
+    fetch('/api/save-question/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(questionData),
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Question saved:', data);
+    });
+});
+
+$('#question-form').on('submit', function(e) {
+    e.preventDefault();
+    const rankingStructure = {
+        categories: categories,
+        rankGroups: rankGroups
+    };
+    $('#ranking-structure').val(JSON.stringify(rankingStructure));
+    this.submit();
+});
+</script> {% endcomment %}
+
+<script>
+
+    // validate and submit form if the submit button is outside the form.
+    function outside_form_submit(form_id = '') {
+        var form = document.getElementById(form_id);
+        if (form.checkValidity()) {
+            form.submit();
+        } else {
+            // open first tab to correct validation issues.
+            var triggerEl = $('#questionTabs.nav .nav-item a:first').get(0);
+            var tabTrigger = new bootstrap.Tab(triggerEl);
+            tabTrigger.show()
+
+            // highlight invalid field
+            form.reportValidity()
+        }
+    }
+
+    // Category and formset management and multiple choice single checkbox selection logics 
+    $(document).ready(function() {
+
+        // Category selection
+        $('#category-tree').jstree({
+            'core' : {
+                'data' : {
+                    'url' : '{% url 'question_bank:get_categories' %}',
+                    'data' : function (node) {
+                        return {}; //{ 'id' : node.id };
+                    }
+                },
+                'multiple': false,
+                //'expand_selected_onload': true
+            },
+            'plugins' : ['wholerow']
+        }).on('loaded.jstree', function() {
+            $('#category-tree').jstree('open_all');
+        });
+        
+        $('#category-tree').on('changed.jstree', function (e, data) {
+            if (data.selected.length) {
+                var selectedCategory = data.selected[0];
+                $('#id_category').val(selectedCategory);
+            } else {
+                $('#id_category').val('');
+            }
+        });
+        //-------------------------------------
+
+        // formset dynamic row addition
+        function addFormsetRow(formsetPrefix) {
+            var totalForms = $(`#id_${formsetPrefix}-TOTAL_FORMS`);
+            var newIndex = parseInt(totalForms.val());
+            var template = $(`#${formsetPrefix}-empty-form`).html().replace(/__prefix__/g, newIndex);
+            $(`#${formsetPrefix}-table tbody`).append(template);
+            totalForms.val(newIndex + 1);
+        }
+
+        $('.add-row').click(function() {
+            var formsetPrefix = $(this).data('formset');
+            addFormsetRow(formsetPrefix);
+
+            checkOnlyOneCheckbox();
+        });
+        
+        // Initialize existing rows
+        /*$('.formset-row').each(function(index) {
+            $(this).find(':input').each(function() {
+                updateElementIndex(this, index);
+            });
+        });
+        
+        function updateElementIndex(el, index) {
+            var id_regex = new RegExp('(' + formsetPrefix + '-\\d+)');
+            var replacement = formsetPrefix + '-' + index;
+            if ($(el).attr("for")) $(el).attr("for", $(el).attr("for").replace(id_regex, replacement));
+            if (el.id) el.id = el.id.replace(id_regex, replacement);
+            if (el.name) el.name = el.name.replace(id_regex, replacement);
+        }*/
+
+        // select only one checkbox at a time.
+        function checkOnlyOneCheckbox() {
+            const checkboxes = document.querySelectorAll('.single-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const row = this.closest('tr');
+                    const textField = row.querySelector('input[type="text"]');
+                    
+                    if (textField.value.trim() === '') {
+                        this.checked = false;
+                        alert('Please enter text before marking as correct.');
+                        return;
+                    }
+                    
+                    if (this.checked) {
+                        checkboxes.forEach(cb => {
+                            if (cb !== this) cb.checked = false;
+                        });
+                    }
+                });
+            });    
+        }
+        checkOnlyOneCheckbox();
+        
+    });
+
+    // Hotspot question with rectangle, circle and polygon shapes.
+    $(document).ready(function() {
+        
+        // Hotspot question with rectangle, circle and polygon shapes.
+        const canvas = new fabric.Canvas('hotspot-canvas', {
+            selection: true
+        });
+        let isDrawing = false;
+        let startPoint;
+        let currentShape;
+        let currentMode = '';
+        let polygonPoints = [];
+        let polygonLines = [];
+        
+        let hotspotImageLoaded = false;
+        let hotspotCounter = 0;
+        
+        // Load image upon selecting it
+        $('#questionTabs').on('shown.bs.tab', function(e) {
+            let selectedType = $('#id_type').val();
+            if (selectedType.startsWith('cus_hotspot') && e.target.id === 'options-tab' && !hotspotImageLoaded) {
+                var imageField = document.getElementById('id_image');
+                var file = imageField.files[0];
+
+                if (file) {
+                    var reader = new FileReader();
+                    reader.onload = function(f) {
+                        var data = f.target.result;
+                        fabric.Image.fromURL(data, function(img) {
+                            var containerWidth = $('.canvas-container').width();
+                            var scale = containerWidth / img.width;
+                            img.set({
+                                scaleX: scale,
+                                scaleY: scale
+                            });
+                            canvas.setDimensions({width: containerWidth, height: img.height * scale});
+                            canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas));
+                        });
+                    };
+                    reader.readAsDataURL(file);
+
+                    hotspotImageLoaded = true;
+                }
+            }
+        });
+
+        function setMode(mode) {
+            currentMode = mode;
+            canvas.isDrawingMode = false;
+            resetPolygonDrawing();
+        }
+
+        document.getElementById('rectBtn').addEventListener('click', () => setMode('rectangle'));
+        document.getElementById('circleBtn').addEventListener('click', () => setMode('circle'));
+        document.getElementById('polygonBtn').addEventListener('click', () => setMode('polygon'));
+        document.getElementById('deleteBtn').addEventListener('click', deleteSelected);
+        //document.getElementById('saveBtn').addEventListener('click', saveShapes);
+        //document.getElementById('loadBtn').addEventListener('click', loadShapes);
+
+        canvas.on('mouse:down', function(o) {
+            if (currentMode === '') return;
+
+            isDrawing = true;
+            startPoint = canvas.getPointer(o.e);
+
+            switch (currentMode) {
+                case 'rectangle':
+                    drawRectangle(startPoint);
+                    break;
+                case 'circle':
+                    drawCircle(startPoint);
+                    break;
+                case 'polygon':
+                    if (polygonPoints.length > 2 && nearStartPoint(startPoint)) {
+                        finishPolygon();
+                    } else {
+                        addPolygonPoint(startPoint);
+                    }
+                    break;
+            }
+        });
+
+        canvas.on('mouse:move', function(o) {
+            if (!isDrawing) return;
+
+            const pointer = canvas.getPointer(o.e);
+
+            switch (currentMode) {
+                case 'rectangle':
+                    updateRectangle(pointer);
+                    break;
+                case 'circle':
+                    updateCircle(pointer);
+                    break;
+                case 'polygon':
+                    if (polygonPoints.length > 0) {
+                        updatePolygonLine(pointer);
+                        if (nearStartPoint(pointer)) {
+                            canvas.defaultCursor = 'pointer';
+                        } else {
+                            canvas.defaultCursor = 'default';
+                        }
+                    }
+                    break;
+            }
+
+            canvas.renderAll();
+        });
+
+        canvas.on('mouse:up', function() {
+            isDrawing = false;
+            if (currentMode !== 'polygon') {
+                if (currentShape) {
+                    currentShape.setCoords();
+                    currentShape = null;
+                }
+                setMode('');
+
+                saveShapes();
+                updateHotspotList();
+            }
+        });
+
+
+        canvas.on('object:modified', function(options) {
+            updateObject(options.target);
+            updateHotspotList();
+        });
+        
+        canvas.on('object:scaling', function(options) {
+            updateObject(options.target);
+            updateHotspotList();
+        });
+        
+        function updateObject(obj) {
+            obj.setCoords();
+            if (obj.scaleX !== 1 || obj.scaleY !== 1) {
+                obj.set({
+                    width: obj.width * obj.scaleX,
+                    height: obj.height * obj.scaleY,
+                    scaleX: 1,
+                    scaleY: 1
+                });
+            }
+            saveShapes();
+        }
+
+
+        function drawRectangle(point) {
+            currentShape = new fabric.Rect({
+                left: point.x,
+                top: point.y,
+                width: 0,
+                height: 0,
+                fill: 'rgba(255,0,0,0.3)',
+                stroke: 'red',
+                strokeWidth: 2,
+                name: 'Hotspot (Rectangle)',
+                correct: false,
+            });
+            canvas.add(currentShape);
+        }
+
+        function updateRectangle(pointer) {
+            currentShape.set({
+                width: Math.abs(pointer.x - startPoint.x),
+                height: Math.abs(pointer.y - startPoint.y)
+            });
+            currentShape.setCoords();
+        }
+
+        function drawCircle(point) {
+            currentShape = new fabric.Circle({
+                left: point.x,
+                top: point.y,
+                radius: 0,
+                fill: 'rgba(0,0,255,0.3)',
+                stroke: 'blue',
+                strokeWidth: 2,
+                name: 'Hotspot (Circle)',
+                correct: false,
+            });
+            canvas.add(currentShape);
+        }
+
+        function updateCircle(pointer) {
+            const radius = Math.sqrt(Math.pow(pointer.x - startPoint.x, 2) + Math.pow(pointer.y - startPoint.y, 2)) / 2;
+            currentShape.set({
+                radius: radius,
+                left: startPoint.x - radius,
+                top: startPoint.y - radius
+            });
+            currentShape.setCoords();
+        }
+
+        function addPolygonPoint(point) {
+            polygonPoints.push(point);
+            drawPolygonPoint(point);
+            if (polygonPoints.length > 1) {
+                drawPolygonLine(polygonPoints[polygonPoints.length - 2], point);
+            }
+        }
+
+        function updatePolygonLine(pointer) {
+            if (polygonLines.length > 0) {
+                canvas.remove(polygonLines[polygonLines.length - 1]);
+                polygonLines.pop();
+            }
+            if (polygonPoints.length > 0) {
+                drawPolygonLine(polygonPoints[polygonPoints.length - 1], pointer);
+            }
+        }
+
+        function drawPolygonPoint(point) {
+            const circle = new fabric.Circle({
+                left: point.x - 5,
+                top: point.y - 5,
+                radius: 5,
+                fill: 'green',
+                stroke: 'black',
+                strokeWidth: 1,
+                selectable: false,
+                evented: false,
+                isPolygonPoint: true
+            });
+            canvas.add(circle);
+        }
+
+        function drawPolygonLine(from, to) {
+            const line = new fabric.Line([from.x, from.y, to.x, to.y], {
+                stroke: 'green',
+                strokeWidth: 2,
+                selectable: false,
+                evented: false
+            });
+            canvas.add(line);
+            polygonLines.push(line);
+        }
+
+        function nearStartPoint(point) {
+            if (polygonPoints.length < 3) return false;
+            const start = polygonPoints[0];
+            return Math.abs(point.x - start.x) < 10 && Math.abs(point.y - start.y) < 10;
+        }
+
+        function finishPolygon() {
+            if (polygonPoints.length < 3) return;
+
+            canvas.getObjects().forEach(obj => {
+                if (obj.isPolygonPoint || polygonLines.includes(obj)) {
+                    canvas.remove(obj);
+                }
+            });
+
+            const polygon = new fabric.Polygon(polygonPoints, {
+                fill: 'rgba(0,255,0,0.3)',
+                stroke: 'green',
+                strokeWidth: 2,
+                selectable: true,
+                evented: true,
+                name: 'Hotspot (Polygon)',
+                correct: false,
+            });
+            canvas.add(polygon);
+
+            resetPolygonDrawing();
+            canvas.defaultCursor = 'default';
+            setMode('');
+            canvas.renderAll();
+
+            saveShapes();
+            updateHotspotList();
+        }
+
+        function resetPolygonDrawing() {
+            polygonPoints = [];
+            polygonLines = [];
+        }
+
+        function deleteSelected() {
+            const activeObject = canvas.getActiveObject();
+            if (activeObject) {
+                canvas.remove(activeObject);
+                canvas.discardActiveObject();
+                canvas.renderAll();
+
+                saveShapes();
+                updateHotspotList();
+            }
+        }
+
+        function saveShapes() {
+            const shapes = canvas.getObjects().filter(obj => !obj.isPolygonPoint && !polygonLines.includes(obj));
+            const shapesData = shapes.map(shape => {
+                const commonProps = {
+                    left: shape.left,
+                    top: shape.top,
+                    width: shape.width,
+                    height: shape.height,
+                    name: shape.name,
+                    correct: shape.correct,
+                };
+                if (shape.type === 'rect') {
+                    return { ...commonProps, type: 'rect' };
+                } else if (shape.type === 'circle') {
+                    return { ...commonProps, type: 'circle', radius: shape.radius };
+                } else if (shape.type === 'polygon') {
+                    return { ...commonProps, type: 'polygon', points: shape.points };
+                }
+            });
+            //localStorage.setItem('savedShapes', JSON.stringify(shapesData));
+            //alert('Shapes saved successfully!');
+            $('#id_hotspot_items').val(JSON.stringify(shapesData));
+        }
+
+        function loadShapes() {
+            const savedShapesData = $('#id_hotspot_items').val();
+            //const savedShapesData = localStorage.getItem('savedShapes');
+            if (savedShapesData) {
+                const shapesData = JSON.parse(savedShapesData);
+                canvas.clear();
+                fabric.Image.fromURL(backgroundImagePath, function(img) {
+                    canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas), {
+                        scaleX: canvas.width / img.width,
+                        scaleY: canvas.height / img.height
+                    });
+
+                    shapesData.forEach(shapeData => {
+                        let shape;
+                        if (shapeData.type === 'rect') {
+                            shape = new fabric.Rect({
+                                left: shapeData.left,
+                                top: shapeData.top,
+                                width: shapeData.width,
+                                height: shapeData.height,
+                                fill: 'rgba(255,0,0,0.3)',
+                                stroke: 'red',
+                                strokeWidth: 2
+                            });
+                        } else if (shapeData.type === 'circle') {
+                            shape = new fabric.Circle({
+                                left: shapeData.left,
+                                top: shapeData.top,
+                                radius: shapeData.radius,
+                                fill: 'rgba(0,0,255,0.3)',
+                                stroke: 'blue',
+                                strokeWidth: 2
+                            });
+                        } else if (shapeData.type === 'polygon') {
+                            shape = new fabric.Polygon(shapeData.points, {
+                                left: shapeData.left,
+                                top: shapeData.top,
+                                fill: 'rgba(0,255,0,0.3)',
+                                stroke: 'green',
+                                strokeWidth: 2
+                            });
+                        }
+                        if (shape) {
+                            canvas.add(shape);
+                        }
+                    });
+
+                    canvas.renderAll();
+                    createImageMap(shapesData);
+                });
+                //alert('Shapes loaded successfully!');
+            } else {
+                alert('No saved shapes found!');
+            }
+        }
+
+        function updateHotspotList() {
+            var $list = $('#hotspot-areas');
+            $list.empty();
+            canvas.getObjects().forEach(function(obj, index) {
+                var multiple_select = `<input class="form-check-input" type="checkbox" value="${index}" id="hotspot-${index}" ${obj.correct ? 'checked' : ''}>`;
+                var single_select = `<input class="form-check-input" type="radio" name="correct-hotspot" value="${index}" id="hotspot-${index}" ${obj.correct ? 'checked' : ''}>`;
+                var type = $('#id_type').val();
+                //console.log(selectedType);
+
+                $list.append(`
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div class="form-check">
+                            ${type == 'cus_hotspot_single'? single_select : multiple_select}
+                            <label class="form-check-label" for="hotspot-${index}">
+                                ${obj.name}
+                            </label>
+                        </div>
+                        <span class="badge bg-primary rounded-pill">${index + 1}</span>
+                    </li>
+                `);
+            });
+            
+            $('.form-check-input').change(function() {
+                var selectedIndex = parseInt($(this).val());
+                if ($(this).attr('type') == 'radio') {
+                    canvas.getObjects().forEach(function(obj, index) {
+                        obj.correct = (index === selectedIndex);
+                    });
+                } else {
+                    var obj = canvas.getObjects()[selectedIndex];
+                    obj.correct = this.checked;
+                }
+                updateHotspotList();
+            });
+
+            // save hotspots
+            saveShapes();
+        }
+        // hotspot end-------------------------
+
+        {% comment %} 
+        function createImageMap(shapesData) {
+            const imageMapDiv = document.getElementById('imageMap');
+            imageMapDiv.innerHTML = '';
+
+            const img = document.createElement('img');
+            img.src = backgroundImagePath;
+            img.useMap = '#shapeMap';
+
+            const map = document.createElement('map');
+            map.name = 'shapeMap';
+
+            shapesData.forEach((shapeData, index) => {
+                const area = document.createElement('area');
+                area.shape = shapeData.type;// === 'circle' ? 'circle' : 'poly';
+                
+                if (shapeData.type === 'rect') {
+                    area.coords = `${shapeData.left},${shapeData.top},${shapeData.left + shapeData.width},${shapeData.top + shapeData.height}`;
+                } else if (shapeData.type === 'circle') {
+                    area.coords = `${shapeData.left + shapeData.radius},${shapeData.top + shapeData.radius},${shapeData.radius}`;
+                } else if (shapeData.type === 'polygon') {
+                    area.coords = shapeData.points.map(point => `${point.x},${point.y}`).join(',');
+                }
+
+                area.href = '#';
+                area.alt = `Shape ${index + 1}`;
+                map.appendChild(area);
+            });
+
+            imageMapDiv.appendChild(img);
+            imageMapDiv.appendChild(map);
+        } {% endcomment %}
+
+    });
+
+    // Initialize Bootstrap tabs & Dynamic Fields management
+    $(document).ready(function() {
+        
+        // Initialize Bootstrap tabs -------------------------------------
+        var triggerTabList = [].slice.call(document.querySelectorAll('#questionTabs a'))
+        triggerTabList.forEach(function (triggerEl) {
+            var tabTrigger = new bootstrap.Tab(triggerEl)
+            triggerEl.addEventListener('click', function (event) {
+                event.preventDefault()
+                tabTrigger.show()
+            })
+        });
+
+        // Dynamic fields management -------------------------------------
+        const questionType = $('#id_type');
+        const contentFields = $('#question-type-fields > div');
+        const optionFields = $('#option-fields > div');
+        const previewContent = $('#preview-content');
+        const mediaContent = $('#div_id_paragraph, #div_id_image, #div_id_audio, #div_id_video');
+
+        function updateFormFields() {
+            contentFields.hide();
+            optionFields.hide();
+            mediaContent.hide();
+
+            const selectedType = questionType.val();
+            $('#id_text_helptext').hide();
+            if (selectedType.startsWith('mcq')) {
+                if (!selectedType.endsWith('flash')) {
+                    $('#mcq-fields').show();
+                }
+            } else if (selectedType.startsWith('fib')) {
+                $('#id_text_helptext').show();
+                if (!selectedType.endsWith('flash')) {
+                    $('#fib-fields').show();
+                }
+            }
+
+            if (selectedType === 'cus_hotspot_single' || selectedType === 'cus_hotspot_multiple') {
+                $('#hotspot-fields').show();
+            } else if (selectedType.endsWith('flash')) {
+                $('#flash-fields').show();
+            } else if (selectedType === 'cus_match') {
+                $('#matching-fields').show();
+            } else if (selectedType === 'cus_grid') {
+                $('#grid-fields').show();
+            }
+
+            if (selectedType === 'mcq_image' || selectedType === 'mcq_mixed' || selectedType === 'fib_image' || selectedType === 'cus_hotspot_single' || selectedType ==='cus_hotspot_multiple') {
+                $('#div_id_image').show();
+            } else if (selectedType === 'mcq_audio' || selectedType === 'fib_audio') {
+                $('#div_id_audio').show();
+            } else if (selectedType === 'mcq_video' || selectedType === 'fib_video') {
+                $('#div_id_video').show();
+            } else if (selectedType === 'mcq_paragraph' || selectedType === 'fib_paragraph') {
+                $('#div_id_paragraph').show();
+            }
+            
+            if (selectedType === 'psy_rating') {
+                $('#rating-scale').show();
+            } else if (selectedType === 'psy_ranking') {
+                $('#ranking-scale').show();
+            } else if (selectedType === 'psy_rank_n_rate') {
+                $('#rank-rate-scale').show();
+            } else if (selectedType === 'psy_forced_single') {
+                $('#forced1-scale').show();
+            } else if (selectedType === 'psy_forced_two') {
+                $('#forced2-scale').show();
+            }
+            
+        }
+
+        function updatePreview() {
+            const title = $('#id_title').val();
+            const content = $('#id_text').val();
+            const type = questionType.val();
+
+            let previewHtml = `<h4>${title}</h4><p>${content}</p>`;
+
+            if (type.startsWith('mcq')) {
+                previewHtml += '<ul>';
+                $('#options-list tr').each(function() {
+                    const optionContent = $(this).find('input[type="text"]').val();
+                    const isCorrect = $(this).find('input[type="checkbox"]').is(':checked');
+                    previewHtml += `<li>${optionContent} ${isCorrect ? '(Correct)' : ''}</li>`;
+                });
+                previewHtml += '</ul>';
+            }
+
+            previewContent.html(previewHtml);
+        }
+
+        questionType.change(updateFormFields);
+        updateFormFields();
+
+        $('#question-form input, #question-form textarea').on('input', updatePreview);
+        $('#add-option, #add-hotspot, #add-flash-card, #add-matching-pair').click(updatePreview);
+
+        updatePreview();
+    });
+
+    // Grid Question
+    $(document).ready(function() {
+
+        // Dynamic Fields management
+        function updateGrid() {
+            var rows = $('#id_grid_rows').val();
+            var columns = $('#id_grid_cols').val();
+            var grid_type = $('#id_grid_type').val();
+            var table = $('#grid-table');
+            
+            if (rows && columns) {
+                table.empty();
+                for (var i = 0; i < rows; i++) {
+                    var row = $('<tr>');
+                    for (var j = 0; j < columns; j++) {
+                        var cell = $('<td>');
+                        var prefix = 'id_grid-' + (i * columns + j) + '-';
+                        var name_prefix = 'grid-' + (i * columns + j) + '-';
+                        if (grid_type == 'text') {
+                            cell.append($('<input>').attr({
+                                type: 'text',
+                                name: name_prefix + 'text',
+                                id: prefix + 'text',
+                                placeholder: 'Answer'
+                            }));
+                        } else {
+                            cell.append($('<input>').attr({
+                                type: 'file',
+                                name: name_prefix + 'image',
+                                id: prefix + 'image'
+                            }));
+                        }
+                        cell.append($('<input>').attr({
+                            type: 'checkbox',
+                            name: name_prefix + 'is_correct',
+                            id: prefix + 'is_correct',
+                            title: 'Is this answer correct?',
+                            class: 'ms-2'
+                        }));
+                        cell.append($('<input>').attr({
+                            type: 'hidden',
+                            name: name_prefix + 'row',
+                            id: prefix + 'row',
+                            value: i
+                        }));
+                        cell.append($('<input>').attr({
+                            type: 'hidden',
+                            name: name_prefix + 'col',
+                            id: prefix + 'col',
+                            value: j
+                        }));
+                        row.append(cell);
+                    }
+                    table.append(row);
+                }
+                $('#id_grid-TOTAL_FORMS').val(rows * columns); 
+            }
+        }
+    
+        $('#id_grid_rows, #id_grid_cols, #id_grid_type').on('input change', updateGrid);
+        updateGrid();
+    
+        {% comment %}         
+        // Popup functionality
+        $('#grid-table').on('click', 'td', function() {
+            var content = $(this).find('input[type="text"]').val();
+            var imageInput = $(this).find('input[type="file"]');
+            var popupContent = $('#popup-content');
+            popupContent.empty();
+            popupContent.text(content);
+            if (imageInput[0].files && imageInput[0].files[0]) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    popupContent.append($('<img>').attr('src', e.target.result));
+                }
+                reader.readAsDataURL(imageInput[0].files[0]);
+            }
+            $('#option-popup').show();
+        });
+    
+        $('#select-option').click(function() {
+            // Logic to select the option
+            $('#option-popup').hide();
+        });
+    
+        $('#view-all-options').click(function() {
+            var allOptions = [];
+            $('#grid-table td').each(function(index) {
+                var content = $(this).find('input[type="text"]').val();
+                var imageInput = $(this).find('input[type="file"]');
+                var optionContent = (index + 1) + '. ' + content;
+                if (imageInput[0].files && imageInput[0].files[0]) {
+                    optionContent += ' (Image attached)';
+                }
+                allOptions.push(optionContent);
+            });
+            alert(allOptions.join('\n'));
+        });
+        {% endcomment %}
+        
+    });
+
+    // Fill in the blanks question
+    $(document).ready(function() {
+        class FillInTheBlank {
+            constructor(text) {
+                this.originalText = text;
+                this.blanks = [];
+                this.processText();
+            }
+        
+            processText() {
+                const regex = /\{\{([^}]+)\}\}/g;
+                let match;
+                let lastIndex = 0;
+                this.processedText = '';
+            
+                while ((match = regex.exec(this.originalText)) !== null) {
+                    this.processedText += this.originalText.slice(lastIndex, match.index);
+                    this.processedText += `<<BLANK_${this.blanks.length}>>`;
+                    this.blanks.push(match[1]);
+                    lastIndex = regex.lastIndex;
+                }
+            
+                this.processedText += this.originalText.slice(lastIndex);
+            }
+        
+            getProcessedText() {
+                return this.processedText;
+            }
+        
+            getAnswers() {
+                return this.blanks;
+            }
+        
+            generateHTML() {
+                let html = this.processedText;
+                for (let i = 0; i < this.blanks.length; i++) {
+                    const placeholder = `<<BLANK_${i}>>`;
+                    const input = `<input type="text" class="blank" data-index="${i}" placeholder="Enter answer">`;
+                    html = html.replace(placeholder, input);
+                }
+                return html;
+            }
+        }
+        
+        // Function to extract answers and fill the formset
+        function extractAndFillAnswers(questionText) {
+            const question = new FillInTheBlank(questionText);
+            const answers = question.getAnswers();
+            const type = document.querySelector('#id_type').value;
+            
+            const emptyForm = $('#answer-empty-form').html();
+            const formset = document.getElementById('answer-table').getElementsByTagName('tbody')[0];
+            if (answers.length) {
+                if (type.endsWith('flash')) {
+                    alert('Fill in the Blank Flash question does not need placeholders.');
+                    return;
+                }
+
+                formset.innerHTML = '';
+
+                answers.forEach(function(answer, index) {
+                    var newForm = emptyForm.replace(/__prefix__/g, index);
+                    
+                    var newRow = $(newForm);
+                    newRow.find('input[name$="-text"]').attr('value', answer);
+                    
+                    $(formset).append(newRow);
+                });
+                    
+                $('#id_answer-TOTAL_FORMS').val(answers.length);
+            } else {
+                formset.innerHTML = '';
+            }
+        }
+
+        var quillElement = document.querySelector('#quill-id_text');
+        if (quillElement) {
+            var quill = Quill.find(quillElement);
+            if (quill) {
+                quill.on('text-change', function(delta, oldDelta, source) {
+                    if (source == 'user') {
+                        var content = quill.root.innerHTML;
+                        
+                        extractAndFillAnswers(content);
+                    }
+                });
+            }
+        }
+
+    });
+
+    // Rating Question Value setting
+    {% comment %} $(document).ready(function() {
+
+        function updateRatingValues(reverse = false) {
+            let startValue = reverse ? $('#rating-table tbody tr').length : 1;
+            $('#rating-table tbody tr').each(function(index) {
+                let valueInput = $(this).find('input[name$="-value"]');
+                valueInput.val(reverse ? startValue - index : startValue + index);
+            });
+        }
+    
+        $('#forward-numbering').click(function() {
+            updateRatingValues(false);
+        });
+    
+        $('#reverse-numbering').click(function() {
+            updateRatingValues(true);
+        });
+    
+        // Update numbering when a new row is added
+        $(document).on('click', '[data-formset="rating"].add-row', function() {
+            setTimeout(function() {
+                updateRatingValues($('#reverse-numbering').hasClass('active'));
+            }, 100);
+        });
+    
+        // Initialize numbering on page load
+        updateRatingValues();
+        
+
+        $('#forward-numbering').click(function() {
+            $(this).addClass('active').removeClass('btn-secondary').addClass('btn-primary');
+            $('#reverse-numbering').removeClass('active').removeClass('btn-primary').addClass('btn-secondary');
+            updateRatingValues(false);
+        });
+        
+        $('#reverse-numbering').click(function() {
+            $(this).addClass('active').removeClass('btn-secondary').addClass('btn-primary');
+            $('#forward-numbering').removeClass('active').removeClass('btn-primary').addClass('btn-secondary');
+            updateRatingValues(true);
+        });
+
+    }); {% endcomment %}
+
+    // Ranking Scale
+    {% comment %} $(document).ready(function() {
+        function updateRanks() {
+            $('#ranking-table tbody tr').each(function(index) {
+                $(this).find('input[name$="-rank"]').val(index + 1);
+            });
+        }
+
+        $('#ranking-table tbody').sortable({
+            update: updateRanks
+        });
+
+        updateRanks();
+    }); {% endcomment %}
+
+    {% comment %} // Rank-Rate
+    $(document).ready(function() {
+        function updateRanks() {
+            $('#rank-rate-table tbody tr').each(function(index) {
+                $(this).find('input[name$="-rank"]').val(index + 1);
+            });
+        }
+
+        $('#rank-rate-table tbody').sortable({
+            update: updateRanks
+        });
+
+        updateRanks();
+    });
+
+    // Forced Choice Two
+    $(document).ready(function() {
+        $('input[type=radio]').change(function() {
+            var prefix = $(this).attr('name').split('-')[0];
+            if ($(this).val() === 'left') {
+                $(`input[name="${prefix}-left_rating"]`).prop('disabled', false);
+                $(`input[name="${prefix}-right_rating"]`).prop('disabled', true);
+            } else {
+                $(`input[name="${prefix}-left_rating"]`).prop('disabled', true);
+                $(`input[name="${prefix}-right_rating"]`).prop('disabled', false);
+            }
+        });
+    });
+
+
+    $(document).ready(function() {
+        function updateRatingValues() {
+            $('#rating-table tbody tr:visible').each(function(index) {
+                $(this).find('input[name$="-value"]').val(index + 1);
+            });
+        }
+    
+        function updateRankingValues() {
+            $('#ranking-table tbody tr:visible').each(function(index) {
+                $(this).find('input[name$="-initial_rank"]').val(index + 1);
+            });
+        }
+    
+        $('.add-rating, .add-ranking').click(function() {
+            var formset = $(this).prev('table').attr('id') === 'rating-table' ? 'rating' : 'ranking';
+            var totalForms = $('#id_' + formset + '-TOTAL_FORMS');
+            var newIndex = parseInt(totalForms.val());
+            var template = $('#' + formset + '-empty-form').html().replace(/__prefix__/g, newIndex);
+            $(this).prev('table').find('tbody').append(template);
+            totalForms.val(newIndex + 1);
+            if (formset === 'rating') updateRatingValues();
+            else updateRankingValues();
+        });
+    
+        $('#rating-table, #ranking-table').on('click', '.delete-row', function() {
+            $(this).closest('tr').hide().find('input[name$="-DELETE"]').prop('checked', true);
+            var formset = $(this).closest('table').attr('id') === 'rating-table' ? 'rating' : 'ranking';
+            if (formset === 'rating') updateRatingValues();
+            else updateRankingValues();
+        });
+    
+        // Initialize values
+        updateRatingValues();
+        updateRankingValues();
+    }); {% endcomment %}
+
+    {% comment %} $(document).ready(function() {
+        let categoryCount = 0;
+        let statementCount = 0;
+    
+        $('#add-category').click(function() {
+            categoryCount++;
+            let categoryHtml = `
+                <div class="category-item mb-2">
+                    <input type="text" name="category-${categoryCount}" placeholder="Category ${categoryCount}">
+                    <button type="button" class="btn btn-sm btn-outline-secondary add-subcategory">Add Subcategory</button>
+                    <div class="subcategories-container"></div>
+                </div>
+            `;
+            $('#categories-container').append(categoryHtml);
+        });
+    
+        $(document).on('click', '.add-subcategory', function() {
+            let subcategoryCount = $(this).siblings('.subcategories-container').children().length + 1;
+            let subcategoryHtml = `
+                <div class="subcategory-item ml-3 mb-1">
+                    <input type="text" name="subcategory-${categoryCount}-${subcategoryCount}" placeholder="Subcategory ${subcategoryCount}">
+                </div>
+            `;
+            $(this).siblings('.subcategories-container').append(subcategoryHtml);
+        });
+    
+        $('#add-statement').click(function() {
+            statementCount++;
+            let statementHtml = `
+                <div class="statement-item mb-2">
+                    <input type="text" name="statement-${statementCount}" placeholder="Statement ${statementCount}">
+                    <select name="statement-category-${statementCount}">
+                        <option value="">Select Category</option>
+                        ${generateCategoryOptions()}
+                    </select>
+                </div>
+            `;
+            $('#statements-container').append(statementHtml);
+        });
+    
+        function generateCategoryOptions() {
+            let options = '';
+            $('.category-item').each(function(index) {
+                let categoryName = $(this).find('input[type="text"]').val();
+                options += `<option value="category-${index + 1}">${categoryName}</option>`;
+                $(this).find('.subcategory-item').each(function(subIndex) {
+                    let subcategoryName = $(this).find('input[type="text"]').val();
+                    options += `<option value="subcategory-${index + 1}-${subIndex + 1}">-- ${subcategoryName}</option>`;
+                });
+            });
+            return options;
+        }
+    }); {% endcomment %}
+    
+    {% comment %} $(document).ready(function() {
+        let categoryCounter = 0;
+        let statementCounter = 0;
+    
+        $('#ranking-categories-tree').jstree({
+            core: {
+                check_callback: function(operation, node, parent, position, more) {
+                    if (operation === 'create_node') {
+                        return parent.parents.length < 4; // Limit depth to 4
+                    }
+                    return true;
+                },
+                data: []
+            },
+            plugins: ["dnd", "contextmenu", "types"],
+            types: {
+                category: {
+                    icon: "fas fa-folder"
+                },
+                subcategory: {
+                    icon: "fas fa-folder-open"
+                },
+                statement: {
+                    icon: "fas fa-file-alt"
+                }
+            },
+            contextmenu: {
+                items: customMenu
+            }
+        });
+    
+        $('#add-category').click(function() {
+            categoryCounter++;
+            let newNode = {
+                id: `category-${categoryCounter}`,
+                text: `Category ${categoryCounter}`,
+                type: 'category'
+            };
+            $('#ranking-categories-tree').jstree().create_node("#", newNode, "last");
+        });
+    
+        $('#add-subcategory').click(function() {
+            let selectedNode = $('#ranking-categories-tree').jstree('get_selected', true)[0];
+            if (selectedNode && selectedNode.original.type === 'category') {
+                let subcategoryCounter = selectedNode.children.length + 1;
+                let newNode = {
+                    id: `${selectedNode.id}-subcategory-${subcategoryCounter}`,
+                    text: `Subcategory ${subcategoryCounter}`,
+                    type: 'subcategory'
+                };
+                $('#ranking-categories-tree').jstree().create_node(selectedNode, newNode, "last");
+            } else {
+                alert("Please select a category to add a subcategory.");
+            }
+        });
+    
+        $('#add-statement').click(function() {
+            statementCounter++;
+            let statementHtml = `
+                <div class="statement-item mb-2">
+                    <input type="text" name="statement-${statementCounter}" placeholder="Statement ${statementCounter}">
+                    <select name="statement-category-${statementCounter}" class="statement-category">
+                        <option value="">Select Category</option>
+                    </select>
+                </div>
+            `;
+            $('#statements-container').append(statementHtml);
+            updateCategoryOptions();
+        });
+
+        function customMenu(node) {
+            var items = {
+                createCategory: {
+                    label: "Create Category",
+                    action: function (data) {
+                        var inst = $.jstree.reference(data.reference);
+                        var obj = inst.get_node(data.reference);
+                        inst.create_node(obj, { type: "category", text: "New Category" }, "last", function (new_node) {
+                            setTimeout(function () { inst.edit(new_node); }, 0);
+                        });
+                    }
+                },
+                createSubcategory: {
+                    label: "Create Subcategory",
+                    action: function (data) {
+                        var inst = $.jstree.reference(data.reference);
+                        var obj = inst.get_node(data.reference);
+                        if (obj.parents.length < 4) {
+                            inst.create_node(obj, { type: "subcategory", text: "New Subcategory" }, "last", function (new_node) {
+                                setTimeout(function () { inst.edit(new_node); }, 0);
+                            });
+                        } else {
+                            alert("Maximum subcategory depth reached");
+                        }
+                    }
+                },
+                createStatement: {
+                    label: "Add Statement",
+                    action: function (data) {
+                        if (checkSubcategoryLevels()) {
+                            var inst = $.jstree.reference(data.reference);
+                            var obj = inst.get_node(data.reference);
+                            inst.create_node(obj, { type: "statement", text: "New Statement" }, "last", function (new_node) {
+                                setTimeout(function () { inst.edit(new_node); }, 0);
+                            });
+                        } else {
+                            alert("All categories must have equal subcategory levels before adding statements.");
+                        }
+                    }
+                }
+            };
+        
+            if (node.type === "statement") {
+                delete items.createCategory;
+                delete items.createSubcategory;
+                delete items.createStatement;
+            }
+        
+            return items;
+        }
+        
+        function addStatementToCategory(categoryId) {
+            statementCounter++;
+            let statementHtml = `
+                <div class="statement-item mb-2" data-category="${categoryId}">
+                    <input type="text" name="statement-${statementCounter}" placeholder="Statement ${statementCounter}">
+                    <span class="badge bg-primary">${$('#ranking-categories-tree').jstree(true).get_node(categoryId).text}</span>
+                </div>
+            `;
+            $('#statements-container').append(statementHtml);
+        }
+        
+        function checkSubcategoryLevels() {
+            let tree = $('#ranking-categories-tree').jstree(true);
+            let categories = tree.get_json('#', {flat: false})
+                .filter(node => node.type === 'category');
+            
+            let subcategoryCounts = categories.map(category => countSubcategories(category));
+            return subcategoryCounts.every(count => count === subcategoryCounts[0]);
+        }
+        
+        function countSubcategories(node) {
+            if (!node.children) return 0;
+            return node.children.filter(child => child.type === 'subcategory').length +
+                   node.children.filter(child => child.type === 'subcategory')
+                                .reduce((sum, subcategory) => sum + countSubcategories(subcategory), 0);
+        }
+        
+    
+        function updateCategoryOptions() {
+            let options = '<option value="">Select Category</option>';
+            let treeData = $('#ranking-categories-tree').jstree(true).get_json('#', {flat: true});
+            treeData.forEach(function(node) {
+                if (node.type === 'category') {
+                    options += `<option value="${node.id}">${node.text}</option>`;
+                } else if (node.type === 'subcategory') {
+                    options += `<option value="${node.id}">-- ${node.text}</option>`;
+                }
+            });
+            $('.statement-category').html(options);
+        }
+    
+        $('#ranking-categories-tree').on('rename_node.jstree', function(e, data) {
+            updateCategoryOptions();
+        });
+    
+        // Preview functionality
+        function updatePreview() {
+            if ($('#id_type').val() === 'psy_ranking_category') {
+                $('#ranking-preview').show();
+                let previewData = [];
+                $('.statement-item').each(function() {
+                    let statement = $(this).find('input[type="text"]').val();
+                    let category = $(this).data('category');
+                    previewData.push({
+                        id: `statement-${$(this).index()}`,
+                        text: statement,
+                        parent: category || '#'
+                    });
+                });
+                $('#ranking-preview-tree').jstree({
+                    core: {
+                        check_callback: true,
+                        data: previewData
+                    },
+                    plugins: ["dnd"]
+                });
+            } else {
+                $('#ranking-preview').hide();
+            }
+        }
+        
+        /*function updatePreview() {
+            if ($('#id_type').val() === 'psy_ranking_category') {
+                $('#ranking-preview').show();
+                let previewData = [];
+                $('.statement-item').each(function() {
+                    let statement = $(this).find('input[type="text"]').val();
+                    let category = $(this).find('select').val();
+                    previewData.push({
+                        id: `statement-${$(this).index()}`,
+                        text: statement,
+                        parent: category || '#'
+                    });
+                });
+                $('#ranking-preview-tree').jstree({
+                    core: {
+                        check_callback: true,
+                        data: previewData
+                    },
+                    plugins: ["dnd"]
+                });
+            } else {
+                $('#ranking-preview').hide();
+            }
+        }*/
+
+    
+        // Scoring functionality
+        $('#question-form').submit(function() {
+            if ($('#id_type').val() === 'psy_ranking_category') {
+                let treeData = $('#ranking-preview-tree').jstree(true).get_json('#', {flat: true});
+                let totalItems = treeData.length;
+                let reversedRanking = treeData.map(function(node, index) {
+                    return {
+                        id: node.id,
+                        score: totalItems - index
+                    };
+                });
+                $('#reversed-ranking').val(JSON.stringify(reversedRanking));
+            }
+        });
+    
+        // Update form fields and preview when question type changes
+        $('#id_type').change(function() {
+            //updateFormFields();
+            updatePreview();
+        });
+    
+        // Initial setup
+        //updateFormFields();
+        updatePreview();
+
+
+        let rankGroupCounter = 0;
+
+        $('#add-rank-group').click(function() {
+            if (validateRankGroupCreation()) {
+                createRankGroup();
+            } else {
+                alert("Cannot create rank group. Please ensure all conditions are met.");
+            }
+        });
+
+        function validateRankGroupCreation() {
+            let tree = $('#ranking-categories-tree').jstree(true);
+            let categories = tree.get_json('#', {flat: false}).filter(node => node.type === 'category');
+            
+            // Check if all categories have equal number of subcategories
+            if (!checkSubcategoryLevels()) return false;
+            
+            // Check if all categories/subcategories have equal number of statements
+            let statementCounts = categories.map(category => countStatements(category));
+            if (!statementCounts.every(count => count === statementCounts[0])) return false;
+            
+            // Check if maximum rank groups have not been reached
+            if (rankGroupCounter >= statementCounts[0]) return false;
+            
+            return true;
+        }
+
+        function createRankGroup() {
+            rankGroupCounter++;
+            let rankGroupHtml = `
+                <div class="rank-group mb-3" id="rank-group-${rankGroupCounter}">
+                    <h6>Rank Group ${rankGroupCounter}</h6>
+                    <input type="text" class="form-control mb-2" placeholder="Question Stem">
+                    <div class="rank-group-statements"></div>
+                </div>
+            `;
+            $('#rank-groups-list').append(rankGroupHtml);
+            populateRankGroupStatements(rankGroupCounter);
+        }
+
+        function populateRankGroupStatements(groupId) {
+            let tree = $('#ranking-categories-tree').jstree(true);
+            let categories = tree.get_json('#', {flat: false}).filter(node => node.type === 'category');
+            
+            categories.forEach(category => {
+                let availableStatements = getAvailableStatements(category);
+                if (availableStatements.length > 0) {
+                    let statement = availableStatements[0];
+                    $(`#rank-group-${groupId} .rank-group-statements`).append(`
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="${statement.id}" id="statement-${statement.id}" checked>
+                            <label class="form-check-label" for="statement-${statement.id}">
+                                ${statement.text} (${category.text})
+                            </label>
+                        </div>
+                    `);
+                    markStatementAsUsed(statement.id);
+                }
+            });
+        }
+
+        function getAvailableStatements(node) {
+            if (node.type === 'statement' && !node.used) {
+                return [node];
+            }
+            if (!node.children) return [];
+            return node.children.flatMap(getAvailableStatements);
+        }
+
+        function markStatementAsUsed(statementId) {
+            let tree = $('#ranking-categories-tree').jstree(true);
+            let node = tree.get_node(statementId);
+            node.used = true;
+            tree.redraw_node(node);
+        }
+
+        function countStatements(node) {
+            if (node.type === 'statement') {
+                return 1;
+            }
+            if (!node.children) {
+                return 0;
+            }
+            return node.children.reduce((sum, child) => sum + countStatements(child), 0);
+        }
+        
+
+    }); {% endcomment %}
+    
+</script>
+
+
+<script>
+    {% comment %} // Left jsTree (Categories and Statements)
+    $('#categories-tree').jstree({
+        core: {
+            check_callback: true/*function(operation, node, parent, position, more) {
+                return operation !== 'move_node'; // Prevent reordering in left tree
+            }*/,
+            data: []
+        },
+        plugins: ["dnd", "contextmenu", "types"],
+        types: {
+            category: { icon: "fas fa-folder" },
+            subcategory: { icon: "fas fa-folder-open" },
+            statement: { icon: "fas fa-file-alt" }
+        },
+        contextmenu: { items: customCategoryMenu },
+        dnd: {
+            copy: true,
+            //always_copy: true,
+            is_draggable: function(node) {
+                return node[0].type === 'statement' && !node[0].state.disabled;
+            }
+        }
+    });
+
+    // Right jsTree (Rank Groups)
+    $('#rank-groups-tree').jstree({
+        core: {
+            check_callback: true,
+            data: []
+        },
+        plugins: ["dnd", "contextmenu", "types"],
+        types: {
+            rank_group: { icon: "fas fa-list-ol" },
+            statement: { icon: "fas fa-file-alt" }
+        },
+        contextmenu: { items: customRankGroupMenu },
+        dnd: {
+            //copy: false,
+            //is_draggable: false // Prevent dragging from right tree
+            check_while_dragging: false,
+            //touch: false,
+            copy: false
+        }
+    });
+    
+    function customCategoryMenu(node) {
+        let items = {
+            createSubcategory: {
+                label: "Create Subcategory",
+                action: function(data) {
+                    let inst = $.jstree.reference(data.reference);
+                    let obj = inst.get_node(data.reference);
+                    if (obj.type === 'category') {
+                        subcategoryCounter++;
+                        inst.create_node(obj, { 
+                            id: `subcategory_${subcategoryCounter}`,
+                            text: `Subcategory ${subcategoryCounter}`, 
+                            type: "subcategory", 
+                        }, "last", function(new_node) {
+                            setTimeout(function() { inst.edit(new_node); }, 0);
+                        });
+                    }
+                }
+            },
+            createStatement: {
+                label: "Create Statement",
+                action: function(data) {
+                    let inst = $.jstree.reference(data.reference);
+                    let obj = inst.get_node(data.reference);
+                    if (obj.type === 'category' || obj.type === 'subcategory') {
+                        statementCounter++;
+                        inst.create_node(obj, { 
+                            id: `statement_${statementCounter}`,
+                            text: `Statement ${statementCounter}`,
+                            type: "statement"
+                        }, "last", function(new_node) {
+                            setTimeout(function() { inst.edit(new_node); }, 0);
+                        });
+                    }
+                }
+            }
+        };
+        return items;
+    }
+
+    function customRankGroupMenu(node) {
+        // Implement context menu for rank groups
+    }
+
+    let categoryCounter = 0;
+    let subcategoryCounter = 0;
+    let statementCounter = 0;
+    $('#add-category').click(function() {
+        categoryCounter++;
+        $('#categories-tree').jstree().create_node("#", {
+            id: `category_${categoryCounter}`,
+            text: `Category ${categoryCounter}`,
+            type: "category", 
+        }, "last", function(new_node) {
+            setTimeout(function() { $('#categories-tree').jstree().edit(new_node); }, 0);
+        });
+    });
+    
+    $('#add-rank-group').click(function() {
+        if (validateRankGroupCreation()) {
+            $('#rank-groups-tree').jstree().create_node("#", { type: "rank_group", text: "New Rank Group" }, "last", function(new_node) {
+                setTimeout(function() { $('#rank-groups-tree').jstree().edit(new_node); }, 0);
+            });
+        } else {
+            //alert("Cannot create rank group. Please ensure all conditions are met.");
+        }
+    });
+    
+    function validateRankGroupCreation() {
+        let categoriesTree = $('#categories-tree').jstree(true);
+        let rankGroupsTree = $('#rank-groups-tree').jstree(true);
+        let categories = categoriesTree.get_json('#', {flat: false})
+            .filter(node => node.type === 'category');
+        
+        // Check if categories are defined
+        if (categories.length === 0) {
+            alert("Please define categories before creating rank groups.");
+            return false;
+        }
+        
+        // Check if it's single level or multi-level
+        let isMultiLevel = categories.some(cat => cat.children.some(child => child.type === 'subcategory'));
+        
+        if (isMultiLevel) {
+            // Multi-level validation
+            let subcategoryCounts = categories.map(cat => cat.children.filter(child => child.type === 'subcategory').length);
+            if (!subcategoryCounts.every(count => count === subcategoryCounts[0])) {
+                alert("All categories must have an equal number of subcategories.");
+                return false;
+            }
+            
+            let statementCounts = categories.flatMap(cat => 
+                cat.children
+                    .filter(child => child.type === 'subcategory')
+                    .map(subcat => subcat.children.filter(child => child.type === 'statement').length)
+            );
+            if (!statementCounts.every(count => count === statementCounts[0])) {
+                alert("All subcategories must have an equal number of statements.");
+                return false;
+            }
+        } else {
+            // Single-level validation
+            let statementCounts = categories.map(cat => cat.children.filter(child => child.type === 'statement').length);
+            if (!statementCounts.every(count => count === statementCounts[0])) {
+                alert("All categories must have an equal number of statements.");
+                return false;
+            }
+        }
+        
+        // Check maximum number of rank groups
+        let statementsPerCategory = isMultiLevel ? 
+            categories[0].children.filter(child => child.type === 'subcategory')[0].children.filter(child => child.type === 'statement').length :
+            categories[0].children.filter(child => child.type === 'statement').length;
+        
+        if (rankGroupsTree.get_json('#', {flat: true}).filter(node => node.type === 'rank_group').length >= statementsPerCategory) {
+            alert("Maximum number of rank groups reached.");
+            return false;
+        }
+        
+        return true;
+    }
+    
+    // Handle drag start
+    $(document).on('dnd_start.vakata', function(e, data) {
+        let node = data.data.origin.get_node(data.element);
+        if (node.type === 'statement') {
+            data.data.origin.set_text(node, '<s>' + node.text + '</s>');
+            node.state.disabled = true;
+            data.data.origin.redraw_node(node);
+        }
+    });
+
+    /*$(document).on('dnd_stop.vakata', function(e, data) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        let targetElement = $(data.event.target).closest('.jstree-node');
+        let rankGroupsTree = $.jstree.reference('#rank-groups-tree');
+        let sourceTree = $.jstree.reference('#categories-tree');
+        
+        if (targetElement.length && rankGroupsTree && sourceTree) {
+            let targetNode = rankGroupsTree.get_node(targetElement);
+            let sourceNode = sourceTree.get_node(data.data.nodes[0]);
+
+            if (targetNode && sourceNode && targetNode.type === 'rank_group') {
+                if (validateStatementDrop(targetNode, sourceNode)) {
+                    rankGroupsTree.create_node(targetNode, {
+                        text: sourceNode.text,
+                        type: 'statement',
+                        categoryId: sourceNode.parent,
+                        originalId: sourceNode.id
+                    }, 'last', function(newNode) {
+                        rankGroupsTree.open_node(targetNode);
+                        sourceTree.set_icon(sourceNode, 'fas fa-check');
+                    });
+                }
+            }
+        }
+        return false;
+    });*/
+
+    $(document).on('dnd_start.vakata', function (e, data) {
+        data.event.preventDefault();
+        data.event.stopPropagation();
+    });
+    
+    $(document).on('dnd_stop.vakata', function (e, data) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        let targetElement = $(data.event.target).closest('.jstree-node');
+        let rankGroupsTree = $.jstree.reference('#rank-groups-tree');
+        let sourceTree = $.jstree.reference('#categories-tree');
+        
+        if (targetElement.length && rankGroupsTree && sourceTree) {
+            let targetNode = rankGroupsTree.get_node(targetElement);
+            let sourceNode = sourceTree.get_node(data.data.nodes[0]);
+    
+            if (targetNode && sourceNode && targetNode.type === 'rank_group') {
+                if (validateStatementDrop(targetNode, sourceNode)) {
+                    rankGroupsTree.create_node(targetNode, {
+                        text: sourceNode.text,
+                        type: 'statement',
+                        categoryId: sourceNode.parent,
+                        originalId: sourceNode.id
+                    }, 'last', function(newNode) {
+                        rankGroupsTree.open_node(targetNode);
+                        sourceTree.set_icon(sourceNode, 'fas fa-check');
+                    });
+                }
+            }
+        }
+        
+        return false;
+    });
+
+    $('#rank-groups-tree').on('copy_node.jstree', function(e, data) {
+        e.preventDefault();
+        e.stopPropagation();
+    
+        let targetNode = data.parent;
+        let sourceNode = data.original;
+        let rankGroupsTree = $.jstree.reference('#rank-groups-tree');
+        let sourceTree = $.jstree.reference('#categories-tree');
+    
+        if (rankGroupsTree.get_node(targetNode).type === 'rank_group') {
+            if (validateStatementDrop(rankGroupsTree.get_node(targetNode), sourceNode)) {
+                let newNode = rankGroupsTree.create_node(targetNode, {
+                    text: sourceNode.text,
+                    type: 'statement',
+                    categoryId: sourceNode.parent,
+                    originalId: sourceNode.id
+                }, 'last');
+                rankGroupsTree.open_node(targetNode);
+                sourceTree.set_icon(sourceNode, 'fas fa-check');
+            }
+        }
+    
+        return false;
+    });
+    
+    /*.on('dnd_stop.vakata', function(e, data) {
+        let targetElement = $(data.event.target).closest('.jstree-node');
+        let rankGroupsTree = $.jstree.reference('#rank-groups-tree');
+        let sourceTree = $.jstree.reference('#categories-tree');
+        
+        if (targetElement.length && rankGroupsTree && sourceTree) {
+            let targetNode = rankGroupsTree.get_node(targetElement);
+            let sourceNode = sourceTree.get_node(data.data.nodes[0]);
+
+            if (targetNode && sourceNode) {
+                if (validateStatementDrop(targetNode, sourceNode)) {
+                    // Check if the node already exists to prevent duplicates
+                    let existingNode = rankGroupsTree.get_children_dom(targetNode.id).find(childId => 
+                        rankGroupsTree.get_node(childId).original && 
+                        rankGroupsTree.get_node(childId).original.originalId === sourceNode.id
+                    );
+
+                    if (!existingNode) {
+                        let newNode = rankGroupsTree.create_node(targetNode, {
+                            text: sourceNode.text.replace(/<\/?s>/g, ''),
+                            type: 'statement',
+                            categoryId: sourceNode.parent,
+                            originalId: sourceNode.id
+                        }, 'last');
+                        rankGroupsTree.open_node(targetNode);
+                        
+                        sourceTree.disable_node(sourceNode);
+                        sourceTree.set_text(sourceNode, '<s>' + sourceNode.text + '</s>');
+                        sourceTree.redraw_node(sourceNode);
+                    }
+                }
+            }
+        }
+        return false;
+    });*/
+
+    $('#rank-groups-tree').on('delete_node.jstree', function(e, data) {
+        let categoriesTree = $.jstree.reference('#categories-tree');
+        let sourceNode = categoriesTree.get_node(data.node.original.originalId);
+        if (sourceNode) {
+            categoriesTree.enable_node(sourceNode);
+            categoriesTree.set_text(sourceNode, sourceNode.text.replace(/<\/?s>/g, ''));
+            categoriesTree.redraw_node(sourceNode);
+        }
+    }); {% endcomment %}
+
+    {% comment %} // Handle drag stop (in case drag is cancelled)$('#categories-tree')
+    $(document).on('dnd_stop.vakata', function(e, data) {
+        let targetElement = $(data.event.target).closest('.jstree-node');
+        let rankGroupsTree = $.jstree.reference('#rank-groups-tree');
+        //let sourceTree = $.jstree.reference(data.origin);
+        let sourceTree = $.jstree.reference('#categories-tree');
+
+        if (targetElement.length && rankGroupsTree  && sourceTree) {
+            let sourceNode = sourceTree.get_node(data.data.nodes[0]);
+            //let sourceTree = $.jstree.reference(data.origin);
+            let targetNode = rankGroupsTree.get_node(targetElement);
+
+            if (sourceTree && targetNode) {
+                let sourceNode = sourceTree.get_node(data.data.nodes[0]);
+
+                if (targetNode.type !== 'rank_group') {
+                    alert("Statements can only be dropped into rank groups.");
+                    return false;
+                }
+
+                if (validateStatementDrop(targetNode, sourceNode)) {
+                    // Create a new node in the rank groups tree
+                    let newNode = rankGroupsTree.create_node(targetNode, {
+                        text: sourceNode.text,
+                        type: 'statement',
+                        data: {
+                            originalId: sourceNode.id,
+                            categoryId: sourceTree.get_parent(sourceNode)
+                        }
+                    }, 'last');
+
+                    /*let newNode = rankGroupsTree.create_node(targetNode, {
+                        text: sourceNode.text.replace(/<\/?s>/g, ''),
+                        type: 'statement',
+                        data: {
+                            originalId: sourceNode.id,
+                            categoryId: sourceTree.get_parent(sourceNode)
+                        }
+                    }, 'last');*/
+                    //let clonedNode = cloneNodeToRankGroup(rankGroupsTree, targetNode, sourceNode);
+                    rankGroupsTree.open_node(targetNode);
+                    
+                    // Disable the source node in the categories tree
+                    //sourceNode.state.disabled = true;
+                    sourceTree.disable_node(sourceNode);
+                    sourceTree.set_text(sourceNode, '<s>' + sourceNode.text + '</s>');
+                    sourceTree.redraw_node(sourceNode);
+                }
+            }
+        }
+
+        // Prevent the default drop behavior which would remove the node from the source tree
+        return false;
+
+        /*let targetElement = $(data.event.target).closest('.jstree-node');
+        if (targetElement.length && $('#rank-groups-tree').jstree('get_node', targetElement)) {
+            let sourceTree = $.jstree.reference(data.data.origin);
+            let targetTree = $.jstree.reference(data.event.target);
+            let sourceNode = sourceTree.get_node(data.data.nodes[0]);
+            let targetNode = targetTree.get_node($(data.event.target).closest('.jstree-node'));
+    
+            if (targetNode.type !== 'rank_group') {
+                alert("Statements can only be dropped into rank groups.");
+                return false;
+            }
+    
+            if (validateStatementDrop(targetNode, sourceNode)) {
+                let newNode = targetTree.create_node(targetNode, {
+                    text: sourceNode.text.replace(/<\/?s>/g, ''),
+                    type: 'statement',
+                    data: {
+                        originalId: sourceNode.id,
+                        categoryId: sourceTree.get_parent(sourceNode)
+                    }
+                });
+                targetTree.open_node(targetNode);
+            //} else {
+                // Revert the source node state if drop is not valid
+                sourceNode.state.disabled = false;
+                sourceTree.set_text(sourceNode, sourceNode.text.replace(/<\/?s>/g, ''));
+                sourceTree.redraw_node(sourceNode);
+            }
+        }*/
+        /*if (!data.event.isTrigger) { // Check if it's not a programmatically triggered event
+            let node = data.data.origin.get_node(data.element);
+            if (node.type === 'statement' && node.state.disabled) {
+                node.state.disabled = false;
+                data.data.origin.set_text(node, node.text.replace(/<\/?s>/g, ''));
+                data.data.origin.redraw_node(node);
+            }
+        }*/
+    }); {% endcomment %}
+
+    function cloneNodeToRankGroup(rankGroupsTree, targetNode, sourceNode) {
+        return rankGroupsTree.create_node(targetNode, {
+            text: sourceNode.text.replace(/<\/?s>/g, ''),
+            type: 'statement',
+            data: {
+                originalId: sourceNode.id,
+                categoryId: sourceNode.parent
+            }
+        }, 'last');
+    }
+
+    // Handle drop
+    /*$('#rank-groups-tree').on('copy_node.jstree', function(e, data) {
+        let sourceTree = $.jstree.reference(data.original.instance);
+        let targetTree = $.jstree.reference(data.instance);
+        
+        if (sourceTree && targetTree) {
+            let sourceNode = sourceTree.get_node(data.original.id);
+            let targetNode = targetTree.get_node(data.parent);
+        
+            if (validateStatementDrop(targetNode, sourceNode)) {
+                let newNode = targetTree.create_node(targetNode, {
+                    text: sourceNode.text.replace(/<\/?s>/g, ''),
+                    type: 'statement',
+                    data: {
+                        originalId: sourceNode.id,
+                        categoryId: sourceTree.get_parent(sourceNode)
+                    }
+                });
+                targetTree.open_node(targetNode);
+            } else {
+                // Revert the source node state if drop is not valid
+                sourceNode.state.disabled = false;
+                sourceTree.set_text(sourceNode, sourceNode.text.replace(/<\/?s>/g, ''));
+                sourceTree.redraw_node(sourceNode);
+            }
+        } else {
+            console.log('Unable to reference source or target tree');
+        }
+    });*/
+
+    /*$('#rank-groups-tree').on('dnd_finish.vakata', function(e, data) {
+        let sourceTree = $.jstree.reference(data.data.origin);
+        let targetTree = $.jstree.reference(data.event.target);
+        let sourceNode = sourceTree.get_node(data.data.nodes[0]);
+        let targetNode = targetTree.get_node($(data.event.target).closest('.jstree-node'));
+
+        if (validateStatementDrop(targetNode, sourceNode)) {
+            let newNode = targetTree.create_node(targetNode, {
+                text: sourceNode.text.replace(/<\/?s>/g, ''),
+                type: 'statement',
+                data: {
+                    originalId: sourceNode.id,
+                    categoryId: sourceTree.get_parent(sourceNode)
+                }
+            });
+            targetTree.open_node(targetNode);
+        } else {
+            // Revert the source node state if drop is not valid
+            sourceNode.state.disabled = false;
+            sourceTree.set_text(sourceNode, sourceNode.text.replace(/<\/?s>/g, ''));
+            sourceTree.redraw_node(sourceNode);
+        }
+    });*/
+
+    // Allow reordering within rank groups
+    $('#rank-groups-tree').on('move_node.jstree', function(e, data) {
+        // Additional logic for reordering if needed
+    });
+
+    function validateStatementDrop(targetNode, sourceNode) {
+        if (targetNode.type !== 'rank_group') {
+            alert("Statements can only be dropped into rank groups.");
+            return false;
+        }
+
+        let rankGroupsTree = $.jstree.reference('#rank-groups-tree');
+        let categoriesTree = $.jstree.reference('#categories-tree');
+        let categoryId = sourceNode.id.split('_')[1];
+        let existingStatements = rankGroupsTree.get_children_dom(targetNode.id);
+
+        for (let i = 0; i < existingStatements.length; i++) {
+            let existingNode = rankGroupsTree.get_node(existingStatements[i]);
+            if (existingNode.original && existingNode.original.categoryId === categoryId) {
+                alert("A statement from this category already exists in this rank group.");
+                return false;
+            }
+        }
+
+        let totalCategories = categoriesTree.get_json('#', {flat: true})
+            .filter(node => node.type === 'category').length;
+
+        if (existingStatements.length >= totalCategories) {
+            alert("This rank group has reached its maximum number of statements.");
+            return false;
+        }
+
+        return true;
+    }
+
+    /*function validateStatementDrop(targetNode, draggedNode) {
+        let rankGroupsTree = $('#rank-groups-tree').jstree(true);
+        let categoriesTree = $('#categories-tree').jstree(true);
+        
+        // Check if the target is a rank group
+        if (targetNode.type !== 'rank_group') {
+            alert("Statements can only be dropped into rank groups.");
+            return false;
+        }
+        
+        // Check if the dragged node is a statement
+        if (draggedNode.type !== 'statement') {
+            alert("Only statements can be dropped into rank groups.");
+            return false;
+        }
+        
+        // Check if a statement from the same category already exists in the rank group
+        let categoryId = categoriesTree.get_parent(draggedNode.id);
+        let existingStatements = rankGroupsTree.get_children_dom(targetNode.id);
+        
+        for (let i = 0; i < existingStatements.length; i++) {
+            let existingNode = rankGroupsTree.get_node(existingStatements[i]);
+            if (existingNode.data && existingNode.data.categoryId === categoryId) {
+                alert("A statement from this category already exists in this rank group.");
+                return false;
+            }
+        }
+        
+        // Check if the rank group has reached its maximum number of statements
+        let totalCategories = $('#categories-tree').jstree(true).get_json('#', {flat: true})
+            .filter(node => node.type === 'category').length;
+        
+        if (existingStatements.length >= totalCategories) {
+            alert("This rank group has reached its maximum number of statements.");
+            return false;
+        }
+        
+        return true;
+    }
+    
+    
+    $('#categories-tree').on('move_node.jstree', function(e, data) {
+        let node = $('#categories-tree').jstree(true).get_node(data.node);
+        node.state.disabled = true;
+        $('#categories-tree').jstree(true).set_text(node, '<s>' + node.text + '</s>');
+        $('#categories-tree').jstree(true).redraw_node(node);
+    });
+    
+    $('#rank-groups-tree').on('copy_node.jstree', function(e, data) {
+        let sourceNode = $('#categories-tree').jstree(true).get_node(data.original.id);
+        data.node.data = {
+            originalId: sourceNode.id,
+            categoryId: sourceNode.parent
+        };
+        $('#rank-groups-tree').jstree(true).set_text(data.node, sourceNode.text);
+    });
+    
+    $('#rank-groups-tree').on('move_node.jstree', function(e, data) {
+        let targetNode = $('#rank-groups-tree').jstree(true).get_node(data.parent);
+        let draggedNode = data.node;
+        
+        if (!validateStatementDrop(targetNode, draggedNode)) {
+            $('#rank-groups-tree').jstree(true).delete_node(draggedNode);
+        } else {
+            // Proceed with the drop operation
+            draggedNode.data = draggedNode.data || {};
+            draggedNode.data.categoryId = $('#categories-tree').jstree(true).get_parent(data.old_parent);
+        }
+    });*/
+    
+
+{% comment %} $(document).ready(function() {
+    let categoryCounter = 0;
+    let subcategoryCounter = 0;
+    let statementCounter = 0;
+    let rankGroupCounter = 0;
+
+    $('#categories-tree').jstree({
+        core: {
+            check_callback: function(operation, node, parent, position, more) {
+                if (operation === 'move_node') {
+                    return false; // Prevent moving nodes within this tree
+                }
+                return true;
+            },
+            data: []
+        },
+        plugins: ["dnd", "contextmenu", "types"],
+        types: {
+            category: { icon: "fas fa-folder" },
+            subcategory: { icon: "fas fa-folder-open" },
+            statement: { icon: "fas fa-file-alt" }
+        },
+        contextmenu: {
+            items: customCategoryMenu
+        },
+        dnd: {
+            is_draggable: function(node) {
+                return node[0].type === 'statement';
+            }
+        }
+    });
+
+    $('#rank-groups-tree').jstree({
+        core: {
+            check_callback: true,
+            data: []
+        },
+        plugins: ["dnd", "contextmenu", "types"],
+        types: {
+            rank_group: { icon: "fas fa-list-ol" },
+            statement: { icon: "fas fa-file-alt" }
+        },
+        contextmenu: {
+            items: customRankGroupMenu
+        },
+        dnd: {
+            copy: false
+        }
+    });
+
+    function customCategoryMenu(node) {
+        let items = {
+            editItem: {
+                label: "Edit",
+                action: function(data) {
+                    let inst = $.jstree.reference(data.reference);
+                    let obj = inst.get_node(data.reference);
+                    inst.edit(obj);
+                }
+            },
+            deleteItem: {
+                label: "Delete",
+                action: function(data) {
+                    let inst = $.jstree.reference(data.reference);
+                    let obj = inst.get_node(data.reference);
+                    inst.delete_node(obj);
+                }
+            }
+        };
+
+        if (node.type !== 'statement') {
+            items.addSubcategory = {
+                label: "Add Subcategory",
+                action: function(data) {
+                    let inst = $.jstree.reference(data.reference);
+                    let obj = inst.get_node(data.reference);
+                    if (obj.parents.length < 2) {
+                        subcategoryCounter++;
+                        inst.create_node(obj, { type: "subcategory", text: `Subcategory${subcategoryCounter}` }, "last", function(new_node) {
+                            setTimeout(function() { inst.edit(new_node); }, 0);
+                        });
+                    } else {
+                        alert("Maximum category depth reached");
+                    }
+                }
+            };
+            items.addStatement = {
+                label: "Add Statement",
+                action: function(data) {
+                    let inst = $.jstree.reference(data.reference);
+                    let obj = inst.get_node(data.reference);
+                    statementCounter++;
+                    inst.create_node(obj, { type: "statement", text: `Statement${statementCounter}` }, "last", function(new_node) {
+                        setTimeout(function() { inst.edit(new_node); }, 0);
+                    });
+                }
+            };
+        }
+
+        return items;
+    }
+
+    function customRankGroupMenu(node) {
+        let items = {
+            editItem: {
+                label: "Edit",
+                action: function(data) {
+                    let inst = $.jstree.reference(data.reference);
+                    let obj = inst.get_node(data.reference);
+                    inst.edit(obj);
+                }
+            },
+            deleteItem: {
+                label: "Delete",
+                action: function(data) {
+                    let inst = $.jstree.reference(data.reference);
+                    let obj = inst.get_node(data.reference);
+                    inst.delete_node(obj);
+                }
+            }
+        };
+
+        if (node.type === 'rank_group') {
+            items.addQuestionStem = {
+                label: "Add Question Stem",
+                action: function(data) {
+                    let inst = $.jstree.reference(data.reference);
+                    let obj = inst.get_node(data.reference);
+                    let stemText = prompt("Enter question stem:");
+                    if (stemText) {
+                        obj.data = obj.data || {};
+                        obj.data.questionStem = stemText;
+                        inst.redraw_node(obj);
+                    }
+                }
+            };
+        }
+
+        return items;
+    }
+
+    $('#add-category').click(function() {
+        categoryCounter++;
+        $('#categories-tree').jstree().create_node("#", { type: "category", text: `Category${categoryCounter}` }, "last", function(new_node) {
+            setTimeout(function() { $('#categories-tree').jstree().edit(new_node); }, 0);
+        });
+    });
+
+    $('#add-rank-group').click(function() {
+        rankGroupCounter++;
+        $('#rank-groups-tree').jstree().create_node("#", { type: "rank_group", text: `RankGroup${rankGroupCounter}` }, "last", function(new_node) {
+            setTimeout(function() { $('#rank-groups-tree').jstree().edit(new_node); }, 0);
+        });
+    });
+
+    /*$('#categories-tree').on('move_node.jstree', function(e, data) {
+        if (data.parent === '#') {
+            return false; // Prevent moving to root level
+        }
+    });*/
+    $('#categories-tree').on('move_node.jstree', function(e, data) {
+        let node = $('#categories-tree').jstree(true).get_node(data.node);
+        node.state.disabled = true;
+        $('#categories-tree').jstree(true).set_text(node, '<s>' + node.text + '</s>');
+        $('#categories-tree').jstree(true).redraw_node(node);
+    });
+
+    $('#rank-groups-tree').on('copy_node.jstree', function(e, data) {
+        let sourceNode = $('#categories-tree').jstree(true).get_node(data.original.id);
+        data.node.data = {
+            originalId: sourceNode.id,
+            categoryId: sourceNode.parent
+        };
+        $('#rank-groups-tree').jstree(true).set_text(data.node, sourceNode.text);
+    });
+    
+
+    /*$('#rank-groups-tree').on('move_node.jstree', function(e, data) {
+        let sourceTree = $.jstree.reference(data.node.original_instance);
+        let targetTree = $.jstree.reference(data.instance);
+
+        if (sourceTree.get_node(data.node.parent).type !== 'rank_group') {
+            return false; // Prevent dropping outside rank groups
+        }
+
+        let categoryId = sourceTree.get_node(data.node.parent).id;
+        let existingStatements = targetTree.get_children_dom(data.parent);
+
+        for (let i = 0; i < existingStatements.length; i++) {
+            if (targetTree.get_node(existingStatements[i]).data.categoryId === categoryId) {
+                targetTree.delete_node(data.node);
+                alert("A statement from this category already exists in this rank group.");
+                return false;
+            }
+        }
+
+        data.node.data = data.node.data || {};
+        data.node.data.categoryId = categoryId;
+    });*/
+
+
+    function presentRankingQuestion() {
+        let rankGroups = $('#rank-groups-tree').jstree(true).get_json('#', {flat: false});
+        let totalCategories = $('#categories-tree').jstree(true).get_json('#', {flat: false}).length;
+        
+        let presentationHtml = '';
+        rankGroups.forEach(function(group) {
+            presentationHtml += `<h3>${group.data.questionStem}</h3>`;
+            presentationHtml += '<ul>';
+            group.children.forEach(function(statement) {
+                let rankOptions = '';
+                for (let i = 1; i <= totalCategories; i++) {
+                    rankOptions += `<option value="${i}">${i}</option>`;
+                }
+                presentationHtml += `
+                    <li>
+                        ${statement.text}
+                        <select class="rank-select" data-statement-id="${statement.data.originalId}" data-category-id="${statement.data.categoryId}">
+                            <option value="">Select Rank</option>
+                            ${rankOptions}
+                        </select>
+                    </li>
+                `;
+            });
+            presentationHtml += '</ul>';
+        });
+        
+        $('#question-presentation').html(presentationHtml);
+    }
+    
+
+    $('#question-presentation').on('change', '.rank-select', function() {
+        let statementId = $(this).data('statement-id');
+        let categoryId = $(this).data('category-id');
+        let rank = $(this).val();
+        
+        // Here you can store the ranking information or perform any other necessary actions
+        console.log(`Statement ${statementId} from category ${categoryId} ranked as ${rank}`);
+    });
+    
+}); {% endcomment %}
+</script>
+
+{% endblock %}

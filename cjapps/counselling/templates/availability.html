@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }} | Career Judge{% endblock title %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block content %}
+
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="/">Home</a></li>
+      <li class="breadcrumb-item"><a href="{#% url 'user_list' %#}">Counselling</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Availability</li>
+    </ol>
+</nav>
+
+<h4 class="fw-bold mb-3"><i class="fas fa-cog me-2"></i>Availability Form</h4>
+
+{% include 'snippets/messages.html' %}
+
+<form action="" method="POST" enctype="multipart/form-data">{% csrf_token %}
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <div class="card">
+                <p class="form-title">Counselling Availability Timeslots</p>
+                <div class="card-body">
+                    {{ form|crispy }}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <p class="form-title">Others</p>
+                <div class="card-body">
+                    {#{ form.picture|as_crispy_field }#}
+                </div>
+            </div>
+        </div>
+    </div>
+    <input class="btn btn-primary" type="submit" value="Save">
+</form>
+{% endblock content %}
+
+{% block js %}
+<script>
+    $(function(){
+
+        function clearCheckboxes() {
+            for(var i=0; i<10; i++) {
+                $('#id_timeslots_'+i).prop('checked', false);
+            }
+        }
+
+        $("#id_date").on('change',(e)=>{
+            let date = e.target.value;
+            window.location.href = "/counselling/availability/"+date;
+
+            // console.log(date);
+            // $.ajax({
+            //     url: "/counselling/availability/load/"+date,
+            //     context: document.body
+            // }).done(function(data, textStatus, jqXHR) {
+            //     clearCheckboxes();
+            //     if (data.length > 0) {
+            //         data = data[0];   
+            //         timeslots = JSON.parse(data.timeslots.replace(/'/g, '"'));
+                    
+            //         timeslots.forEach(slot => {
+            //             $("#id_timeslots_"+(slot-1)).prop('checked', true);
+            //         });
+            //     }
+            // });
+        });
+    //     // function hideInputs() {
+    //     //     $("#id_amc_date").hide();
+    //     //     $("#id_amc_product").hide();
+    //     //     $("#id_warranty_date").hide();
+    //     //     $("#id_warranty_product_list").hide();
+    //     // }
+
+    //     $("#id_category").on('change', function(){
+    //         var val = $(this).val();
+    //         if (val != '') {
+    //             $.ajax({
+    //                 url: "/counselling/counsellors/category/"+val,
+    //                 context: document.body
+    //             }).done(function(data, textStatus, jqXHR) {
+    //                 $("#id_counsellor").find("option").remove();
+    //                 data.forEach(user => {
+    //                     $("#id_counsellor")
+    //                         .append('<option value = "'+user.id+'">'+user.email+'</option>');
+    //                 });
+                    
+    //             });
+    //         } else {
+    //             $("#id_counsellor").find("option").remove();
+    //         }
+    //     });
+        
+    //     $("#id_counsellor").on('change', function(){
+    //         var val = $(this).val();
+    //         if (val != '') {
+    //             $.ajax({
+    //                 url: "/counselling/counsellors/category/"+val,
+    //                 context: document.body
+    //             }).done(function(data, textStatus, jqXHR) {
+    //                 $("#id_timeslot").find("option").remove();
+    //                 data.forEach(timeslot => {
+    //                     $("#id_timeslot")
+    //                         .append('<option value = "'+timeslot.id+'">'+timeslot.email+'</option>');
+    //                 });
+                    
+    //             });
+    //         } else {
+    //             // $("#id_timeslot").find("option").remove();
+    //         }
+    //     });
+
+    //     hideInputs();
+    });
+</script>
+{% endblock js %}

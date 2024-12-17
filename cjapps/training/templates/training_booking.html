@@ -1,0 +1,221 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }} | Career Judge{% endblock title %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block content %}
+
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="/">Home</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'training_booking_list' %}">Training Bookings</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Add</li>
+    </ol>
+</nav>
+
+<h4 class="fw-bold mb-3"><i class="fas fa-cog me-2"></i>New Booking</h4>
+
+{% include 'snippets/messages.html' %}
+
+<form action="{% url 'training_booking_add' %}" method="POST" id="training_booking_form">{% csrf_token %}
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <div class="card">
+                <p class="form-title">Booking Information</p>
+                <div class="card-body">
+                    {{ form|crispy }}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card mb-2">
+                <p class="form-title mb-0" >Training Information</p>
+                <div class="card-body pt-0">
+                    <div id="training_information" class="">
+                        
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <p class="form-title mb-0" >Training Structure</p>
+                <div class="card-body pt-0">
+                    <div id="training_structure" class=""></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <input id="btn_book_pay" class="btn btn-primary" type="submit" value="Book &amp; Pay">
+</form>
+{% endblock content %}
+
+{% block header %}
+<link rel="stylesheet" href="{% static 'vendor/jsTree/themes/default/style.min.css' %}">
+<link rel="stylesheet" href="https://code.jquery.com/ui/1.13.3/themes/base/jquery-ui.css">
+{% endblock %}
+
+{% block js %}
+<script src="{% static 'vendor/jsTree/jstree.min.js' %}"></script>
+<script src="https://code.jquery.com/ui/1.13.3/jquery-ui.js"></script>
+<script>
+    $(function(){
+        // reset training list
+        $("#id_training").find("option").remove();
+        $("#id_training").append('<option value="" selected="">---------</option>');
+
+        // fetch category based trainings.
+        $("#id_category").on('change', function(){
+            var val = $(this).val();
+            if (val != '') {
+                $.ajax({
+                    url: "/training/booking/category/"+val,
+                    context: document.body
+                }).done(function(response, textStatus, jqXHR) {
+                    console.log(response);
+
+                    $("#id_training").find("option").remove();
+                    $("#id_training").append('<option value="" selected="">---------</option>');
+                    response.data.forEach(training => {
+                        $("#id_training")
+                            .append('<option value = "'+training.pk+'">'+training.fields.title+'</option>');
+                    });
+                    $("#id_training").change();
+                });
+            } else {
+                $("#id_training").find("option").remove();
+                $("#id_training").change();
+            }
+        });
+
+        // fetch training information
+        $('#id_training').on('change', function(){
+            var training_id = $(this).val();
+            if (training_id) {
+                ajax_post('/training/information/'+training_id, {}, function(data){
+                    console.log(data);
+                    $('#training_information').html(data);
+                });
+            } else {
+                $('#training_information').html('');
+            }
+        });
+
+        // fetch training structure
+        $('#id_training').on('change', function(){
+            var training_id = $(this).val();
+            if (training_id) {
+                $.ajax({
+                    url: "/training/structure/json?training_id="+training_id+"&mode=booking",
+                    context: document.body
+                }).done(function(response, textStatus, jqXHR) {
+                    console.log(response);
+                    load_tree_data(response);
+                });
+            } else {
+                load_tree_data();
+            }
+        });
+
+        // load tree with training structure  
+        function load_tree_data(structure_data=[]) {
+            // destroy already initialised jsTree
+            var tree = $("#training_structure").jstree(true);
+            if (tree) tree.destroy();
+            
+            // initialise jsTree instance  
+            $('#training_structure').jstree({  
+                "core": {
+                    //'check_callback' : true,
+                    "data": structure_data  
+                },  
+                types : {
+                    // "valid_children" : [ "module" ],
+                    // the default type
+                    "#":{
+                        "valid_children" : [ "module" ]
+                    }, 
+                    "module" : {
+                        "max_children"	: -1,
+                        //"max_depth"		: 6,
+                        "valid_children": ["lesson"],
+                        // Bound functions - you can bind any other function here (using boolean or function)
+                        // "select_node"	: true,
+                        "open_node"	: true,
+                        //"close_node"	: true,
+                        //"create_node"	: true,
+                        //"delete_node"	: true,
+                        "icon": "fa fa-book",
+                    },
+                    "lesson" : {
+                        "max_children"	: -1,
+                        //"max_depth"		: 5,
+                        "open_node"	: true,
+                        // "select_node"	: true,
+                        "valid_children": ["topic", "session", "livesession", "assignment"],
+                        "icon": "fa fa-clipboard-list",
+                    },
+                    "topic" : {
+                        "max_children"	: -1,
+                        //"max_depth"		: 4,
+                        "open_node"	: true,
+                        // "select_node"	: true,
+                        "valid_children": ["subtopic", "session", "livesession", "assignment"],
+                        "icon": "fa fa-list-check",
+                    },
+                    "subtopic" : {
+                        "max_children"	: -1,
+                        //"max_depth"		: 3,
+                        "open_node"	: true,
+                        // "select_node"	: true,
+                        "icon": "fa fa-list",
+                        "valid_children": ["session", "livesession", "assignment"]
+                    },
+                    "session" : {
+                        "max_children"	: -1,
+                        //"max_depth"		: 2,
+                        "open_node"	: true,
+                        // "select_node"	: true,
+                        "valid_children": ["content"], //, "assignment"
+                        "icon": "fa fa-users-rectangle",
+                    },
+                    "content" : {
+                        "max_children"	: -1,
+                        //"max_depth"		: 2,
+                        "open_node"	: true,
+                        // "select_node"	: true,
+                        "valid_children": "none",
+                        "icon": "fa fa-file",
+                    },
+                    "livesession" : {
+                        "max_children"	: -1,
+                        //"max_depth"		: 2,
+                        "open_node"	: true,
+                        // "select_node"	: true,
+                        "valid_children": "none", //, "assignment"
+                        "icon": "fa fa-video-camera",
+                    },
+                    "assignment" : {
+                        "max_children"	: -1,
+                        //"max_depth"		: 2,
+                        "open_node"	: true,
+                        // "select_node"	: true,
+                        "valid_children": "none",
+                        "icon": "fa fa-user-plus",
+                    }
+                },
+                "plugins": ["types"]  
+            }).bind('ready.jstree', function (e, data) {  
+                $('#training_structure').jstree('open_all')  
+            })  
+        }  
+
+
+        $('.dateinput').datepicker({
+            minDate: '-0m',
+            maxDate: '+7d'
+        }).on('changeDate', function(ev){
+            //$('#sDate1').text($('#datepicker').data('date'));
+            //$('#datepicker').datepicker('hide');
+        });
+    });
+</script>
+{% endblock js %}

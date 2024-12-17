@@ -1,0 +1,46 @@
+{% load assessment_tags %}
+{% block question_content %}
+<div id="question-wrapper" 
+     data-question-id="{{ question.id }}" 
+     data-question-type="fib_flash">
+
+    <div class="question-header mb-4">
+        <h5 class="question-number">Question {{ question_number }}</h5>
+        <h4 class="question-title">{{ question.title }}</h4>
+        
+        <!-- {% if question.objectives %}
+        <div class="question-objectives">
+            {{ question.objectives.html|safe }}
+        </div>
+        {% endif %} -->
+
+        {% if question.text %}
+        <div class="question-text">
+            {{ question.text.html|safe }}
+        </div>
+        {% endif %}
+    </div>
+    {{ presentation_items|json_script:"flash-items" }}
+    <div class="flash-question-container" 
+        data-interval="{{ flash_interval }}"
+        data-count="{{ flash_items_count }}">
+
+        <div class="flash-content card p-4 mb-3"></div>
+        <div class="flash-counter alert alert-info"></div>
+        
+        <div class="flash-options d-none">
+            <div class="fib-inputs mt-4">
+                {% for i in flash_items_count|get_range %}
+                <div class="input-group mb-3">
+                    <span class="input-group-text">Item {{ forloop.counter }}</span>
+                    <input type="text" class="form-control fib-input" 
+                           id="fib-input-{{ forloop.counter0 }}"
+                           data-index="{{ forloop.counter0 }}"
+                           placeholder="Enter answer for item {{ forloop.counter }}">
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

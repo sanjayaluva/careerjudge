@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }} | Career Judge{% endblock title %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block content %}
+    <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+        <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">Home</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'training_list' %}">Training</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Create</li>
+        </ol>
+    </nav>
+
+    <h4 class="fw-bold mb-3"><i class="fas fa-cog me-2"></i>Create Training</h4>
+
+    {% include 'snippets/messages.html' %}
+
+    <div class="m-0 mt-3">
+        <ul class="nav nav-tabs" id="trainingTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link{% if tab == 1 %} active{% endif %}" id="training-tab" data-bs-toggle="tab" data-bs-target="#training-content" type="button" role="tab" aria-controls="training-content" aria-selected="true">Training</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link{% if tab == 2 %} active{% endif %} disabled" tabindex="-1" aria-disabled="true" id="structure-tab" data-bs-toggle="tab" data-bs-target="#structure-content" type="button" role="tab" aria-controls="structure-content" aria-selected="false">Structure</button>
+            </li>
+        </ul>
+        <div class="tab-content" id="trainingTabContent">
+            <div class="tab-pane fade{% if tab == 1 %} show active{% endif %}" id="training-content" role="tabpanel" aria-labelledby="training-tab">
+                <form enctype="multipart/form-data" class="" method="post" action="{% url 'training_add' %}" id="training_basic_form" >{% csrf_token %}
+                    
+                    <div class="container mt-3">
+                        <div class="row">
+                            <div class="col">{{ training_form.title | as_crispy_field }}</div>
+                            <div class="col">{{ training_form.category | as_crispy_field }}</div>
+                            <div class="col">{{ training_form.amount | as_crispy_field }}</div>
+                        </div>
+                        <div class="row">
+                            <div class="col">{{ training_form.type | as_crispy_field }}</div>
+                            <div class="col">
+                                <div class="scheduled">{{ training_form.duration | as_crispy_field }}</div>
+                            </div>
+                            <div class="col">
+                                <div class="scheduled">{{ training_form.duration_type | as_crispy_field }}</div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col">{{ training_form.objectives | as_crispy_field }}</div>
+                            <div class="col">{{ training_form.desc_text | as_crispy_field }}</div>
+                        </div>
+                        <div class="col">{{ training_form.desc_img | as_crispy_field }}</div>
+                        <div class="row mt-4">
+                            <div class="col">
+                                <button type="submit" id="setup_training" class="btn btn-primary w-auto">Save Training</button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="tab-pane fade{% if tab == 2 %} show active{% endif %}" id="structure-content" role="tabpanel" aria-labelledby="structure-tab">
+                
+            </div>
+        </div>
+    </div>
+
+{% endblock content %}
+
+
+{% block header %}
+<!--link rel="stylesheet" href="{% static 'vendor/jsTree/themes/default/style.min.css' %}"-->
+<style>
+    table#training_content_table tbody label.form-label,
+    table#training_session_table tbody label.form-label,
+    table#training_assignment_links_table tbody label.form-label,
+    table#training_assignment_table tbody label.form-label {
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block js %}
+<!--script src="{% static 'vendor/jsTree/jstree.min.js' %}"></script-->
+<script>
+    $(document).ready(function() {
+
+        // change training type------------------------
+        $('#id_type').change(function(ev) {
+            ev.preventDefault();
+            sel = $(this).val();
+
+            if (sel == '1') {
+                $('.scheduled').show();
+                $('#id_duration').prop('required', true); 
+                $('#id_duration_type').prop('required', true); 
+            } else if (sel == '0') {
+                $('.scheduled').hide();
+                $('#id_duration').prop('required', false); 
+                $('#id_duration_type').prop('required', false); 
+            }
+        });
+        $('#id_type').change();
+
+    });
+</script>
+{% endblock js %}

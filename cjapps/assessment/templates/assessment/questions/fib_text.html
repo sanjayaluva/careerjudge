@@ -1,0 +1,26 @@
+{% load assessment_tags %}
+<div id="question-wrapper" data-question-id="{{ question.id }}" data-question-type="fib_text">
+    <div class="question-header">
+        <span class="question-number">Question {{ question_number }}</span>
+    </div>
+    
+    <!-- Question text with numbered blanks -->
+    <div class="question-text mb-4">
+        {{ text_parts.display_text|safe }}
+    </div>
+    
+    <!-- Answer input fields -->
+    <div class="fib-inputs">
+        {% for field in text_parts.input_fields %}
+            <div class="input-group mb-2">
+                <span class="input-group-text">Blank {{ field.number }}</span>
+                <input type="text" 
+                       class="form-control fib-input" 
+                       value="{{ response.answer_data.answers|index:forloop.counter0 }}"
+                       data-index="{{ forloop.counter0 }}"
+                       id="{{ field.blank_id }}"
+                       placeholder="Enter answer">
+            </div>
+        {% endfor %}
+    </div>
+</div>

@@ -1,0 +1,32 @@
+<div id="question-wrapper" 
+     data-question-id="{{ question.id }}" 
+     data-question-type="{{ question.type }}">
+
+    <div class="question-content">
+        <div class="question-header">
+            <span class="question-number">Question {{ question_number }} :</span>
+        </div>
+        
+        <div class="text-container">
+            <p>{{ text_parts.display_text|safe }}</p>
+        </div>
+
+        <div class="image-container mb-4">
+            <img src="{{ image_url }}" alt="Question Image" class="img-fluid">
+        </div>
+        
+        <div class="answers-container mt-3">
+            {% for field in text_parts.input_fields %}
+            <div class="form-group mb-2">
+                <label for="{{ field.blank_id }}">Blank {{ field.number }}:</label>
+                <input type="text" 
+                       id="{{ field.blank_id }}" 
+                       class="form-control fib-input" 
+                       data-blank-number="{{ field.number }}"
+                       value="{{ field.previous_answer|default:'' }}"
+                       required>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>

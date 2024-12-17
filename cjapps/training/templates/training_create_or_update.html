@@ -1,0 +1,280 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }} | Career Judge{% endblock title %}
+{% load crispy_forms_tags mptt_tags %}
+{% load static %}
+
+{% block content %}
+<form enctype="multipart/form-data" class="container" method="post" id="product_form">
+    {% csrf_token %}
+
+    <ul class="nav nav-tabs" id="trainingTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="training-tab" data-bs-toggle="tab" data-bs-target="#training-content" type="button" role="tab" aria-controls="training-content" aria-selected="true">Training</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="structure-tab" data-bs-toggle="tab" data-bs-target="#structure-content" type="button" role="tab" aria-controls="structure-content" aria-selected="false">Structure</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="content-tab" data-bs-toggle="tab" data-bs-target="#content-content" type="button" role="tab" aria-controls="content-content" aria-selected="false">Content</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="assignment-tab" data-bs-toggle="tab" data-bs-target="#assignment-content" type="button" role="tab" aria-controls="assignment-content" aria-selected="false">Assignment</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="assessment-tab" data-bs-toggle="tab" data-bs-target="#assessment-content" type="button" role="tab" aria-controls="assessment-content" aria-selected="false">Assessment</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="summary-tab" data-bs-toggle="tab" data-bs-target="#summary-content" type="button" role="tab" aria-controls="summary-content" aria-selected="false">Summary Live Session</button>
+        </li>
+    </ul>
+    <div class="tab-content" id="myTabContent">
+        <div class="tab-pane fade show active" id="training-content" role="tabpanel" aria-labelledby="training-tab">
+            {{ training_form | crispy_forms }}
+        </div>
+        <div class="tab-pane fade" id="structure-content" role="tabpanel" aria-labelledby="structure-tab">...</div>
+        <div class="tab-pane fade" id="content-content" role="tabpanel" aria-labelledby="content-tab">...</div>
+        <div class="tab-pane fade" id="assignment-content" role="tabpanel" aria-labelledby="assignment-tab">...</div>
+        <div class="tab-pane fade" id="assessment-content" role="tabpanel" aria-labelledby="assessment-tab">...</div>
+        <div class="tab-pane fade" id="summary-content" role="tabpanel" aria-labelledby="summary-tab">...</div>
+    </div>
+
+    <ul class="root">
+        {% recursetree modules %}
+            <li>
+                {{ node.name }}
+                {% if not node.is_leaf_node %}
+                    <ul class="children">
+                        {{ children }}
+                    </ul>
+                {% endif %}
+            </li>
+        {% endrecursetree %}
+    </ul>
+
+    <!-- main form start --- in our case product form -->
+    <div class="card">
+        <div class="card-header card-header-secondary">
+            <h4 class="card-title">Add Products</h4>
+        </div>
+        {% for field in form %}
+            <div class="form-group card-body">
+                <label>{{field.label}}</label>
+                {% if field.field.required %}
+                    <span style="color: red;" class="required">*</span>
+                {% endif %}
+            
+                {{field}}
+                {% if field.help_text %}
+                    <small style="color: grey">{{ field.help_text }}</small>
+                {% endif %}
+                {% for error in field.errors %}
+                    <p style="color: red">{{ error }}</p>
+                {% endfor %}
+            </div>
+        {% endfor %}
+    </div>
+    <!-- main form end --- in our case product form -->
+
+    <!-- inline form for Images start -->
+
+    <!-- EXPLAINING with named_formsets.images as formset -->
+    <!-- Note: named_formsets is used in get_context_data function in views.py -->
+    <!-- Note: here images is our ImageFormSet name, used in get_named_formsets function in views.py -->
+    {% with named_formsets.contents as formset %}  
+        {{ formset.management_form }}
+        <script type="text/html" id="contents-template">   // id="inlineformsetname-template"
+            <tr id="contents-__prefix__" class= hide_all>  // id="inlineformsetname-__prefix__"
+                {% for fields in formset.empty_form.hidden_fields %}
+                    {{ fields }}
+                {% endfor %}
+            
+                {% for fields in formset.empty_form.visible_fields %}
+                    <td>{{fields}}</td>
+                {% endfor %}
+            </tr>
+        </script>
+
+        <div class="table-responsive card mt-4">
+            <div class="card-header card-header-secondary">
+                <h4 class="card-title">Add Contents</h4>
+            </div>
+            <table class="table card-body">
+                <thead class="text-secondary">
+                    <th>Content File <span style="color: red;" class="required">*</span></th>
+                    <th>Format</th>
+                    <th>Delete</th>
+                </thead>
+                <tbody id="item-contents">  <!-- id="item-inlineformsetname" -->
+                    <!-- formset non forms errors -->
+                    {% for error in formset.non_form_errors %}
+                        <span style="color: red">{{ error }}</span>
+                    {% endfor %}
+                    {% for formss in formset %}
+                        {{ formss.management_form }}
+                        <tr id="contents-{{ forloop.counter0 }}" class= hide_all>  <!-- id="inlineformsetname-counter" -->
+                            {{ formss.id }}
+                            {% for field in formss.visible_fields %}
+                                <td>
+                                    {{field}}
+                                    {% for error in field.errors %}
+                                        <span style="color: red">{{ error }}</span>
+                                    {% endfor %}
+                                </td>
+                            {% endfor %}
+                            <!-- delete code -->
+                            {% if formss.instance.pk %}
+                                <td>
+                                    <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#exampleModal{{formss.instance.pk}}">
+                                        Delete
+                                    </button>
+                                    <!-- Modal -->
+                                    <div class="modal fade" id="exampleModal{{formss.instance.pk}}" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel{{formss.instance.pk}}" aria-hidden="true">
+                                        <div class="modal-dialog" role="document">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                            <h5 class="modal-title" id="exampleModalLabel{{formss.instance.pk}}">Are Your Sure You Want To Delete This?</h5>
+                                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                <span aria-hidden="true">&times;</span>
+                                            </button>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <a href="{#% url 'products:delete_image' formss.instance.pk %#}" type="button" class="btn btn-primary">Yes, Delete</a>
+                                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                            </div>
+                                        </div>
+                                        </div>
+                                    </div>
+                                </td>            
+                            {% endif %}
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <a href="#" id="add-image-button" class="btn btn-secondary add-contents">Add More</a> <!-- id="add-inlineformsetname-button" -->
+        </div>
+    {% endwith %}
+    <!-- inline form for Images end -->
+
+    <!-- inline form for Variant start -->
+
+    <!-- EXPLAINING with named_formsets.variants as formset -->
+    <!-- Note: named_formsets is used in get_context_data function in views.py -->
+    <!-- Note: here variants is our VariantFormSet name, used in get_named_formsets function in views.py -->
+    {% with named_formsets.assignments as formset %}
+        {{ formset.management_form }}
+        <script type="text/html" id="assignments-template">  // id="inlineformsetname-template"
+            // id='inlineformsetname-__prefix__' 
+            <tr id="assignments-__prefix__" class= hide_all>
+                {% for fields in formset.empty_form.hidden_fields %}
+                    {{ fields }}
+                {% endfor %}
+            
+                {% for fields in formset.empty_form.visible_fields %}
+                    <td>{{fields}}</td>
+                {% endfor %}
+            </tr>
+        </script>
+        <div class="table-responsive card mt-4">
+            <div class="card-header card-header-secondary">
+                <h4 class="card-title">Add Variants</h4>
+            </div>
+            <table class="table card-header">
+                <thead class="text-secondary">
+                    <th>Size <span style="color: red;" class="required">*</span></th>
+                    <th>Quantity <span style="color: red;" class="required">*</span></th>
+                    <th>Price <span style="color: red;" class="required">*</span></th>
+                    <th>Delete?</th>
+                    <th>Custom Delete btn</th>
+                </thead>
+                <tbody id="item-assignments">  <!-- id="item-inlineformsetname" -->
+                    <!-- formset non forms errors -->
+                    {% for error in formset.non_form_errors %}
+                        <span style="color: red">{{ error }}</span>
+                    {% endfor %}
+                    {% for formss in formset %}
+                        {{ formss.management_form }}
+                        <tr id="assignments-{{ forloop.counter0 }}" class= hide_all>  <!-- id="inlineformsetname-counter" -->
+                            {{ formss.id }}
+                            {% for field in formss.visible_fields %}
+                                <td>
+                                    {{field}}
+                                    {% for error in field.errors %}
+                                        <span style="color: red">{{ error }}</span>
+                                    {% endfor %}
+                                    
+                                    {% comment %} {{ field.DELETE }} {% endcomment %}
+                                </td>
+                            {% endfor %}
+                            {% comment %} for delete {% endcomment %}
+                            {% if formss.instance.pk %}
+                                <td>
+                                    <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#exampleModal{{formss.instance.pk}}">
+                                        Delete
+                                    </button>
+                                    <!-- Modal -->
+                                    <div class="modal fade" id="exampleModal{{formss.instance.pk}}" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel{{formss.instance.pk}}" aria-hidden="true">
+                                        <div class="modal-dialog" role="document">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                            <h5 class="modal-title" id="exampleModalLabel{{formss.instance.pk}}">Are Your Sure You Want To Delete This?</h5>
+                                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                <span aria-hidden="true">&times;</span>
+                                            </button>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <a href="{% url 'products:delete_variant' formss.instance.pk %}" type="button" class="btn btn-primary">Yes, Delete</a>
+                                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                            </div>
+                                        </div>
+                                        </div>
+                                    </div>
+                                </td>            
+                            {% endif %}
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <a href="#" id="add-variant-button" class="btn btn-secondary add-assignments">Add More</a> <!-- id="add-inlineformsetname-button" -->
+        </div>
+        
+        {% endwith %}
+        <!-- inline form for Images end -->
+
+        <div class="form-group">
+            <button type="submit" class="btn btn-secondary btn-block">Submit</button>
+        </div>
+</form>
+
+<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+
+<script>
+    $(document).ready(function() {
+        // when user clicks add more btn of images
+      $('.add-contents').click(function(ev) {
+          ev.preventDefault();
+          var count = $('#item-contents').children().length;
+          var tmplMarkup = $('#contents-template').html();
+          var compiledTmpl = tmplMarkup.replace(/__prefix__/g, count);
+          $('#item-contents').append(compiledTmpl);
+  
+          // update form count
+          $('#id_contents-TOTAL_FORMS').attr('value', count+1);
+      });
+  });
+
+  $(document).ready(function() {
+    // when user clicks add more btn of assignments
+      $('.add-assignments').click(function(ev) {
+          ev.preventDefault();
+          var count = $('#item-assignments').children().length;
+          var tmplMarkup = $('#assignments-template').html();
+          var compiledTmpl = tmplMarkup.replace(/__prefix__/g, count);
+          $('#item-assignments').append(compiledTmpl);
+  
+          // update form count
+          $('#id_assignments-TOTAL_FORMS').attr('value', count+1);
+      });
+  });
+</script>
+        
+{% endblock content %}

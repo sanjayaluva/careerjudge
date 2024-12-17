@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>{{ question.title }}</h2>
+<p><strong>Type:</strong> {{ question.get_question_type_display }}</p>
+<p><strong>Difficulty:</strong> {{ question.get_difficulty_level_display }}</p>
+<p><strong>Cognitive Level:</strong> {{ question.cognitive_level }}</p>
+<p><strong>Content:</strong></p>
+<div>{{ question.content|safe }}</div>
+
+{% if question.options.exists %}
+<h3>Options:</h3>
+<ul>
+    {% for option in question.options.all %}
+    <li>
+        {{ option.content|safe }}
+        {% if option.image %}
+        <img src="{{ option.image.url }}" alt="Option Image" style="max-width: 200px;">
+        {% endif %}
+        {% if option.is_correct %}(Correct){% endif %}
+    </li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+{% if question.hotspots.exists %}
+<h3>Hotspots:</h3>
+<div style="position: relative;">
+    <img src="{{ question.media.first.file.url }}" alt="Hotspot Image">
+    {% for hotspot in question.hotspots.all %}
+    <div style="position: absolute; border: 2px solid {% if hotspot.is_correct %}green{% else %}red{% endif %}; left: {{ hotspot.x }}px; top: {{ hotspot.y }}px; width: {{ hotspot.width }}px; height: {{ hotspot.height }}px;"></div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% if question.flash_cards.exists %}
+<h3>Flash Cards:</h3>
+<div class="flash-cards">
+    {% for card in question.flash_cards.all %}
+    <div class="flash-card">{{ card.content|safe }}</div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% if question.matching_pairs.exists %}
+<h3>Matching Pairs:</h3>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Left Item</th>
+            <th>Right Item</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for pair in question.matching_pairs.all %}
+        <tr>
+            <td>{{ pair.left_item }}</td>
+            <td>{{ pair.right_item }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+
+{% if question.media.exists %}
+<h3>Media:</h3>
+{% for media in question.media.all %}
+    {% if media.media_type == 'AUDIO' %}
+    <audio controls>
+        <source src="{{ media.file.url }}" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+    {% elif media.media_type == 'VIDEO' %}
+    <video width="320" height="240" controls>
+        <source src="{{ media.file.url }}" type="video/mp4">
+        Your browser does not support the video tag.
+    </video>
+    {% elif media.media_type == 'IMAGE' %}
+    <img src="{{ media.file.url }}" alt="Question Image" style="max-width: 100%;">
+    {% endif %}
+{% endfor %}
+{% endif %}
+
+<div class="mt-4">
+    <a href="{% url 'edit_question' question.pk %}" class="btn btn-primary">Edit</a>
+    <a href="{% url 'delete_question' question.pk %}" class="btn btn-danger">Delete</a>
+    <a href="{% url 'question_list' %}" class="btn btn-secondary">Back to List</a>
+</div>
+{% endblock %}

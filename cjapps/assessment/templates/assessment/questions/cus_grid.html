@@ -1,0 +1,144 @@
+{% load assessment_tags %}
+
+<div id="question-wrapper" data-question-id="{{ question.id }}" data-question-type="cus_grid">
+    <div class="question-header">
+        <span class="question-number">Question {{ question.number }}</span>
+        <div class="question-text">{{ question.text.html|safe }}</div>
+    </div>
+    
+    <div class="grid-container">
+        <table class="grid-table">
+            <tbody>
+                {% for row in question.grid_rows|to_range  %}
+                <tr class="grid-row">
+                    {% for col in question.grid_cols|to_range  %}
+                    <td class="grid-cell">
+                        {% get_cell_option question.grid_options.all row col as option %}
+                        {% if option %}
+                        <button class="grid-button" 
+                                data-content-type="{{ question.grid_type }}"
+                                data-text="{{ option.text }}"
+                                data-image="{% if option.image %}{{ option.image.url }}{% endif %}"
+                                data-cell-id="{{ option.id }}">
+                                <span class="cell-number"></span>
+                        </button>
+                        {% endif %}
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <style>
+        .grid-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 10px;
+        }
+
+        .grid-cell {
+            padding: 0;
+            width: calc(100% / var(--grid-cols));
+        }
+
+        .grid-button {
+            width: 100%;
+            min-height: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            /* background: white; */
+            background: transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .grid-button:hover {
+            background: #f5f5f5;
+            border-color: #2196f3;
+        }
+
+        .grid-button.selected {
+            background: #e3f2fd;
+            border-color: #2196f3;
+        }
+
+        /* .grid-popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            width: 80%;
+            max-width: 600px;
+        }
+
+        .popup-content {
+            padding: 20px;
+        }
+
+        .popup-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        .popup-body {
+            padding: 10px 0;
+        }
+
+        .close-popup {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .close-popup:hover {
+            color: #f00;
+        } */
+    </style>
+
+    <!-- Grid Content Modal -->
+    <div class="modal fade" id="gridModal" tabindex="-1" aria-labelledby="gridModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="gridModalLabel">Option Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="popupContent"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" id="selectOption">Select</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <button id="showAllData" class="btn btn-secondary mt-3">Show All Data</button>
+    <!-- All Data Modal -->
+    <div class="modal fade" id="allDataModal" tabindex="-1" aria-labelledby="allDataModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="allDataModalLabel">All Cell Data</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="allDataContent"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" id="saveSelections">Save Selections</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

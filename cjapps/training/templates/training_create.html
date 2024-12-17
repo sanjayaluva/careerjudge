@@ -1,0 +1,1252 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }} | Career Judge{% endblock title %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block content %}
+    <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+        <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">Home</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'training_list' %}">Training</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Create</li>
+        </ol>
+    </nav>
+
+    <h4 class="fw-bold mb-3"><i class="fas fa-cog me-2"></i>Create Training</h4>
+
+    {% include 'snippets/messages.html' %}
+
+    <div class="m-0 mt-3">
+        <ul class="nav nav-tabs" id="trainingTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link{% if tab == 1 %} active{% endif %}" id="training-tab" data-bs-toggle="tab" data-bs-target="#training-content" type="button" role="tab" aria-controls="training-content" aria-selected="true">Training</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link{% if tab == 2 %} active{% endif %}" id="structure-tab" data-bs-toggle="tab" data-bs-target="#structure-content" type="button" role="tab" aria-controls="structure-content" aria-selected="false">Structure</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="content-tab" data-bs-toggle="tab" data-bs-target="#content-content" type="button" role="tab" aria-controls="content-content" aria-selected="false">Content</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="assignment-tab" data-bs-toggle="tab" data-bs-target="#assignment-content" type="button" role="tab" aria-controls="assignment-content" aria-selected="false">Assignment</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="assessment-tab" data-bs-toggle="tab" data-bs-target="#assessment-content" type="button" role="tab" aria-controls="assessment-content" aria-selected="false">Assessment</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="summary-tab" data-bs-toggle="tab" data-bs-target="#summary-content" type="button" role="tab" aria-controls="summary-content" aria-selected="false">Summary Live Session</button>
+            </li>
+        </ul>
+        <div class="tab-content" id="trainingTabContent">
+            <div class="tab-pane fade{% if tab == 1 %} show active{% endif %}" id="training-content" role="tabpanel" aria-labelledby="training-tab">
+                <form enctype="multipart/form-data" class="" method="post" action="{% url 'training_add' %}" id="training_basic_form" >{% csrf_token %}
+                    <input type="hidden" id="training_id" name="training_id" value="{{ training_id }}">
+                    <div class="container mt-3">
+                        <div class="row">
+                            <div class="col">{{ training_form.title | as_crispy_field }}</div>
+                            <div class="col">{{ training_form.category | as_crispy_field }}</div>
+                            <div class="col">{{ training_form.amount | as_crispy_field }}</div>
+                        </div>
+                        <div class="row">
+                            <div class="col">{{ training_form.type | as_crispy_field }}</div>
+                            <div class="col">
+                                <div class="scheduled">{{ training_form.duration | as_crispy_field }}</div>
+                            </div>
+                            <div class="col">
+                                <div class="scheduled">{{ training_form.duration_type | as_crispy_field }}</div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col">{{ training_form.objectives | as_crispy_field }}</div>
+                            <div class="col">{{ training_form.desc_text | as_crispy_field }}</div>
+                        </div>
+                        <div class="col">{{ training_form.desc_img | as_crispy_field }}</div>
+                        <div class="row mt-4">
+                            <div class="col">
+                                <button type="submit" id="setup_training" class="btn btn-primary w-auto">Setup Training</button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="tab-pane fade{% if tab == 2 %} show active{% endif %}" id="structure-content" role="tabpanel" aria-labelledby="structure-tab">
+                <!--form class="d-none" id="training_structure_form" method="post" action="{% url 'training_structure_save' training_id %}">{% csrf_token %}
+                    <textarea id="json_data_txt" name="json_data_txt"></textarea>
+                </form-->
+                {% comment %} <form enctype="multipart/form-data" class="" method="post" id="training_structure_form" >{% csrf_token %} {% endcomment %}
+                    <div class="structure-tab">
+                        <div class="row">
+                            <div class="col-9">
+                                <div id="training_structure" class="mt-3 ms-3"></div>
+                            </div>
+                            <div class="col-2 mt-2 p-0">
+                                <button class="btn btn-sm btn-primary mb-2 w-100 text-start" data-type="module" id="add_module"><i class="fa fa-book"></i>Add Module</button>
+                                <button class="btn btn-sm btn-primary mb-2 w-100 text-start" data-type="lesson" id="add_lesson"><i class="fa fa-clipboard-list"></i>Add Lesson</button>
+                                <button class="btn btn-sm btn-primary mb-2 w-100 text-start" data-type="topic" id="add_topic"><i class="fa fa-list-check"></i>Add Topic</button>
+                                <button class="btn btn-sm btn-primary mb-2 w-100 text-start" data-type="subtopic" id="add_subtopic"><i class="fa fa-list"></i>Add Subtopic</button>
+                                
+                                <button class="btn btn-sm btn-primary mb-2 w-100 text-start" data-type="session" id="add_session"><i class="fa fa-users-rectangle"></i>Add Session</button>
+                                <button class="btn btn-sm btn-primary mb-2 w-100 text-start" data-type="content" id="add_content"><i class="fa fa-file"></i>Add Content</button>
+                                <button class="btn btn-sm btn-primary mb-2 w-100 text-start" data-type="assignment" id="add_assignment"><i class="fa fa-user-check"></i>Add Assignment</button>
+                                
+                                <!--button class="btn btn-sm btn-success mt-2 w-100 text-start" id="save_structure"><i class="fa fa-download"></i>Save Structure</button-->
+                            </div>
+                        </div>
+                    </div>
+                {% comment %} </form> {% endcomment %}
+                
+                <!-- content model -->
+                <div id="contentModal" class="modal"  tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Training Contents</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form id="training_content_form" action="{% url 'training_content_save' %}" enctype="multipart/form-data" method="post">{% csrf_token %}
+                                    {{ content_form|crispy }}
+                                </form>
+                            </div>
+                            <div class="modal-footer">
+                                <!--button class="btn btn-primary add_training_content"><i class="fa fa-plus"></i>Add Content</button-->
+                                <button class="btn btn-success save_training_content"><i class="fa fa-plus"></i>Save Content</button>
+                                {% comment %} <button class="btn btn-sm btn-primary add_training_assignment_link_{{assignment_id}}"><i class="fa fa-plus"></i> Add Link</button> {% endcomment %}
+                                <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal"><i class="fa fa-close"></i> Close</button>
+                                {% comment %} <button class="btn btn-sm btn-success save_training_assignment_link_{{assignment_id}}"><i class="fa fa-plus"></i> Save Link</button> {% endcomment %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                {% comment %} <!-- content model -->
+                {% for content_formset in content_formsets %}
+                {% with content_formset.instance.id as session_id %}
+                <div id="contentModal_{{session_id}}" class="modal"  tabindex="-1">
+                    <div class="modal-dialog modal-xl">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Training Contents</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form id="training_content_form_{{session_id}}" action="{% url 'training_content_save' %}" class="mt-4" enctype="multipart/form-data" method="post">{% csrf_token %}
+                                    {{ content_formset.management_form }}
+                                    <table id="training_content_table_{{session_id}}">
+                                        {% for form in content_formset %}
+                                        {% if forloop.first %}
+                                        <thead>
+                                            <tr>
+                                                {% for field in form.visible_fields %}
+                                                <th>{% if field.label %}{{ field.label_tag }}{% endif %}</th>
+                                                {% endfor %}
+                                            </tr>
+                                        </thead>
+                                        {% endif %}
+                                        {% endfor %}
+                                        <tbody>
+                                            {% for form in content_formset %}
+                                            <tr id="contents-{{ forloop.counter0 }}">
+                                                {% for field in form.visible_fields %}
+                                                <td class="align-top {% if forloop.last %}ps-2 pt-2{%endif%}">
+                                                    {{ field.errors }}
+                                                    {{ field|as_crispy_field }}
+                                                    
+                                                    {% if forloop.last %}
+                                                    {% for field in form.hidden_fields %}{{ field }}{% endfor %}
+                                                    {% endif %}
+                                                </td>
+                                                {% endfor %}
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                    
+                                    <script type="text/html" id="training_content_template_{{session_id}}">
+                                        <tr id="contents-__prefix__">
+                                            {% for field in content_formset.empty_form.visible_fields %}
+                                            <td class="align-top {% if forloop.last %}ps-2 pt-2{% endif %}">
+                                                {{ field|as_crispy_field }}
+                                                
+                                                {% if forloop.last %}
+                                                {% for field in content_formset.empty_form.hidden_fields %}{{ field }}{% endfor %}
+                                                {% endif %}
+                                            </td>
+                                            {% endfor %}
+                                        </tr>
+                                    </script>
+                                </form>
+                            </div>
+                            <div class="modal-footer">
+                                <button class="btn btn-primary add_training_content_{{session_id}}"><i class="fa fa-plus"></i>Add Content</button>
+                                <button class="btn btn-success save_training_content_{{session_id}}"><i class="fa fa-plus"></i>Save Content</button>
+                                <!--button class="btn btn-sm btn-primary add_training_assignment_link_{{assignment_id}}"><i class="fa fa-plus"></i> Add Link</button-->
+                                <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal"><i class="fa fa-close"></i> Close</button>
+                                <!--button class="btn btn-sm btn-success save_training_assignment_link_{{assignment_id}}"><i class="fa fa-plus"></i> Save Link</button-->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endwith %}
+                {% endfor %}
+                <!-- content model end --> {% endcomment %}
+
+                <!-- session model -->
+                <div id="sessionModal" class="modal"  tabindex="-1">
+                    <div class="modal-dialog modal-xl">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Training Sessions</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form method="post" action="{% url 'training_session_save' training_id %}" id="training_session_form" >{% csrf_token %}
+                                    {{ session_formset.management_form }}
+                                    <table id="training_session_table">
+                                        {% for form in session_formset %}
+                                        {% if forloop.first %}
+                                        <thead>
+                                            <tr>
+                                                {% for field in form.visible_fields %}
+                                                <th>{% if field.label %}{{ field.label_tag }}{% endif %}</th>
+                                                {% endfor %}
+                                                {% comment %} {% if form.instance.id %}
+                                                <th></th>
+                                                {% endif %} {% endcomment %}
+                                            </tr>
+                                        </thead>
+                                        {% endif %}
+                                        {% endfor %}
+                                        <tbody>
+                                            {% for form in session_formset %}
+                                            <tr id="sessions-{{ forloop.counter0 }}">
+                                                {% for field in form.visible_fields %}
+                                                <td class="align-top {% if forloop.last %}ps-2 pt-2{%endif%}">
+                                                    {{ field.errors }}
+                                                    {{ field|as_crispy_field }}
+                                                    
+                                                    {% if forloop.last %}
+                                                    {% for field in form.hidden_fields %}{{ field }}{% endfor %}
+                                                    {% endif %}
+                                                </td>
+                                                {% endfor %}
+                                                {% comment %} {% if form.instance.id %}
+                                                <td>
+                                                    <button type="button" data-assignment-id="{{ form.instance.pk }}" data-bs-toggle="modal" data-bs-target="#linksModal_{{ form.instance.pk }}">Add Links</button>
+                                                </td>
+                                                {% endif %} {% endcomment %}
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                    <button class="btn btn-primary add_training_session"><i class="fa fa-plus"></i>Add Session</button>
+                                    <button class="btn btn-success save_training_session"><i class="fa fa-plus"></i>Save Session</button>
+                                    <script type="text/html" id="training_session_template">
+                                        <tr id="sessions-__prefix__">
+                                            {% for field in session_formset.empty_form.visible_fields %}
+                                            <td class="align-top {% if forloop.last %}ps-2 pt-2{% endif %}">
+                                                {{ field|as_crispy_field }}
+                                                
+                                                {% if forloop.last %}
+                                                {% for field in session_formset.empty_form.hidden_fields %}{{ field }}{% endfor %}
+                                                {% endif %}
+                                            </td>
+                                            {% endfor %}
+                                        </tr>
+                                    </script>
+                                </form>
+                                
+                                
+                            </div>
+                            <div class="modal-footer">
+                                <button class="btn btn-sm btn-primary add_training_assignment_link_{{assignment_id}}"><i class="fa fa-plus"></i> Add Link</button>
+                                <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal"><i class="fa fa-close"></i> Close</button>
+                                <button class="btn btn-sm btn-success save_training_assignment_link_{{assignment_id}}"><i class="fa fa-plus"></i> Save Link</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- session model end -->
+
+            </div>
+            
+            <div class="tab-pane fade" id="content-content" role="tabpanel" aria-labelledby="content-tab">
+                <form enctype="multipart/form-data" class="mt-4" method="post" action="{% url 'training_content_save' %}" id="training_content_form" >{% csrf_token %}
+                    {{ content_formset.management_form }}
+                    <table id="training_content_table">
+                        {% for form in content_formset %}
+                        {% if forloop.first %}
+                        <thead>
+                            <tr>
+                                {% for field in form.visible_fields %}
+                                <th>{% if field.label %}{{ field.label_tag }}{% endif %}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        {% endif %}
+                        {% endfor %}
+                        <tbody>
+                            {% for form in content_formset %}
+                            <tr id="contents-{{ forloop.counter0 }}">
+                                {% for field in form.visible_fields %}
+                                <td class="align-top {% if forloop.last %}ps-2 pt-2{%endif%}">
+                                    {{ field.errors }}
+                                    {{ field|as_crispy_field }}
+                                    
+                                    {% if forloop.last %}
+                                    {% for field in form.hidden_fields %}{{ field }}{% endfor %}
+                                    {% endif %}
+                                </td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    <button class="btn btn-primary add_training_content"><i class="fa fa-plus"></i>Add Content</button>
+                    <button class="btn btn-success save_training_content"><i class="fa fa-plus"></i>Save Content</button>
+                    <script type="text/html" id="training_content_template">
+                        <tr id="contents-__prefix__">
+                            {% for field in content_formset.empty_form.visible_fields %}
+                            <td class="align-top {% if forloop.last %}ps-2 pt-2{% endif %}">
+                                {{ field|as_crispy_field }}
+                                
+                                {% if forloop.last %}
+                                {% for field in content_formset.empty_form.hidden_fields %}{{ field }}{% endfor %}
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                    </script>
+                </form>
+            </div>
+            <div class="tab-pane fade" id="assignment-content" role="tabpanel" aria-labelledby="assignment-tab">
+                {#{ assignment_formset|crispy }#}
+                <form enctype="multipart/form-data" class="mt-4" method="post" action="{% url 'training_assignment_save' training_id %}" id="training_assignment_form" >{% csrf_token %}
+                    {{ assignment_formset.management_form }}
+                    <table id="training_assignment_table">
+                        {% for form in assignment_formset %}
+                        {% if forloop.first %}
+                        <thead>
+                            <tr>
+                                {% for field in form.visible_fields %}
+                                <th>{% if field.label %}{{ field.label_tag }}{% endif %}</th>
+                                {% endfor %}
+                                {% if form.instance.id %}
+                                <th></th>
+                                {% endif %}
+                            </tr>
+                        </thead>
+                        {% endif %}
+                        {% endfor %}
+                        <tbody>
+                            {% for form in assignment_formset %}
+                            <tr id="assignments-{{ forloop.counter0 }}">
+                                {% for field in form.visible_fields %}
+                                <td class="align-top {% if forloop.last %}ps-2 pt-2{%endif%}">
+                                    {{ field.errors }}
+                                    {{ field|as_crispy_field }}
+                                    
+                                    {% if forloop.last %}
+                                    {% for field in form.hidden_fields %}{{ field }}{% endfor %}
+                                    {% endif %}
+                                </td>
+                                {% endfor %}
+                                {% if form.instance.id %}
+                                <td>
+                                    <button type="button" data-assignment-id="{{ form.instance.pk }}" data-bs-toggle="modal" data-bs-target="#linksModal_{{ form.instance.pk }}">Add Links</button>
+                                </td>
+                                {% endif %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    <button class="btn btn-primary add_training_assignment"><i class="fa fa-plus"></i>Add Assignment</button>
+                    <button class="btn btn-success save_training_assignment"><i class="fa fa-plus"></i>Save Assignment</button>
+                    <script type="text/html" id="training_assignment_template">
+                        <tr id="assignments-__prefix__">
+                            {% for field in assignment_formset.empty_form.visible_fields %}
+                            <td class="align-top {% if forloop.last %}ps-2 pt-2{% endif %}">
+                                {{ field|as_crispy_field }}
+                                
+                                {% if forloop.last %}
+                                {% for field in assignment_formset.empty_form.hidden_fields %}{{ field }}{% endfor %}
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                    </script>
+                
+                </form>    
+
+                {% for assignment_id, assignment_link_formset in assignment_link_formsets.items  %}
+                <!-- Links model -->
+                <div id="linksModal_{{assignment_id}}" data-assignment-id="{{assignment_id}}" class="modal"  tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Assignment Links</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="links">
+                                    <form method="post" action="/training/assignment/links/{{assignment_id}}" id="training_assignment_links_form_{{assignment_id}}" >{% csrf_token %}
+                                        {{ assignment_link_formset.management_form }}
+                                        <table id="training_assignment_link_table_{{assignment_id}}" class="w-100">
+                                            <tbody>
+                                                {% for form in assignment_link_formset %}
+                                                <tr id="links-{{ forloop.counter0 }}">
+                                                    {% for field in form.visible_fields %}
+                                                    <td class="align-top {% if forloop.last %}ps-3 pt-4{%endif%}">
+                                                        {% if forloop.last %}<div class="mt-3">{%endif%}
+                                                        {{ field.errors }}
+                                                        {{ field|as_crispy_field }}
+                                                        
+                                                        {% if forloop.last %}
+                                                        {% for field in form.hidden_fields %}{{ field }}{% endfor %}
+                                                        {% endif %}
+                                                        {% if forloop.last %}</div>{%endif%}
+                                                    </td>
+                                                    {% endfor %}
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </form>
+                                    
+                                    <script type="text/html" id="training_assignment_link_template_{{assignment_id}}">
+                                        <tr id="links-__prefix__">
+                                            {% for field in assignment_link_formset.empty_form.visible_fields %}
+                                            <td class="align-top {% if forloop.last %}ps-2 pt-2{% endif %}">
+                                                {{ field|as_crispy_field }}
+                                                
+                                                {% if forloop.last %}
+                                                {% for field in assignment_link_formset.empty_form.hidden_fields %}{{ field }}{% endfor %}
+                                                {% endif %}
+                                            </td>
+                                            {% endfor %}
+                                        </tr>
+                                    </script>
+                                    
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button class="btn btn-sm btn-primary add_training_assignment_link_{{assignment_id}}"><i class="fa fa-plus"></i> Add Link</button>
+                                <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal"><i class="fa fa-close"></i> Close</button>
+                                <button class="btn btn-sm btn-success save_training_assignment_link_{{assignment_id}}"><i class="fa fa-plus"></i> Save Link</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                    
+            </div>
+            <div class="tab-pane fade" id="assessment-content" role="tabpanel" aria-labelledby="assessment-tab">...</div>
+            <div class="tab-pane fade" id="summary-content" role="tabpanel" aria-labelledby="summary-tab">
+                <form enctype="multipart/form-data" class="mt-4" method="post" action="{% url 'training_session_save' training_id %}" id="training_session_form">{% csrf_token %}
+                    {{ session_formset.management_form }}
+                    <table id="training_session_table">
+                        {% for form in session_formset %}
+                        {% if forloop.first %}
+                        <thead>
+                            <tr>
+                                {% for field in form.visible_fields %}
+                                <th>{% if field.label %}{{ field.label_tag }}{% endif %}</th>
+                                {% endfor %}
+                                {% comment %} {% if form.instance.id %}
+                                <th></th>
+                                {% endif %} {% endcomment %}
+                            </tr>
+                        </thead>
+                        {% endif %}
+                        {% endfor %}
+                        <tbody>
+                            {% for form in session_formset %}
+                            <tr id="sessions-{{ forloop.counter0 }}">
+                                {% for field in form.visible_fields %}
+                                <td class="align-top {% if forloop.last %}ps-2 pt-2{%endif%}">
+                                    {{ field.errors }}
+                                    {{ field|as_crispy_field }}
+                                    
+                                    {% if forloop.last %}
+                                    {% for field in form.hidden_fields %}{{ field }}{% endfor %}
+                                    {% endif %}
+                                </td>
+                                {% endfor %}
+                                {% comment %} {% if form.instance.id %}
+                                <td>
+                                    <button type="button" data-assignment-id="{{ form.instance.pk }}" data-bs-toggle="modal" data-bs-target="#linksModal_{{ form.instance.pk }}">Add Links</button>
+                                </td>
+                                {% endif %} {% endcomment %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    <button class="btn btn-primary add_training_session"><i class="fa fa-plus"></i>Add Session</button>
+                    <button class="btn btn-success save_training_session"><i class="fa fa-plus"></i>Save Session</button>
+                    <script type="text/html" id="training_session_template">
+                        <tr id="sessions-__prefix__">
+                            {% for field in session_formset.empty_form.visible_fields %}
+                            <td class="align-top {% if forloop.last %}ps-2 pt-2{% endif %}">
+                                {{ field|as_crispy_field }}
+                                
+                                {% if forloop.last %}
+                                {% for field in session_formset.empty_form.hidden_fields %}{{ field }}{% endfor %}
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                    </script>
+                </form>
+            </div>    
+        </div>
+    </div>
+
+{% endblock content %}
+
+
+{% block header %}
+<link rel="stylesheet" href="{% static 'vendor/jsTree/themes/default/style.min.css' %}">
+<style>
+    table#training_content_table tbody label.form-label,
+    table#training_session_table tbody label.form-label,
+    table#training_assignment_table tbody label.form-label {
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block js %}
+<script src="{% static 'vendor/jsTree/jstree.min.js' %}"></script>
+{{ json_data|json_script:"json_data" }}
+<script>
+    $(document).ready(function() {
+
+        {% comment %} 
+        var linksModal = document.getElementById('linksModal')
+        linksModal.addEventListener('show.bs.modal', function (event) {
+            var button = event.relatedTarget;
+            var assignment_id = button.dataset.assignmentId;
+
+            var links_form = document.getElementById('training_assignment_links_form')
+            links_form.dataset.assignmentId = assignment_id;
+        }); 
+        {% endcomment %}
+
+        
+        {% comment %} {% for content_formset in content_formsets %}
+        {% with content_formset.instance.id as session_id %}
+        // add training assignment links------------------
+        $('.add_training_content_{{session_id}}').click(function(ev) {
+            ev.preventDefault();
+            var count = $('#training_content_table_{{session_id}} tbody').children().length;
+            var tmplMarkup = $('#training_content_template_{{session_id}}').html();
+            var compiledTmpl = tmplMarkup.replace(/__prefix__/g, count);
+            $('#training_content_table_{{session_id}} tbody').append(compiledTmpl);
+            
+            // update form count
+            $('form#training_content_form_{{session_id}} #id_links-TOTAL_FORMS').attr('value', count+1);
+        });
+        //---------------------------------------------
+
+        // save links
+        $('.save_training_content_{{session_id}}').click(function(ev) {
+            var form = $('form#training_content_form_{{session_id}}').get(0),
+                form_data = new FormData(form),
+                action_url = $(form).attr('action');// + form.dataset.assignmentId;
+                
+                form.submit();
+
+            /*$.ajax({
+                url : action_url,
+                type: $(form).attr('method'),
+                data: $(form).serialize(),
+                cache : false,
+                processData: false
+            }).done(function(response) {
+                //var modal = bootstrap.Modal.getOrCreateInstance(myModalEl);
+
+                location.reload();
+
+                if (response.status == true) {
+                    //training = JSON.parse(data.obj);
+                    
+                    //$('#training_id').val(training[0].pk);
+                    //$('#setup_training').prop('disabled', true);
+
+                    //tab_show(2);
+                } else {
+                    
+                }
+                console.log(response);
+            });*/
+        });
+        {% endwith %}
+        {% endfor %} {% endcomment %}
+
+
+        // add training content files------------------
+        $('.add_training_content').click(function(ev) {
+            ev.preventDefault();
+            var count = $('#training_content_table tbody').children().length;
+            var tmplMarkup = $('#training_content_template').html();
+            var compiledTmpl = tmplMarkup.replace(/__prefix__/g, count);
+            $('#training_content_table tbody').append(compiledTmpl);
+    
+            // update form count
+            $('#id_contents-TOTAL_FORMS').attr('value', count+1);
+        });
+
+        // add training assignment ------------------
+        $('.add_training_assignment').click(function(ev) {
+            ev.preventDefault();
+            var count = $('#training_assignment_table tbody').children().length;
+            var tmplMarkup = $('#training_assignment_template').html();
+            var compiledTmpl = tmplMarkup.replace(/__prefix__/g, count);
+            $('#training_assignment_table tbody').append(compiledTmpl);
+    
+            // update form count
+            $('#id_assignments-TOTAL_FORMS').attr('value', count+1);
+        });
+
+        // add training session ------------------
+        $('.add_training_session').click(function(ev) {
+            ev.preventDefault();
+            var count = $('#training_session_table tbody').children().length;
+            var tmplMarkup = $('#training_session_template').html();
+            var compiledTmpl = tmplMarkup.replace(/__prefix__/g, count);
+            $('#training_session_table tbody').append(compiledTmpl);
+    
+            // update form count
+            $('#id_sessions-TOTAL_FORMS').attr('value', count+1);
+        });
+        
+        {% for assignment_id, assignment_link_formset in assignment_link_formsets.items  %}
+
+        // add training assignment links------------------
+        $('.add_training_assignment_link_{{assignment_id}}').click(function(ev) {
+            ev.preventDefault();
+            var count = $('#training_assignment_link_table_{{assignment_id}} tbody').children().length;
+            var tmplMarkup = $('#training_assignment_link_template_{{assignment_id}}').html();
+            var compiledTmpl = tmplMarkup.replace(/__prefix__/g, count);
+            $('#training_assignment_link_table_{{assignment_id}} tbody').append(compiledTmpl);
+            
+            // update form count
+            $('form#training_assignment_links_form_{{assignment_id}} #id_links-TOTAL_FORMS').attr('value', count+1);
+        });
+        //---------------------------------------------
+
+        // save links
+        $('.save_training_assignment_link_{{assignment_id}}').click(function(ev) {
+            var form = $('form#training_assignment_links_form_{{assignment_id}}').get(0),
+                form_data = new FormData(form),
+                action_url = $(form).attr('action');// + form.dataset.assignmentId;
+
+            $.ajax({
+                url : action_url,
+                type: $(form).attr('method'),
+                data: $(form).serialize(),
+                cache : false,
+                processData: false
+            }).done(function(response) {
+                //var modal = bootstrap.Modal.getOrCreateInstance(myModalEl);
+
+                location.reload();
+
+                if (response.status == true) {
+                    //training = JSON.parse(data.obj);
+                    
+                    //$('#training_id').val(training[0].pk);
+                    //$('#setup_training').prop('disabled', true);
+
+                    //tab_show(2);
+                } else {
+                    
+                }
+                console.log(response);
+            });
+        });
+
+        {% endfor %}
+        //---------------------------------------------
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== "") {
+                const cookies = document.cookie.split(";");
+                for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                // Does this cookie string begin with the name we want?
+                if (cookie.substring(0, name.length + 1) === (name + "=")) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+                }
+            }
+            return cookieValue;
+        }
+
+
+        // setup treeview component for training structure
+        //var json_data = JSON.parse(document.getElementById('json_data').textContent);
+        
+        // jstree configuration
+        var config = {
+            'core' : {
+                'check_callback' : true,
+                //'max_depth': 7,              
+                //'data' : json_data,
+                'data' : {
+                    'url' : function (node) {
+                        return '/training/structure/json';
+                        /*return node.id === '#' ?
+                          'ajax_roots.json' :
+                          'ajax_children.json';*/
+                    },
+                    'data' : function (node) {
+                        return { 'parent_id' : node.id, 'training_id' : $('#training_id').val() };
+                    }
+                }
+            },
+            types : {
+                // "valid_children" : [ "module" ],
+                // the default type
+                "#":{
+                    "valid_children" : [ "module" ]
+                }, 
+                "module" : {
+                    "max_children"	: -1,
+                    //"max_depth"		: 6,
+                    "valid_children": ["lesson"],
+
+                    // Bound functions - you can bind any other function here (using boolean or function)
+                    // "select_node"	: true,
+                    "open_node"	: true,
+                    //"close_node"	: true,
+                    //"create_node"	: true,
+                    //"delete_node"	: true,
+                    "icon": "fa fa-book",
+                },
+                "lesson" : {
+                    "max_children"	: -1,
+                    //"max_depth"		: 5,
+                    "open_node"	: true,
+                    // "select_node"	: true,
+                    "valid_children": ["topic", "session", "assignment"],
+                    "icon": "fa fa-clipboard-list",
+                },
+                "topic" : {
+                    "max_children"	: -1,
+                    //"max_depth"		: 4,
+                    "open_node"	: true,
+                    // "select_node"	: true,
+                    "valid_children": ["subtopic", "session", "assignment"],
+                    "icon": "fa fa-list-check",
+                },
+                "subtopic" : {
+                    "max_children"	: -1,
+                    //"max_depth"		: 3,
+                    "open_node"	: true,
+                    // "select_node"	: true,
+                    "icon": "fa fa-list",
+                    "valid_children": ["session", "assignment"]
+                },
+                "session" : {
+                    "max_children"	: -1,
+                    //"max_depth"		: 2,
+                    "open_node"	: true,
+                    // "select_node"	: true,
+                    "valid_children": ["content"], //, "assignment"
+                    "icon": "fa fa-users-rectangle",
+                },
+                "content" : {
+                    "max_children"	: -1,
+                    //"max_depth"		: 2,
+                    "open_node"	: true,
+                    // "select_node"	: true,
+                    "valid_children": "none",
+                    "icon": "fa fa-file",
+                },
+                //"file" : {
+                //    "max_children"	: -1,
+                //    //"max_depth"		: 1,
+                //    "open_node"	: true,
+                //    // "select_node"	: true,
+                //    "valid_children": "none",
+                //    "icon": "fa fa-file",
+                //},
+                "assignment" : {
+                    "max_children"	: -1,
+                    //"max_depth"		: 2,
+                    "open_node"	: true,
+                    // "select_node"	: true,
+                    "valid_children": "none",
+                    "icon": "fa fa-user-check",
+                }
+            },
+            "plugins": ["contextmenu", "types"],
+            "contextmenu":{         
+                "items": function($node) {
+                    var tree = $("#training_structure").jstree(true);
+                    var menu = {
+                        // "Create": {
+                        //     "separator_before": false,
+                        //     "separator_after": false,
+                        //     "label": "Create",
+                        //     "action": function (obj) { 
+                        //         // $node.type='lesson';
+                        //         $node = tree.create_node($node, {text: 'Lesson', type:'lesson'} );
+                        //         tree.edit($node);
+                        //         console.log($node);
+                        //     }
+                        // },
+                        
+                    };
+
+                    var types = ['lesson', 'subtopic', 'topic'];
+                    if (types.indexOf($node.type) > -1) {
+                        menu['addSession'] = {
+                            "separator_before": false,
+                            "separator_after": false,
+                            "label": "Add Session",
+                            "action": function (obj) { 
+                                var parent = tree.get_node(obj.reference);
+                                //tree.delete_node($node);
+                                var node = create_node('session');
+
+                                console.log(node)
+                            }
+                        }/**/
+                    } else if ($node.type == 'session') {
+                        menu['addVideoContent'] = {
+                            "separator_before": false,
+                            "separator_after": false,
+                            "label": "Add Video Content",
+                            "action": function (obj) { 
+                                var node = tree.get_node(obj.reference);
+                                console.log(node);
+
+                                addContent(node, 'video');
+                            }
+                        }
+                        menu['addAudioContent'] = {
+                            "separator_before": false,
+                            "separator_after": false,
+                            "label": "Add Audio Content",
+                            "action": function (obj) { 
+                                var node = tree.get_node(obj.reference);
+                                console.log(node);
+
+                                addContent(node, 'audio');
+                            }
+                        }
+                        menu['addTextContent'] = {
+                            "separator_before": false,
+                            "separator_after": false,
+                            "label": "Add Text Content",
+                            "action": function (obj) { 
+                                var node = tree.get_node(obj.reference);
+                                console.log(node);
+
+                                addContent(node, 'text');
+                            }
+                        }
+                    }
+
+                    menu["Rename"] = {
+                        "separator_before": false,
+                        "separator_after": false,
+                        "label": "Rename",
+                        "action": function (obj) { 
+                            tree.edit($node);
+                            // tree.set_type($node, 'module');
+                            console.log(obj, $node);
+                        }
+                    };
+                    menu["Remove"] = {
+                        "separator_before": false,
+                        "separator_after": false,
+                        "label": "Remove",
+                        "action": function (obj) { 
+                            tree.delete_node($node);
+                        }
+                    };
+
+                    return menu;
+                }
+            }
+        };
+
+        function addContent(node, type) {
+            // reset content form
+            var form = $('form#training_content_form').trigger('reset');
+
+            // shows modal 
+            var contentModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('contentModal'));
+            contentModal.show();
+
+
+            
+            $('form#training_content_form #id_type').val(type);
+            $('form#training_content_form #id_session').val(node.original.ref_id);
+
+            //$('').click(function(e){
+            document.querySelector('button.save_training_content').addEventListener('click', function (e) {
+                var fileEl = document.getElementById('id_file');
+                var file = fileEl.files[0];
+
+                //formData = {};
+                //formData["file"] = fileEl.files[0];
+                
+                var session_id = $('form#training_content_form #id_session').val();
+                var content_type = $('form#training_content_form #id_type').val();
+
+                var nodeObj = { 
+                    type: 'content', 
+                    text: file.name,
+                    file: file,
+                    session_id: session_id,
+                    content_type: content_type,
+                };
+                var node = create_node(nodeObj);
+
+                contentModal.hide();
+            });
+            /*$('#save_training_content').submit(function(e){
+                e.preventDefault();
+
+                var formData = $(this).serialize();
+
+                return false;
+            });*/
+
+            /*var contentModalEl = document.getElementById('contentModal');
+            contentModalEl.addEventListener('hide.bs.modal', function (event) {
+                console.log(event)
+            })*/
+        }
+        
+        // initialise "jstree" treeview plugin
+        $('#training_structure')
+            .on('create_node.jstree', function (e, data) {
+                createServerNode(data);
+                //data.instance.refresh();
+            })
+            .on('rename_node.jstree', function (e, data) {
+                updateServerNode(data);
+                //data.instance.refresh();
+            })
+            .on('delete_node.jstree', function (e, data) {
+                deleteServerNode(data);
+                //data.instance.refresh();
+            })
+            .on('load_node.jstree', function (e, data) {
+                console.log(data)
+            })
+            .jstree(config);
+
+        
+        // save training structure data to server
+        /*$("#save_structure").click(function(e){
+            var json_data = $('#training_structure')
+                .jstree(true)
+                .get_json('#', {
+                    flat: false, 
+                    no_data: true, 
+                    no_state: true, 
+                    no_li_attr: true, 
+                    no_a_attr: true
+                });
+            
+            var training_id = $('#training_id').val();
+
+            if (json_data.length > 0 && training_id) {
+                var form = $('#training_structure_form').get(0),
+                    textarea = $('#training_structure_form textarea#json_data_txt').get(0);
+
+                    textarea.innerHTML = JSON.stringify(json_data);
+                    form.submit();
+
+                {% comment %} $.ajax({
+                    url: "/training/structure/"+training_id,
+                    type: "POST",
+                    dataType: "json",
+                    data: JSON.stringify({'json_data': json_data}),
+                    headers: {
+                        "X-Requested-With": "XMLHttpRequest",
+                        "X-CSRFToken": getCookie("csrftoken"),
+                    },
+                    success: (data) => {
+                        console.log(data);
+                    },
+                    error: (error) => {
+                        console.log(error);
+                    }
+                }); {% endcomment %}
+            }
+        });*/
+
+        // training structure creation client-side
+        $("#add_module, #add_lesson, #add_topic, #add_subtopic, #add_session, #add_content, #add_assignment").click(function(e){
+            var type = e.currentTarget.dataset['type'];
+            
+            var node = create_node(type);
+            
+            //if (node !== false) createServerNode(node);
+
+            //return false;
+        });
+
+        function createServerNode(data) { //, extra = {}
+            var data_send = data;
+            delete(data_send.instance);
+            //var tree = data.instance;
+
+            var tree = $('#training_structure').jstree(true);
+            //node = tree.get_node(node);
+
+            var formData = new FormData();
+            formData.append('training_id', getCookie('training_id'));
+            formData.append('data', JSON.stringify(data_send));
+            
+            const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            formData.append('csrfmiddlewaretoken', csrftoken);
+
+            original_node = data_send.node.original
+            if (original_node.type == 'content') {
+                formData.append('content_file', original_node.file);
+                formData.append('session_id', original_node.session_id);
+                formData.append('content_type', original_node.content_type);
+            }
+
+            /*for (const key in extra) {
+                formData.append(key, extra[key]);
+            }*/
+
+            $.ajax({
+                url: '/training/structure/create',
+                type: 'POST',
+                data: formData,
+                cache: false,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    if (response.status == true) {
+                        //console.log(response.node_server);
+                        //tree.set_id(response.node_client, response.node_server.id);
+                        
+                        tree.refresh();
+                        tree.select_node(data.parent);
+                        tree.edit(response.node_server.id)
+                    }
+                    console.log(response);
+                }
+            });
+        }
+
+        function updateServerNode(data) {
+            var data_send = data;
+            delete(data_send.instance);
+            //var tree = data.instance;
+            var tree = $('#training_structure').jstree(true);
+
+            //var training_id = getCookie('training_id');
+            var formData = new FormData();
+            //formData.append('training_id', training_id);
+
+            formData.append('data', JSON.stringify(data_send));
+            
+            const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            formData.append('csrfmiddlewaretoken', csrftoken);
+
+            $.ajax({
+                url: '/training/structure/change',
+                type: 'POST',
+                data: formData,
+                cache: false,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    if (response.status == true) {
+                        //tree.set_id(response.node_client, response.node_server.id);
+                        tree.refresh();
+                    }
+                    console.log(response);
+                }
+            });
+        }
+
+        function deleteServerNode(data) {
+            var data_send = data;
+            var tree = data.instance;
+            delete(data_send.instance);
+            //var tree = $('#training_structure').jstree(true);
+            var formData = new FormData();
+            //var training_id = getCookie('training_id');
+            //formData.append('training_id', training_id);
+            formData.append('data', JSON.stringify(data_send));
+            
+            const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            formData.append('csrfmiddlewaretoken', csrftoken);
+
+            $.ajax({
+                url: '/training/structure/delete',
+                type: 'POST',
+                data: formData,
+                cache: false,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    if (response.status == true) {
+                        //console.log(response.node_server);
+                        //tree.set_id(response.node_client, response.node_server.id);
+                        tree.refresh();
+                    }
+                    console.log(response);
+                }
+            });
+        }
+        
+        function create_node(type) {
+            var tree = $('#training_structure').jstree(true);
+
+            var obj = null;
+            if (!(typeof type == 'string' || type instanceof String)) {
+                obj = type;
+                type = obj.type;
+            }
+
+            var selNode = '#';
+            if (type !== 'module') {
+                var sel = tree.get_selected();
+                if(!sel[0]) { alert('Please select the parent node first to create.'); return false; }
+                selNode = sel[0];
+            }
+            
+            if (type == 'session') {
+                //selNode = sel[0];
+                isLeaf = tree.is_leaf(selNode);
+                if (!isLeaf) {
+                    var ret = false;
+                    var sel_node = tree.get_node(selNode);
+                    for (i in sel_node.children) {
+                        var childNode = tree.get_node(sel_node.children[i]);
+                        if (childNode.type !== 'session' && 
+                            childNode.type !== 'assignment' && 
+                            childNode.type !== 'assessment') {
+                            return false;
+                        }
+                    }
+                    //if (ret) return false;
+                }
+            } else if (type == 'content') {
+                var sel_node = tree.get_node(selNode);
+
+                
+
+                /*var contentModalEl = document.getElementById('contentModal'); //_+node.original.ref_id
+                var contentModal = bootstrap.Modal.getOrCreateInstance(contentModalEl);
+                contentModal.show();
+                return false;*/
+            }
+            
+            
+            
+            var text = type.charAt(0).toUpperCase() + type.slice(1) + ' name';
+            var nodeObj = {'text': text, 'type': type};
+            if (obj !== null) nodeObj = obj;
+
+            var node = tree.create_node(selNode, nodeObj, 'last');
+            
+            // tree.deselect_all();
+            // tree.select_node(node);
+            if (type !== 'content') tree.edit(node);
+
+
+            return node;
+        }
+        //---------------------------------------------
+
+        // change training type------------------------
+        $('#id_type').change(function(ev) {
+            ev.preventDefault();
+            sel = $(this).val();
+
+            if (sel == '1') {
+                $('.scheduled').show();
+                $('#id_duration').prop('required', true); 
+                $('#id_duration_type').prop('required', true); 
+            } else if (sel == '0') {
+                $('.scheduled').hide();
+                $('#id_duration').prop('required', false); 
+                $('#id_duration_type').prop('required', false); 
+            }
+        });
+        $('#id_type').change();
+
+        // submit training basic details
+        $('#training_basic_form').submit(setup_training);
+        function setup_training(event) {
+            event.preventDefault();
+            var form = $(this).get(0);
+            var data = new FormData(form);
+
+            $.ajax({
+                url: $(this).attr('action'),
+                type: $(this).attr('method'),
+                data: data,
+                cache: false,
+                processData: false,
+                contentType: false,
+                success: function(data) {
+                    if (data.status == true) {
+                        training = JSON.parse(data.obj);
+                        
+                        $('#training_id').val(training[0].pk);
+                        $('#setup_training').prop('disabled', true);
+
+                        tab_show(2);
+                    } else {
+                        
+                    }
+                    console.log(data);
+                }
+            });
+            return false;
+        }
+
+        // trining tab display
+        function tab_show(index) {
+            var triggerEl = document.querySelector('#trainingTab li:nth-child('+index+') button');
+            var tab = bootstrap.Tab.getOrCreateInstance(triggerEl);
+            if (tab) tab.show(); 
+        }
+
+        // open tab on page load 
+        const params = new Proxy(new URLSearchParams(window.location.search), {
+            get: (searchParams, prop) => searchParams.get(prop),
+        });
+        //if(params.tab) tab_show(params.tab);
+
+        // add click event listner.
+        var triggerTabList = [].slice.call(document.querySelectorAll('#trainingTab button[data-bs-toggle="tab"]'))
+        triggerTabList.forEach(function (triggerEl) {
+            var tabTrigger = new bootstrap.Tab(triggerEl)
+
+            triggerEl.addEventListener('click', function (event) {
+                event.preventDefault()
+                let tabIndex = $(this).parent().index();
+                pushQueryparams(tabIndex + 1);
+            })
+        });
+
+        // set query parameters for tab auto show
+        function pushQueryparams(tab = 1){
+            if (history.pushState) {
+                var newurl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?tab='+tab;
+                window.history.pushState({path:newurl}, '', newurl);
+            }
+        }
+
+    });
+</script>
+{% endblock js %}

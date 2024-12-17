@@ -1,0 +1,47 @@
+{% load assessment_tags %}
+<div class="flash-question-container" 
+    id="question-wrapper" 
+    data-question-id="{{ question.id }}" 
+    data-question-type="mcq_flash" 
+    data-interval="{{ question.flash_interval }}" 
+    data-items='{{ presentation_items|to_list|jsonify }}' 
+    data-options='{{ answer_options|to_list|jsonify }}'
+    data-correct="{{ correct_answer }}">
+
+    <div class="question-header">
+        <span class="question-number">Question {{ question.number }}</span>
+        <div class="question-text">{{ question.text.html|safe }}</div>
+    </div>
+
+    <!-- Flash display area -->
+    <div class="flash-display">
+        <div class="flash-content"></div>
+        <div class="flash-counter"></div>
+    </div>
+
+    <!-- Options will be shown after flash sequence -->
+    <div class="flash-options d-none">
+        <div class="options-list">
+            {% for option in answer_options %}
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="answer" value="{{ option.id }}" id="option{{ option.id }}">
+                <label class="form-check-label" for="option{{ option.id }}">
+                    {% if option.image %}
+                        <img class="w-25 img-thumbnail" src="{{ option.image.url }}" alt="Option {{ forloop.counter }}">
+                    {% else %}
+                        {{ option.text }}
+                    {% endif %}
+                </label>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+<style>
+.jumbotron {
+    padding: 2rem 1rem;
+    margin-bottom: 2rem;
+    background-color: #e9ecef;
+    border-radius: .3rem;
+}
+</style>

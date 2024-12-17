@@ -1,0 +1,1102 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }} | Career Judge{% endblock title %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block content %}
+    <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+        <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">Home</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'training_list' %}">Training</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Edit</li>
+        </ol>
+    </nav>
+    <h4 class="fw-bold mb-3"><i class="fas fa-cog me-2"></i>Create Training</h4>
+
+    {% include 'snippets/messages.html' %}
+
+    <div class="m-0 mt-3">
+        <ul class="nav nav-tabs" id="trainingTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link{% if tab == 1 %} active{% endif %}" id="training-tab" data-bs-toggle="tab" data-bs-target="#training-content" type="button" role="tab" aria-controls="training-content" aria-selected="true">Training</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link{% if tab == 2 %} active{% endif %}" id="structure-tab" data-bs-toggle="tab" data-bs-target="#structure-content" type="button" role="tab" aria-controls="structure-content" aria-selected="false">Structure</button>
+            </li>
+        </ul>
+        <div class="tab-content" id="trainingTabContent">
+            <div class="tab-pane fade{% if tab == 1 %} show active{% endif %}" id="training-content" role="tabpanel" aria-labelledby="training-tab">
+                <form enctype="multipart/form-data" class="" method="post" action="{% url 'training_edit' training_id %}" id="training_basic_form" >{% csrf_token %}
+                    <input type="hidden" id="training_id" name="training_id" value="{{ training_id }}">
+                    <div class="container mt-3">
+                        <div class="row">
+                            <div class="col">{{ training_form.title | as_crispy_field }}</div>
+                            <div class="col">{{ training_form.category | as_crispy_field }}</div>
+                            <div class="col">{{ training_form.amount | as_crispy_field }}</div>
+                        </div>
+                        <div class="row">
+                            <div class="col">{{ training_form.type | as_crispy_field }}</div>
+                            <div class="col">
+                                <div class="scheduled">{{ training_form.duration | as_crispy_field }}</div>
+                            </div>
+                            <div class="col">
+                                <div class="scheduled">{{ training_form.duration_type | as_crispy_field }}</div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col">{{ training_form.objectives | as_crispy_field }}</div>
+                            <div class="col">{{ training_form.desc_text | as_crispy_field }}</div>
+                        </div>
+                        <div class="col">{{ training_form.desc_img | as_crispy_field }}</div>
+                        <div class="row mt-4">
+                            <div class="col">
+                                <button type="submit" id="save_training" class="btn btn-primary w-auto">Save Training</button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="tab-pane fade{% if tab == 2 %} show active{% endif %}" id="structure-content" role="tabpanel" aria-labelledby="structure-tab">
+                
+                <div class="structure-tab">
+                    <div class="row">
+                        <div class="col-9">
+                            <div id="training_structure" class="mt-3 ms-3"></div>
+                        </div>
+                        <div class="col-2 mt-2 p-0">
+                            <button class="btn btn-sm btn-primary mb-2 w-100 text-start" data-type="module" id="add_module"><i class="fa fa-book"></i>Add Module</button>
+                            <!--button class="btn btn-sm btn-primary mb-2 w-100 text-start" data-type="lesson" id="add_lesson"><i class="fa fa-clipboard-list"></i>Add Lesson</button>
+                            <button class="btn btn-sm btn-primary mb-2 w-100 text-start" data-type="topic" id="add_topic"><i class="fa fa-list-check"></i>Add Topic</button>
+                            <button class="btn btn-sm btn-primary mb-2 w-100 text-start" data-type="subtopic" id="add_subtopic"><i class="fa fa-list"></i>Add Subtopic</button>
+                            
+                            <button class="btn btn-sm btn-primary mb-2 w-100 text-start" data-type="session" id="add_session"><i class="fa fa-users-rectangle"></i>Add Session</button>
+                            <button class="btn btn-sm btn-primary mb-2 w-100 text-start" data-type="content" id="add_content"><i class="fa fa-file"></i>Add Content</button>
+                            <button class="btn btn-sm btn-primary mb-2 w-100 text-start" data-type="assignment" id="add_assignment"><i class="fa fa-user-check"></i>Add Assignment</button-->
+                            
+                            <!--button class="btn btn-sm btn-success mt-2 w-100 text-start" id="save_structure"><i class="fa fa-download"></i>Save Structure</button-->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- content model -->
+                <div id="contentModal" class="modal"  tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Training Contents</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form id="training_content_form" action="" enctype="multipart/form-data" method="post">{% csrf_token %}
+                                    {{ content_form|crispy }}
+                                </form>
+                            </div>
+                            <div class="modal-footer">
+                                <!--button class="btn btn-primary add_training_content"><i class="fa fa-plus"></i>Add Content</button-->
+                                <button id="save_training_content" class="btn btn-success"><i class="fa fa-plus"></i>Save Content</button>
+                                {% comment %} <button class="btn btn-sm btn-primary add_training_assignment_link_{{assignment_id}}"><i class="fa fa-plus"></i> Add Link</button> {% endcomment %}
+                                <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal"><i class="fa fa-close"></i> Close</button>
+                                {% comment %} <button class="btn btn-sm btn-success save_training_assignment_link_{{assignment_id}}"><i class="fa fa-plus"></i> Save Link</button> {% endcomment %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- assignment model -->
+                <div id="assignmentModal" class="modal"  tabindex="-1">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Training Assignments</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form id="training_assignment_form" action="" enctype="multipart/form-data" method="post">{% csrf_token %}
+                                    <input type="hidden" id="assignment_node_id" name="assignment_node_id" value="" />
+                                    <div class="container-fluid">
+                                    <div class="row">
+                                        <div class="col-7">
+                                            {{ assignment_form|crispy }}
+                                        </div>
+                                        <div class="col-5">
+                                        <!--/form>
+                                        <form id="training_assignment_links_form" action="" method="post"-->{#% csrf_token %#}
+                                            {{ assignment_links_formset.management_form }}
+                                            <table id="training_assignment_links_table" class="w-100">
+                                                {% for form in assignment_links_formset %}
+                                                {% if forloop.first %}
+                                                <!--thead>
+                                                    <tr>
+                                                        {% for field in form.visible_fields %}
+                                                        <th>{% if field.label %}{{ field.label_tag }}{% endif %}</th>
+                                                        {% endfor %}
+                                                    </tr>
+                                                </thead-->
+                                                {% endif %}
+                                                {% endfor %}
+                                                <tbody>
+                                                    {% for form in assignment_links_formset %}
+                                                    <tr id="assignments-links-{{ forloop.counter0 }}">
+                                                        {% for field in form.visible_fields %}
+                                                        <td class="align-top {% if forloop.last %}ps-2 pt-2{%endif%}">
+                                                            {#{ field.errors }#}
+                                                            {#{ field|as_crispy_field }#}
+                                                            <div class="fw-{{ forloop.counter0 }}">
+                                                                {{ field.errors }}
+                                                                <label for="{{ field.id_for_label }}">{{ field.label }} {{ forloop.counter }}</label>
+                                                                {{ field|as_crispy_field }}
+                                                            </div>
+                                                            
+                                                            {% if forloop.last %}
+                                                            {% for field in form.hidden_fields %}{{ field }}{% endfor %}
+                                                            {% endif %}
+                                                        </td>
+                                                        {% endfor %}
+                                                    </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                            <script type="text/html" id="training_assignment_links_template">
+                                                <tr id="assignments-links-__prefix__">
+                                                    {% for field in assignment_links_formset.empty_form.visible_fields %}
+                                                    <td class="align-top {% if forloop.last %}ps-2 pt-2{% endif %}">
+                                                        {#{ field|as_crispy_field }#}
+
+                                                        <div class="fw-__prefix__">
+                                                            {{ field.errors }}
+                                                            <label for="{{ field.id_for_label }}">{{ field.label }} __prefix_display__</label>
+                                                            {{ field|as_crispy_field }}
+                                                        </div>
+                                                        
+                                                        {% if forloop.last %}
+                                                        {% for field in assignment_formset.empty_form.hidden_fields %}{{ field }}{% endfor %}
+                                                        {% endif %}
+                                                    </td>
+                                                    {% endfor %}
+                                                </tr>
+                                            </script>
+                                        </div>
+                                    </div>
+                                    </div>
+                                </form>
+                            </div>
+                            <div class="modal-footer">
+                                <button id="add_training_assignment_link" class="btn btn-primary me-auto"><i class="fa fa-plus"></i>Add Link</button>
+                                <button id="save_training_assignment" class="btn btn-success"><i class="fa fa-plus"></i>Save Assignment</button>
+                                {% comment %} <button class="btn btn-sm btn-primary add_training_assignment_link_{{assignment_id}}"><i class="fa fa-plus"></i> Add Link</button> {% endcomment %}
+                                <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal"><i class="fa fa-close"></i> Close</button>
+                                {% comment %} <button class="btn btn-sm btn-success save_training_assignment_link_{{assignment_id}}"><i class="fa fa-plus"></i> Save Link</button> {% endcomment %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- live session model -->
+                <div id="liveSessionModal" class="modal"  tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Training Live Session</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form id="training_live_session_form" action="" enctype="multipart/form-data" method="post">{% csrf_token %}
+                                    <input type="hidden" id="live_session_node_id" name="live_session_node_id" value="" />
+                                    {#{ live_session_form|crispy }#}
+                                    <table class="w-100">
+                                        <tr>
+                                            <td colspan="2">{{ live_session_form.name|as_crispy_field }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td colspan="2">{{ live_session_form.objectives|as_crispy_field }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td>{{ live_session_form.duration|as_crispy_field }}</td>
+                                            <td>{{ live_session_form.duration_type|as_crispy_field }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td>{#{ live_session_form.start_time|as_crispy_field }#}</td>
+                                            <td>{#{ live_session_form.end_time|as_crispy_field }#}</td>
+                                        </tr>
+                                    </table>
+                                    <style>
+                                        /*s#div_id_start_time, #div_id_end_time {
+                                            width:231px;
+                                        }*/
+                                    </style>
+                                </form>
+                            </div>
+                            <div class="modal-footer">
+                                <!--button class="btn btn-primary add_training_content"><i class="fa fa-plus"></i>Add Content</button-->
+                                <button id="save_training_live_session" class="btn btn-success"><i class="fa fa-plus"></i>Save Live Session</button>
+                                {% comment %} <button class="btn btn-sm btn-primary add_training_assignment_link_{{assignment_id}}"><i class="fa fa-plus"></i> Add Link</button> {% endcomment %}
+                                <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal"><i class="fa fa-close"></i> Close</button>
+                                {% comment %} <button class="btn btn-sm btn-success save_training_assignment_link_{{assignment_id}}"><i class="fa fa-plus"></i> Save Link</button> {% endcomment %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>   
+        </div>
+    </div>
+
+{% endblock content %}
+
+
+{% block header %}
+<link rel="stylesheet" href="{% static 'vendor/jsTree/themes/default/style.min.css' %}">
+<style>
+    table#training_content_table tbody label.form-label,
+    table#training_session_table tbody label.form-label,
+    table#training_assignment_links_table tbody label.form-label,
+    table#training_assignment_table tbody label.form-label {
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block js %}
+<script src="{% static 'vendor/jsTree/jstree.min.js' %}"></script>
+<script>
+    $(document).ready(function() {
+       
+        $('#add_training_assignment_link').click(function(ev) {
+            ev.preventDefault();
+            var count = $('#training_assignment_links_table tbody').children().length;
+            var tmplMarkup = $('#training_assignment_links_template').html();
+            var compiledTmpl = tmplMarkup.replace(/__prefix__/g, count);
+            compiledTmpl = compiledTmpl.replace(/__prefix_display__/g, count+1);
+            $('#training_assignment_links_table tbody').append(compiledTmpl);
+            
+            // update form count
+            $('form#training_assignment_form #id_assignment_links-TOTAL_FORMS').attr('value', count+1);
+        });
+
+
+        /*function get_cookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== "") {
+                const cookies = document.cookie.split(";");
+                for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                // Does this cookie string begin with the name we want?
+                if (cookie.substring(0, name.length + 1) === (name + "=")) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+                }
+            }
+            return cookieValue;
+        }*/
+
+
+        // setup treeview component for training structure
+        //var json_data = JSON.parse(document.getElementById('json_data').textContent);
+        
+        // jstree configuration
+        var config = {
+            'core' : {
+                'check_callback' : true,
+                //'max_depth': 7,              
+                //'data' : json_data,
+                'data' : {
+                    'url' : function (node) {
+                        return '/training/structure/json';
+                    },
+                    'data' : function (node) {
+                        return { 'training_id' : $('#training_id').val(), 'mode' : 'training' };
+                    }
+                }
+            },
+            types : {
+                // "valid_children" : [ "module" ],
+                // the default type
+                "#":{
+                    "valid_children" : [ "module" ]
+                }, 
+                "module" : {
+                    "max_children"	: -1,
+                    //"max_depth"		: 6,
+                    "valid_children": ["lesson"],
+                    // Bound functions - you can bind any other function here (using boolean or function)
+                    // "select_node"	: true,
+                    "open_node"	: true,
+                    //"close_node"	: true,
+                    //"create_node"	: true,
+                    //"delete_node"	: true,
+                    "icon": "fa fa-book",
+                },
+                "lesson" : {
+                    "max_children"	: -1,
+                    //"max_depth"		: 5,
+                    "open_node"	: true,
+                    // "select_node"	: true,
+                    "valid_children": ["topic", "session", "livesession", "assignment"],
+                    "icon": "fa fa-clipboard-list",
+                },
+                "topic" : {
+                    "max_children"	: -1,
+                    //"max_depth"		: 4,
+                    "open_node"	: true,
+                    // "select_node"	: true,
+                    "valid_children": ["subtopic", "session", "livesession", "assignment"],
+                    "icon": "fa fa-list-check",
+                },
+                "subtopic" : {
+                    "max_children"	: -1,
+                    //"max_depth"		: 3,
+                    "open_node"	: true,
+                    // "select_node"	: true,
+                    "icon": "fa fa-list",
+                    "valid_children": ["session", "livesession", "assignment"]
+                },
+                "session" : {
+                    "max_children"	: -1,
+                    //"max_depth"		: 2,
+                    "open_node"	: true,
+                    // "select_node"	: true,
+                    "valid_children": ["content"], //, "assignment"
+                    "icon": "fa fa-users-rectangle",
+                },
+                "content" : {
+                    "max_children"	: -1,
+                    //"max_depth"		: 2,
+                    "open_node"	: true,
+                    // "select_node"	: true,
+                    "valid_children": "none",
+                    "icon": "fa fa-file",
+                },
+                "livesession" : {
+                    "max_children"	: -1,
+                    //"max_depth"		: 2,
+                    "open_node"	: true,
+                    // "select_node"	: true,
+                    "valid_children": "none", //, "assignment"
+                    "icon": "fa fa-video-camera",
+                },
+                "assignment" : {
+                    "max_children"	: -1,
+                    //"max_depth"		: 2,
+                    "open_node"	: true,
+                    // "select_node"	: true,
+                    "valid_children": "none",
+                    "icon": "fa fa-user-plus",
+                }
+            },
+            "plugins": ["contextmenu", "types"],
+            "contextmenu":{         
+                "items": function($node) {
+                    var tree = $("#training_structure").jstree(true);
+                    var menu = {
+                        // "Create": {
+                        //     "separator_before": false,
+                        //     "separator_after": false,
+                        //     "label": "Create",
+                        //     "action": function (obj) { 
+                        //         // $node.type='lesson';
+                        //         $node = tree.create_node($node, {text: 'Lesson', type:'lesson'} );
+                        //         tree.edit($node);
+                        //         console.log($node);
+                        //     }
+                        // },
+                    };
+                    if ($node.type == 'module') {
+                        menu['addLesson'] = {
+                            "separator_before": false,
+                            "separator_after": false,
+                            "label": "Add Lesson",
+                            "icon": "fa fa-clipboard-list",
+                            "action": function (obj) { 
+                                var parent = tree.get_node(obj.reference);
+                                var node = create_node('lesson');
+                                console.log(node)
+                            }
+                        }
+                    } else if ($node.type == 'lesson') {
+                        menu['addTopic'] = {
+                            "separator_before": false,
+                            "separator_after": false,
+                            "label": "Add Topic",
+                            "icon": "fa fa-list-check",
+                            "action": function (obj) { 
+                                var parent = tree.get_node(obj.reference);
+                                var node = create_node('topic');
+                                console.log(node)
+                            }
+                        }
+                    } else if ($node.type == 'topic') {
+                        menu['addSubtopic'] = {
+                            "separator_before": false,
+                            "separator_after": false,
+                            "label": "Add Subtopic",
+                            "icon": "fa fa-list",
+                            "action": function (obj) { 
+                                var parent = tree.get_node(obj.reference);
+                                var node = create_node('subtopic');
+                                console.log(node)
+                            }
+                        }
+                    }
+                    
+                    var types = ['lesson', 'topic', 'subtopic'];
+                    if (types.indexOf($node.type) > -1) {
+                        menu['addSession'] = {
+                            "separator_before": false,
+                            "separator_after": false,
+                            "label": "Add Session",
+                            "icon": "fa fa-users-rectangle",
+                            "action": function (obj) { 
+                                var parent = tree.get_node(obj.reference);
+                                //tree.delete_node($node);
+                                var node = create_node('session');
+
+                                console.log(node)
+                            }
+                        }
+                        menu['addAssignment'] = {
+                            "separator_before": false,
+                            "separator_after": false,
+                            "label": "Add Assignment",
+                            "icon": "fa fa-user-plus",
+                            "action": function (obj) { 
+                                var parent = tree.get_node(obj.reference);
+                                //tree.delete_node($node);
+                                //var node = create_node('assignment');
+
+                                add_assignment(parent);
+
+                                console.log(parent)
+                            }
+                        }
+                        menu['addLiveSession'] = {
+                            "separator_before": false,
+                            "separator_after": false,
+                            "label": "Add Live Session",
+                            "icon": "fa fa-video-camera",
+                            "action": function (obj) { 
+                                var parent = tree.get_node(obj.reference);
+                                
+                                add_live_session(parent);
+
+                                console.log(parent)
+                            }
+                        }
+                    } else if ($node.type == 'session') {
+                        menu['addVideoContent'] = {
+                            "separator_before": false,
+                            "separator_after": false,
+                            "label": "Add Video Content",
+                            "icon": "fa fa-file-video",
+                            "action": function (obj) { 
+                                var node = tree.get_node(obj.reference);
+                                console.log(node);
+
+                                add_content(node, 'video');
+                            }
+                        }
+                        menu['addAudioContent'] = {
+                            "separator_before": false,
+                            "separator_after": false,
+                            "label": "Add Audio Content",
+                            "icon": "fa fa-file-audio",
+                            "action": function (obj) { 
+                                var node = tree.get_node(obj.reference);
+                                console.log(node);
+
+                                add_content(node, 'audio');
+                            }
+                        }
+                        menu['addTextContent'] = {
+                            "separator_before": false,
+                            "separator_after": false,
+                            "label": "Add Text Content",
+                            "icon": "fa fa-file-text",
+                            "action": function (obj) { 
+                                var node = tree.get_node(obj.reference);
+                                console.log(node);
+
+                                add_content(node, 'text');
+                            }
+                        }
+                    }
+
+                    if ($node.type == 'assignment') {
+                        menu['editAssignment'] = {
+                            "separator_before": false,
+                            "separator_after": false,
+                            "label": "Edit Assignment",
+                            "icon": "fa fa-pencil",
+                            "action": function (obj) { 
+                                var node = tree.get_node(obj.reference);
+                                console.log(node, $node);
+
+                                edit_assignment(node);
+                            }
+                        }
+                    }
+
+                    if ($node.type == 'livesession') {
+                        menu['editLiveSession'] = {
+                            "separator_before": false,
+                            "separator_after": false,
+                            "label": "Edit Live Session",
+                            "icon": "fa fa-pencil",
+                            "action": function (obj) { 
+                                var node = tree.get_node(obj.reference);
+                                console.log(node, $node);
+
+                                edit_live_session(node);
+                            }
+                        }
+                    }
+
+                    menu["Rename"] = {
+                        "separator_before": false,
+                        "separator_after": false,
+                        "label": "Rename",
+                        "icon": "fa fa-i-cursor",
+                        "action": function (obj) { 
+                            tree.edit($node);
+                            // tree.set_type($node, 'module');
+                            console.log(obj, $node);
+                        }
+                    };
+                    menu["Remove"] = {
+                        "separator_before": false,
+                        "separator_after": false,
+                        "label": "Remove",
+                        "icon": "fa fa-trash",
+                        "action": function (obj) { 
+                            tree.delete_node($node);
+                        }
+                    };
+
+                    return menu;
+                }
+            }
+        };
+
+        // initialise "jstree" treeview plugin
+        $('#training_structure')
+            .on('create_node.jstree', function (e, data) {
+                create_server_node(data);
+            })
+            .on('rename_node.jstree', function (e, data) {
+                update_server_node(data);
+            })
+            .on('delete_node.jstree', function (e, data) {
+                delete_server_node(data);
+            })
+            .on('refresh.jstree', function (e, data) {
+                console.log(e, data);
+                let tree = data.instance;
+            })
+            .on('load_node.jstree', function (e, data) {
+                console.log(data)
+            })
+            .jstree(config);
+        
+
+        function add_live_session(parent=null) {
+            // reset content form
+            var form = $('form#training_live_session_form').trigger('reset');
+            $('form#training_live_session_form input#live_session_node_id').val('');
+
+            // shows modal 
+            var liveSessionModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('liveSessionModal'));
+            liveSessionModal.show();
+
+            //$('form#training_live_session_form #id_assignment_links-TOTAL_FORMS').attr('value', 1);
+            //$('#training_assignment_links_table tbody').find("tr:gt(0)").remove()
+            
+            document.querySelector('button#save_training_live_session').dataset.mode = 'new';
+        }
+
+        document.querySelector('button#save_training_live_session')
+            .addEventListener('click', function (e) {
+                
+            var liveSessionModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('liveSessionModal'));
+            
+            var formData = $('form#training_live_session_form').serializeArray();
+            var formObj = {};
+            for (var index in formData) {
+                formObj[formData[index].name] = formData[index].value;
+            }
+
+            var nodeObj = { 
+                type: 'livesession', 
+                text: 'Live session name',
+            };
+            var nodeObj = {...nodeObj, ...formObj};
+
+            // assignment edit or new
+            var assignment_mode = document.querySelector('button#save_training_live_session').dataset.mode
+            if (assignment_mode == 'new') {
+                var node = create_node(nodeObj);
+            } else {
+                nodeObj['live_session_node_id'] = $('form#training_live_session_form input#live_session_node_id').val();
+
+                update_server_node(nodeObj);
+            }
+
+            liveSessionModal.hide();
+        });
+
+        function edit_live_session(node) {
+            // reset content form
+            var form = $('form#training_live_session_form').trigger('reset');
+
+            $('form#training_live_session_form input#live_session_node_id').val(node.id);
+
+            // shows modal 
+            var liveSessionModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('liveSessionModal'));
+            liveSessionModal.show();
+
+            //$('form#training_live_session_form #id_assignment_links-TOTAL_FORMS').attr('value', 1);
+            //$('#training_assignment_links_table tbody').find("tr:gt(0)").remove()
+
+            document.querySelector('button#save_training_live_session').dataset.mode = 'edit';
+
+            var formData = new FormData();
+            formData.append('node_id', node.id);
+
+            const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            formData.append('csrfmiddlewaretoken', csrftoken);
+
+            $.ajax({
+                url: '/training/structure/actions/fetch',
+                type: 'POST',
+                data: formData,
+                cache: false,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    if (response.status == true) {
+                        //load_live_session(response.data);
+                        var livesession = response.data;
+                        
+                        /*var start_time = livesession.start_time !== null ? livesession.start_time.slice(0, 19) : null,
+                            end_time = livesession.end_time !== null ? livesession.end_time.slice(0, 19) : null;*/
+                        
+                        $('form#training_live_session_form #id_name').val(livesession.name);
+                        $('form#training_live_session_form #id_objectives').val(livesession.objectives);
+                        $('form#training_live_session_form #id_duration').val(livesession.duration);
+                        $('form#training_live_session_form #id_duration_type').val(livesession.duration_type);
+                        /*$('form#training_live_session_form #id_start_time').val(start_time);
+                        $('form#training_live_session_form #id_end_time').val(end_time);*/
+                    }
+                    console.log(response);
+                }
+            });
+        }
+
+
+        function load_assignment(assignment = null) {
+            $('form#training_assignment_form #id_title').val(assignment.title);
+            $('form#training_assignment_form #id_desc').val(assignment.desc);
+            $('form#training_assignment_form #id_submit_report').prop('checked', assignment.submit_report);
+            $('form#training_assignment_form #id_mandatory').prop('checked', assignment.mandatory);
+
+            for (var i=0; i<assignment.links.length; i++) {
+                var link = assignment.links[i];
+                if (i !== 0) {
+                    $('#add_training_assignment_link').click();
+                }
+                $('form#training_assignment_form #id_assignment_links-'+i+'-link').val(link.link);
+            }
+        }
+
+        function edit_assignment(node) {
+            // reset content form
+            var form = $('form#training_assignment_form').trigger('reset');
+
+            $('form#training_assignment_form input#assignment_node_id').val(node.id);
+
+            // shows modal 
+            var assignmentModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('assignmentModal'));
+            assignmentModal.show();
+
+            $('form#training_assignment_form #id_assignment_links-TOTAL_FORMS').attr('value', 1);
+            $('#training_assignment_links_table tbody').find("tr:gt(0)").remove()
+
+            document.querySelector('button#save_training_assignment').dataset.mode = 'edit';
+
+            var formData = new FormData();
+            formData.append('node_id', node.id);
+
+            const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            formData.append('csrfmiddlewaretoken', csrftoken);
+
+            $.ajax({
+                url: '/training/structure/actions/fetch',
+                type: 'POST',
+                data: formData,
+                cache: false,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    if (response.status == true) {
+                        load_assignment(response.data);
+                    }
+                    console.log(response);
+                }
+            });
+        }
+        
+        function add_assignment(node) {
+            // reset content form
+            var form = $('form#training_assignment_form').trigger('reset');
+            $('form#training_assignment_form input#assignment_node_id').val('');
+
+            // shows modal 
+            var assignmentModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('assignmentModal'));
+            assignmentModal.show();
+
+            $('form#training_assignment_form #id_assignment_links-TOTAL_FORMS').attr('value', 1);
+            $('#training_assignment_links_table tbody').find("tr:gt(0)").remove()
+            
+            //$('form#training_assignment_form #id_type').val(type);
+            //$('form#training_assignment_form #id_session').val(node.original.ref_id);
+            //$('button#save_training_assignment').data('mode', 'new');
+            document.querySelector('button#save_training_assignment').dataset.mode = 'new';
+        }
+
+        document.querySelector('button#save_training_assignment')
+            .addEventListener('click', function (e) {
+                
+            var contentModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('assignmentModal'));
+            
+            var formData = $('form#training_assignment_form').serializeArray();
+            var formObj = {};
+            for (var index in formData) {
+                formObj[formData[index].name] = formData[index].value;
+            }
+
+            var nodeObj = { 
+                type: 'assignment', 
+                text: 'Assignment Title',
+            };
+            var nodeObj = {...nodeObj, ...formObj};
+
+            // assignment edit or new
+            var assignment_mode = document.querySelector('button#save_training_assignment').dataset.mode
+            if (assignment_mode == 'new') {
+                var node = create_node(nodeObj);
+            } else {
+                update_server_node(nodeObj);
+            }
+
+            contentModal.hide();
+        });
+        
+        // Add session content using modal and form
+        function add_content(node, type=null) {
+            // reset content form
+            var form = $('form#training_content_form').trigger('reset');
+
+            // shows modal 
+            var contentModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('contentModal'));
+            contentModal.show();
+            
+            $('form#training_content_form #id_type').val(type);
+            $('form#training_content_form #id_session').val(node.original.ref_id);
+        }
+        
+        document.querySelector('button#save_training_content')
+            .addEventListener('click', function (e) {
+            var contentModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('contentModal'));
+
+            var fileEl = document.getElementById('id_file');
+            var file = fileEl.files[0];
+            
+            var session_id = $('form#training_content_form #id_session').val();
+            var content_type = $('form#training_content_form #id_type').val();
+
+            var nodeObj = { 
+                type: 'content', 
+                text: file.name,
+                file: file,
+                session_id: session_id,
+                content_type: content_type,
+            };
+            var node = create_node(nodeObj);
+
+            contentModal.hide();
+        });
+
+
+        // training structure creation client-side
+        $("#add_module").click(function(e){
+            //, #add_lesson, #add_topic, #add_subtopic, #add_session, #add_content, #add_assignment
+            var type = e.currentTarget.dataset['type'];
+            
+            var node = create_node(type);
+            
+            //if (node !== false) create_server_node(node);
+
+            //return false;
+        });
+
+        var last_created_node = {};
+        function create_server_node(data) { //, extra = {}
+            var data_send = data;
+            if (data_send.instance) delete(data_send.instance);
+            //var tree = data.instance;
+
+            var tree = $('#training_structure').jstree(true);
+            //node = tree.get_node(node);
+
+            var formData = new FormData();
+            formData.append('training_id', $('#training_id').val());
+            formData.append('data', JSON.stringify(data_send));
+            
+            const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            formData.append('csrfmiddlewaretoken', csrftoken);
+
+            if (data_send.node.original) {
+                original_node = data_send.node.original
+                if (original_node.type == 'content') {
+                    formData.append('content_file', original_node.file);
+                    formData.append('session_id', original_node.session_id);
+                    formData.append('content_type', original_node.content_type);
+                }
+            }
+
+            /*for (const key in extra) {
+                formData.append(key, extra[key]);
+            }*/
+
+            $.ajax({
+                url: '/training/structure/actions/create',
+                type: 'POST',
+                data: formData,
+                cache: false,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    if (response.status == true) {
+                        last_created_node = response.node_server;
+
+                        tree.refresh();
+
+                        setTimeout(function() { 
+                            tree.deselect_all();
+                            tree.select_node(last_created_node.id);
+                            tree.edit(last_created_node.id);
+                        }, 200);
+                    }
+                    console.log(response);
+                }
+            });
+        }
+
+        function update_server_node(data) {
+            var data_send = data;
+            if (data_send.instance) delete(data_send.instance);
+            //var tree = data.instance;
+            var tree = $('#training_structure').jstree(true);
+
+            var formData = new FormData();
+            formData.append('training_id', $('#training_id').val());
+            formData.append('data', JSON.stringify(data_send));
+            
+            const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            formData.append('csrfmiddlewaretoken', csrftoken);
+
+            $.ajax({
+                url: '/training/structure/actions/change',
+                type: 'POST',
+                data: formData,
+                cache: false,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    if (response.status == true) {
+                        //tree.set_id(response.node_client, response.node_server.id);
+                        last_updated_node = response.node_server;
+                        
+                        tree.refresh();
+
+                        /*setTimeout(function() { 
+                            tree.select_node(last_updated_node.id);
+                            //tree.edit(last_created_node.id);
+                        }, 150);*/
+                    }
+                    console.log(response);
+
+                }
+            });
+        }
+
+        function delete_server_node(data) {
+            var data_send = data;
+            var tree = data.instance;
+            delete(data_send.instance);
+            
+            var formData = new FormData();
+            formData.append('training_id', $('#training_id').val());
+            formData.append('data', JSON.stringify(data_send));
+            
+            const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            formData.append('csrfmiddlewaretoken', csrftoken);
+
+            $.ajax({
+                url: '/training/structure/actions/delete',
+                type: 'POST',
+                data: formData,
+                cache: false,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    if (response.status == true) {
+                        //console.log(response.node_server);
+                        //tree.set_id(response.node_client, response.node_server.id);
+                        tree.refresh();
+                    }
+                    console.log(response);
+                }
+            });
+        }
+        
+        function create_node(type) {
+            var tree = $('#training_structure').jstree(true);
+
+            var obj = null;
+            if (!(typeof type == 'string' || type instanceof String)) {
+                obj = type;
+                type = obj.type;
+            }
+
+            var selNode = '#';
+            if (type !== 'module') {
+                var sel = tree.get_selected();
+                if(!sel[0]) { alert('Please select the parent node first to create.'); return false; }
+                selNode = sel[0];
+            }
+            
+            if (type == 'session') {
+                //selNode = sel[0];
+                isLeaf = tree.is_leaf(selNode);
+                if (!isLeaf) {
+                    var ret = false;
+                    var sel_node = tree.get_node(selNode);
+                    for (i in sel_node.children) {
+                        var childNode = tree.get_node(sel_node.children[i]);
+                        if (childNode.type !== 'session' && 
+                            childNode.type !== 'assignment' && 
+                            childNode.type !== 'assessment') {
+                            return false;
+                        }
+                    }
+                    //if (ret) return false;
+                }
+            } else if (type == 'content') {
+                var sel_node = tree.get_node(selNode);
+
+                
+
+                /*var contentModalEl = document.getElementById('contentModal'); //_+node.original.ref_id
+                var contentModal = bootstrap.Modal.getOrCreateInstance(contentModalEl);
+                contentModal.show();
+                return false;*/
+            }
+            
+            
+            
+            var text = type.charAt(0).toUpperCase() + type.slice(1) + ' name';
+            var nodeObj = {'text': text, 'type': type};
+            if (obj !== null) nodeObj = obj;
+
+            var node = tree.create_node(selNode, nodeObj, 'last');
+            
+            // tree.deselect_all();
+            // tree.select_node(node);
+            //if (type !== 'content') tree.edit(node);
+
+
+            return node;
+        }
+        //---------------------------------------------
+
+        // change training type------------------------
+        $('#id_type').change(function(ev) {
+            ev.preventDefault();
+            sel = $(this).val();
+
+            if (sel == '1') {
+                $('.scheduled').show();
+                $('#id_duration').prop('required', true); 
+                $('#id_duration_type').prop('required', true); 
+            } else if (sel == '0') {
+                $('.scheduled').hide();
+                $('#id_duration').prop('required', false); 
+                $('#id_duration_type').prop('required', false); 
+            }
+        });
+        $('#id_type').change();
+
+        // submit training basic details
+        /*$('#training_basic_form').submit(save_training);
+        function save_training(event) {
+            event.preventDefault();
+            var form = $(this).get(0);
+            var data = new FormData(form);
+
+            $.ajax({
+                url: $(this).attr('action'),
+                type: $(this).attr('method'),
+                data: data,
+                cache: false,
+                processData: false,
+                contentType: false,
+                success: function(data) {
+                    if (data.status == true) {
+                        training = JSON.parse(data.obj);
+                        
+                        $('#training_id').val(training[0].pk);
+                        $('#save_training').prop('disabled', true);
+
+                        tab_show(2);
+                    } else {
+                        
+                    }
+                    console.log(data);
+                }
+            });
+            return false;
+        }*/
+
+        // trining tab display
+        function tab_show(index) {
+            var triggerEl = document.querySelector('#trainingTab li:nth-child('+index+') button');
+            var tab = bootstrap.Tab.getOrCreateInstance(triggerEl);
+            if (tab) tab.show(); 
+        }
+
+        // open tab on page load 
+        const params = new Proxy(new URLSearchParams(window.location.search), {
+            get: (searchParams, prop) => searchParams.get(prop),
+        });
+        //if(params.tab) tab_show(params.tab);
+
+        // add click event listner.
+        var triggerTabList = [].slice.call(document.querySelectorAll('#trainingTab button[data-bs-toggle="tab"]'))
+        triggerTabList.forEach(function (triggerEl) {
+            var tabTrigger = new bootstrap.Tab(triggerEl)
+
+            triggerEl.addEventListener('click', function (event) {
+                event.preventDefault()
+                let tabIndex = $(this).parent().index();
+                pushQueryparams(tabIndex + 1);
+            })
+        });
+
+        // set query parameters for tab auto show
+        function pushQueryparams(tab = 1){
+            if (history.pushState) {
+                var newurl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?tab='+tab;
+                window.history.pushState({path:newurl}, '', newurl);
+            }
+        }
+
+    });
+</script>
+{% endblock js %}

@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="/">Home</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'question_bank:question_list' %}">Question Bank</a></li>
+      <li class="breadcrumb-item active" aria-current="page">List</li>
+    </ol>
+</nav>
+
+<div class="manage-wrap">
+    <a href="{% url 'question_bank:create_question' %}" class="btn btn-success">Create Question</a>
+</div>
+
+<h4 class="fw-bold mb-3"><i class="fas fa-cog me-2"></i>Question List</h4>
+
+{% include 'snippets/messages.html' %}
+
+{% comment %} <h2>Questions</h2> {% endcomment %}
+<table class="table">
+    <thead>
+        <tr>
+            <th>Title</th>
+            <th>Type</th>
+            <th>Difficulty</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for question in questions %}
+        <tr>
+            <td>{{ question.title }}</td>
+            <td>{{ question.get_type_display }}</td>
+            <td>{{ question.get_difficulty_level_display }}</td>
+            <td>
+                <div class="dropdown">
+                    <button class="btn btn-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fa fa-ellipsis-vertical"></i>
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{% url 'question_bank:question_detail' question.pk %}"><i class="fas fa-edit"></i> View</a></li>
+                        <li><a class="dropdown-item" href="{% url 'question_bank:edit_question' question.pk %}"><i class="fas fa-edit"></i> Edit</a></li>
+                        <li><a class="dropdown-item" href="{% url 'question_bank:delete_question' question.pk %}"><i class="fas fa-edit"></i> Delete</a></li>
+                    </ul>
+                </div>
+                {% comment %} <a href="{% url 'question_bank:question_detail' question.pk %}" class="btn btn-sm btn-info">View</a>
+                <a href="{% url 'question_bank:edit_question' question.pk %}" class="btn btn-sm btn-primary">Edit</a>
+                <a href="{% url 'question_bank:delete_question' question.pk %}" class="btn btn-sm btn-danger">Delete</a> {% endcomment %}
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="4">No questions available.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}

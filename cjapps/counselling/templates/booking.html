@@ -1,0 +1,250 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }} | Career Judge{% endblock title %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block content %}
+
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="/">Home</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'counselling_booking_list' %}">Counselling Bookings</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Add</li>
+    </ol>
+</nav>
+
+<h4 class="fw-bold mb-3"><i class="fas fa-cog me-2"></i>New Booking</h4>
+
+{% include 'snippets/messages.html' %}
+
+<form action="" method="POST" id="booking_form">{% csrf_token %}
+    
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <div class="card">
+                <p class="form-title">Booking Information</p>
+                <div class="card-body">
+                    {{ form.category|as_crispy_field }}
+                    <div class="container m-0 p-0">
+                        <div class="row">
+                            <div class="col-9 pe-0">
+                                {{ form.counsellor|as_crispy_field }}
+                            </div>
+                            <div class="col-3 ps-0 d-flex flex-column">
+                                <button id="profileBtn" class="btn btn-primary text-white mt-auto mb-3" onclick="javascript:if(document.getElementById('id_counsellor').value !=='') document.location.href='/user/profile/'+document.getElementById('id_counsellor').value;" type="button">View Profile</button>
+                            </div>
+                        </div>
+                    </div>
+                    {{ form.date|as_crispy_field }}
+                    {{ form.timeslot|as_crispy_field }}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <p class="form-title">Others</p>
+                <div class="card-body">
+                    {{ form.counselee|as_crispy_field }}
+                    {{ form.topic|as_crispy_field }}
+                </div>
+            </div>
+        </div>
+    </div>
+    <input id="btn_book_pay1" class="btn btn-primary" type="submit" value="Book &amp; Pay">
+
+
+    <!-- <button id="rzp-button1">Pay</button> -->
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script>
+    var options = {
+        "key": "", // Enter the Key ID generated from the Dashboard
+        "amount": "", // Amount is in currency subunits. Default currency is INR. Hence, 50000 refers to 50000 paise
+        "currency": "",
+        "name": "Career Judge",
+        "description": "Counseling Booking",
+        "image": "",
+        "order_id": "", //This is a sample Order ID. Pass the `id` obtained in the response of Step 1
+        "callback_url": "{% url 'counselling_booking_add' %}",
+        // "handler": function (response){
+        //     console.log(response);
+        //     payment_success(response);
+        //     // alert(response.razorpay_payment_id);
+        //     // alert(response.razorpay_order_id);
+        //     // alert(response.razorpay_signature)
+        // },
+        "prefill": {
+            "name": "",
+            "email": "",
+            "contact": ""
+        },
+        "notes": {
+            "uid": ""
+        },
+        "theme": {
+            "color": "#3399cc"
+        }
+    };
+
+    function payment_success(res) {
+        console.log(res);
+    }
+
+    function update_data(res) {
+        for (var key in res) {
+            options[key] = res[key];
+        }
+        return options;
+    }
+    
+    document.getElementById('btn_book_pay').onclick = function(e){
+        // submit_form();
+        // e.preventDefault();
+
+        $.post("/counselling/booking/save", $("#booking_form").serialize(), function(data, status){
+            console.log(data, status);
+
+            opt = update_data(data);
+
+            pay(opt);
+        });
+
+        // $.ajax({
+        //     url: "/counselling/booking/save",
+        //     context: document.body
+        // }).done(function(data, textStatus, jqXHR) {
+            
+        // });
+    }
+
+    function pay(options) {
+        var rzp1 = new Razorpay(options);
+        
+        rzp1.on('payment.failed', function (response){
+            console.log(response.error);
+            // alert(response.error.code);
+            // alert(response.error.description);
+            // alert(response.error.source);
+            // alert(response.error.step);
+            // alert(response.error.reason);
+            // alert(response.error.metadata.order_id);
+            // alert(response.error.metadata.payment_id);
+        });
+
+        rzp1.open();
+
+        // document.getElementById('rzp-button1').onclick = function(e){
+            // rzp1.open();
+            // e.preventDefault();
+        // }
+    }
+
+
+    </script>
+</form>
+{% endblock content %}
+
+{% block js %}
+<script>
+    $(function(){
+        // function hideInputs() {
+        //     $("#id_amc_date").hide();
+        //     $("#id_amc_product").hide();
+        //     $("#id_warranty_date").hide();
+        //     $("#id_warranty_product_list").hide();
+        // }
+
+        $("#id_category").on('change', function(){
+            var val = $(this).val();
+            if (val != '') {
+                $.ajax({
+                    url: "/counselling/counsellors/category/"+val,
+                    context: document.body
+                }).done(function(data, textStatus, jqXHR) {
+                    $("#id_counsellor").find("option").remove();
+                    data.forEach(user => {
+                        $("#id_counsellor")
+                            .append('<option value = "'+user.id+'">'+user.email+'</option>');
+                    });
+                    $("#id_counsellor").change();
+                });
+            } else {
+                $("#id_counsellor").find("option").remove();
+                $("#id_counsellor").change();
+            }
+        });
+        
+
+        var timeslots_all = {{form.timeslots|safe}};
+        var timeslots_data = null;
+        $("#id_counsellor").on('change', function(){
+            var val = $(this).val();
+            if (val != null) {
+                $.ajax({
+                    url: "/counselling/timeslots/"+val,
+                    context: document.body
+                }).done(function(data, textStatus, jqXHR) {
+                    $("#id_date").find("option").remove();
+                    // $("#id_timeslot").find("option").remove();
+
+                    timeslots_data = data;
+
+                    data.forEach(timeslot => {
+                        // add dates                        
+                        $("#id_date").append('<option value = "'+timeslot.id+'">'+timeslot.date+'</option>');
+
+                        // decode timeslots array for traversing
+                        // timeslots = JSON.parse(timeslot.timeslots.replace(/'/g, '"'));
+                        // timeslots.forEach(slot => {
+                        //     $("#id_timeslot").append('<option value = "'+slot+'">'+timeslots_all[slot]+'</option>');
+                        // });
+                    });
+
+                    $("#id_date").change();
+                });
+            } else {
+                // $("#id_timeslot").find("option").remove();
+                $("#id_date").change();
+            }
+        });
+
+        $("#id_date").on('change', function(){
+            var val = $(this).val();
+            if (val != null) {
+
+                $("#id_timeslot").find("option").remove();
+
+                timeslots_data.forEach(timeslot => {
+                    if (timeslot.id == val) {
+                        // decode timeslots array for traversing
+                        timeslots = JSON.parse(timeslot.timeslots.replace(/'/g, '"'));
+                        timeslots.forEach(slot => {
+                            $("#id_timeslot").append('<option value="'+slot+'">'+timeslots_all[slot]+'</option>');
+                        });
+                    }
+                });
+
+                // $.ajax({
+                //     url: "/counselling/timeslots/"+val,
+                //     context: document.body
+                // }).done(function(data, textStatus, jqXHR) {
+                //     $("#id_date").find("option").remove();
+                //     $("#id_timeslot").find("option").remove();
+                //     data.forEach(timeslot => {
+                //         // add dates                        
+                //         $("#id_date").append('<option value = "'+timeslot.id+'">'+timeslot.date+'</option>');
+
+                //         // decode timeslots array for traversing
+                //         timeslots = JSON.parse(timeslot.timeslots.replace(/'/g, '"'));
+                //         timeslots.forEach(slot => {
+                //             // $("#id_timeslots_"+(slot-1)).prop('checked', true);
+                //             $("#id_timeslot").append('<option value = "'+slot+'">'+timeslots_all[slot]+'</option>');
+                //         });
+                //     });
+                // });
+            } else {
+                $("#id_timeslot").find("option").remove();
+            }
+        });
+    });
+</script>
+{% endblock js %}

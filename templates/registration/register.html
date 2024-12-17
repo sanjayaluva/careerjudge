@@ -1,0 +1,58 @@
+{% extends 'registration/registration_base.html' %}
+{% block title %} Register | Career Judge {% endblock title %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="col-md-4 mx-auto mt-5">
+	<div class="card">
+		<div class="form-title">
+			<i class="fas fa-user-plus me-2"></i>
+			Sign Up
+		</div>
+		<div class="card-body">
+  		{% include 'snippets/messages.html' %}
+			<form action="" method="POST" id="register-form">
+				{% csrf_token %}
+				{{ form | crispy }}
+				<button type="submit" class="btn btn-primary mt-2" id="register-btn"><i class="fas fa-sign-in-alt"></i><small> SIGN UP</small></button>
+			</form>
+			<br>
+			<span> Already Registered ? </span><a href="{% url 'login' %}" class="link">Login</a>
+		</div>
+	</div>
+</div>
+{% endblock content %}
+
+{% block js %}
+<script>
+  const loginFormEl = document.getElementById('register-form');
+  const loginBtnEl = document.getElementById('register-btn');
+
+  loginFormEl.addEventListener('submit', () => {
+    loginBtnEl.innerHTML = '<i class="fas fa-sign-in-alt"></i> Signining you in . . .';
+    loginBtnEl.classList.add("disabled");
+  })
+
+  $("#username_id").on("input", function () {
+    username = $(this).val();
+
+    $.ajax({
+      url: "/accounts/ajax/validate-username/",
+      data: {
+        username: username
+      },
+      dataType: 'json',
+      success: function (data) {
+        if (data.is_taken) {
+          console.log(data.is_taken);
+          $('#message-wrapper').html(`<p class="my-2 text-danger"><span class="bg-error p-2"><b>${username}</b> already taken :( try another one </span></p>`)
+        }
+        else {
+          $('#message-wrapper').html(`<p class="my-2 text-success"><span class="bg-correct p-2"><b>${username}</b> is valid </span></p>`)
+        }
+      }
+
+    })
+  })
+</script>
+{% endblock %}

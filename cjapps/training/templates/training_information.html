@@ -1,0 +1,10 @@
+<h5 id="training_title" class="mt-2"><b>{{ training.title }}</b></h5>
+<hr class="mt-1 mb-2">
+<p id="training_category" class="mb-0"><b>Category:</b> {{ training.category.name }}</p>
+<p id="training_amount" class="mb-0"><b>Amount:</b> {{ training.amount }}</p>
+<p id="training_type" class=""><b>Type:</b> {{ training.get_type_display }}</p>
+<p class="mb-0"><b>Objectives:</b> {{ training.objectives | linebreaks }}</p>
+<p class="mb-0"><b>Description:</b> {{ training.desc_text | linebreaks }}</p>
+{% if training.desc_img %}
+<img src="{{ training.desc_img }}" class="" alt="Training description image">
+{% endif %}

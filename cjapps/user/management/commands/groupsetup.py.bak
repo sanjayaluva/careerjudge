@@ -1,0 +1,39 @@
+from django.core.management.base import BaseCommand, CommandError
+# from polls.models import Question as Poll
+from django.contrib.auth.models import Group
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
+class Command(BaseCommand):
+    help = "Creates User Groups"
+
+    # def add_arguments(self, parser):
+    #     parser.add_argument("poll_ids", nargs="+", type=int)
+
+    def handle(self, *args, **options):
+        roles = User.ROLES
+        for role in roles:
+            try:
+                group = Group.objects.get(name=roles[role])
+            except Group.DoesNotExist:
+                group = Group.objects.create(name=roles[role])
+                # raise CommandError('Poll "%s" does not exist' % poll_id)
+
+            # poll.opened = False
+            # poll.save()
+
+        # view_user_permission = Permission.objects.get(codename='view_user')
+        # add_user_permission = Permission.objects.get(codename='add_user')
+        # change_user_permission = Permission.objects.get(codename='change_user')
+        # delete_user_permission = Permission.objects.get(codename='delete_user')
+        
+        # # CJ Admin
+        # group = Group.objects.get(name=roles[1])
+        # group.permissions.add(view_user_permission)
+
+
+
+        self.stdout.write(
+            self.style.SUCCESS('Successfully created User Groups.')
+        )

@@ -1,0 +1,21 @@
+<div id="question-wrapper" data-question-id="{{ question.id }}" data-question-type="mcq_audio">
+    <div class="question-header">
+        <span class="question-number">Question {{ question.number }}</span>
+        <div class="question-text">{{ question.text.html|safe }}</div>
+    </div>
+    <div class="audio-container">
+        <audio id="questionAudio" controls>
+            <source src="{{ question.audio.url }}" type="audio/mpeg">
+            Your browser does not support the audio element.
+        </audio>
+    </div>
+    <div class="options-container">
+        {% for option in question.options.all %}
+        <label class="option-item">
+            <input type="radio" name="answer" value="{{ option.id }}"
+                   {% if option.id == response.answer_data.selected_option %}checked{% endif %}>
+            <span class="option-text">{{ option.text }}</span>
+        </label>
+        {% endfor %}
+    </div>
+</div>

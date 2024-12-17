@@ -1,0 +1,21 @@
+<div id="question-wrapper" data-question-id="{{ question.id }}" data-question-type="mcq_image">
+    <div class="question-header">
+        <span class="question-number">Question {{ question_number }}</span>
+        <div class="question-text">{{ question.text.html|safe }}</div>
+    </div>
+    <div class="question-image">
+        <img src="{{ question.image.url }}" alt="Question Image" class="img-fluid">
+    </div>
+    <div class="options-container image-options">
+        {% for option in question.options.all %}
+        <label class="option-item">
+            <input type="radio" name="answer" value="{{ option.id }}" {% if option.id == response.answer_data.selected_option %}checked{% endif %}>
+            {% if option.image %}
+            <img src="{{ option.image.url }}" alt="Option {{ forloop.counter }}" class="img-thumbnail w-25">
+            {% else %}
+            {{  option.text }}
+            {% endif %}
+        </label>
+        {% endfor %}
+    </div>
+</div>

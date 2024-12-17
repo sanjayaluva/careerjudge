@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% block title %} {{ title }} | Career Judge{% endblock title %}
+
+{% load static %}
+{% load i18n %}
+
+{% block content %}
+
+{% if user.is_authenticated %}
+
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="/">Home</a></li>
+      <!-- <li class="breadcrumb-item"><a href="{% url 'user_list' %}">Users</a></li> -->
+      <li class="breadcrumb-item active" aria-current="page">{{ user.get_full_name }}</li>
+    </ol>
+</nav>
+{% include 'snippets/messages.html' %}
+<div class="row">
+    <div class="col-md-3 mx-auto">
+        <div class="card  p-2">
+            <div class="text-center">
+                <img src="{{ user.picture.url }}" class="w-100">
+                <ul class="px-2 list-unstyled">
+                    <li>{{ user.get_full_name|title }}</li>
+                    <li><strong>Last login: </strong>{{ user.last_login|date }}</li>
+                    <li><strong>Role: </strong>{{ user.get_user_role }}</li>
+                </ul>
+            </div>
+            <hr>
+            <a class="mb-2" href="{% url 'edit_profile' %}"><i class="fas fa-user-edit"></i>
+                <span class="mobile-hide">Edit Profile</span></a>
+            <a href="{% url 'password_change' %}"><i class="fas fa-lock"></i><span class="mobile-hide">
+                    Change password</span></a>
+        </div>
+    </div>
+
+    <div class="col-md-9 mx-auto">
+        <div class="card">
+            <div class="card-body">
+                <p class="fw-bold"><i class="fas fa-user"></i> Profile Information</p>
+                <div class="profile-info">
+                    <p><strong>Full Name:</strong> {{ user.get_full_name|title }}</p>
+                    {% if user.is_individual or user.is_psychometrician or user.is_reviewer or user.is_trainer or user.is_counsellor %}
+                    <p><strong>Gender:</strong> {{ user.get_gender_display }}</p>
+                    <p><strong>Date of Birth:</strong> {{ user.dob }}</p>
+                    <p><strong>State/Province: </strong>{{ user.state }}</p>
+                    <p><strong>Country of Origin: </strong>{{ user.country }}</p>
+                    <p><strong>Occupation: </strong>{{ user.get_occupation_display }}</p>
+                    <p><strong>Current Position: </strong>{{ user.cur_position }}</p>
+                    <p><strong>Work Experience: </strong>{{ user.work_exp }}</p>
+                    <p><strong>Highest Education: </strong>{{ user.high_education }}</p>
+                    {% endif %}
+                    {% if user.is_individual %}
+                    <p><strong>Education Level: </strong>{{ user.get_edu_level_display }}</p>
+                    <p><strong>Institution Name: </strong>{{ user.institution_name }}</p>
+                    <p><strong>Place of Institution: </strong>{{ user.institution_place }}</p>
+                    <p><strong>Location: </strong>{{ user.location }}</p>
+                    <p><strong>Assessment Package allocated: </strong>{{ user.assess_pack_alloc }}</p>
+                    {% endif %}
+                    {% if user.is_corpadmin or user.is_corpexclusive %}
+                    <p><strong>Group name:</strong> {{ user.group_name }}</p>
+                    <p><strong>Organization Name:</strong> {{ user.org_name }}</p>
+                    <p><strong>Manager name:</strong> {{ user.manager_name }}</p>
+                    <p><strong>PAN/TAN:</strong> {{ user.pan_tan }}</p>
+                    {% endif %}
+                    {% if user.is_psychometrician or user.is_reviewer or user.is_trainer or user.is_counsellor or user.is_channelpartner %}
+                    <p><strong>PAN:</strong> {{ user.pan }}</p>
+                    <p><strong>Bank Account Number:</strong> {{ user.bank_ac }}</p>
+                    <p><strong>Bank Name:</strong> {{ user.bank_name }}</p>
+                    <p><strong>Bank Branch:</strong> {{ user.bank_branch }}</p>
+                    <p><strong>IFSC Code:</strong> {{ user.bank_ifsc }}</p>
+                    {% endif %}
+                    {% if user.is_reviewer or user.is_trainer or user.is_counsellor %}
+                    <p><strong>Domain Experience:</strong> {{ user.domain_exp }}</p>
+                    <p><strong>Bio:</strong> {{ user.user_bio }}</p>
+                    {% endif %}
+                    {% if user.is_channelpartner %}
+                    <p><strong>Agency Name:</strong> {{ user.chp_agency_name }}</p>
+                    <p><strong>Agreement ID:</strong> {{ user.chp_agrmt_id }}</p>
+                    <p><strong>Contract Period:</strong> {{ user.chp_contr_period }}</p>
+                    <p><strong>Region Allocated:</strong> {{ user.chp_region }}</p>
+                    {% endif %}
+                </div>    
+                <hr>
+                <p class="fw-bold"><i class="fas fa-phone-square-alt"></i> Contact Information</p>
+                <div class="contact-info">
+                    <p><strong>Email:</strong> {{ user.email }}</p>
+                    <p><strong>Phone:</strong> {{ user.phone }}</p>
+                    {% if user.is_psychometrician or user.is_reviewer or user.is_trainer or user.is_counsellor %}
+                    <p><strong>Contact Address:</strong> {{ user.contact_address }}</p>
+                    <p><strong>Permanent Address:</strong> {{ user.perm_address }}</p>
+                    {% elif user.is_corpadmin or user.is_corpexclusive %}
+                    <p><strong>Office Address:</strong> {{ user.off_address }}</p>
+                    {% endif %}
+                </div>
+    
+                <hr>
+                <p class="fw-bold"><i class="fa fa-calendar-day"></i> Important Dates</p>
+                <div class="dashboard-description">
+                    <p><strong>Last login:</strong> {{ user.last_login }}</p>
+                    <p><strong>Registered Date:</strong> {{ user.date_joined|date }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 mx-auto"></div>
+
+</div>
+{% endif %}
+
+{% endblock content %}

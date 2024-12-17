@@ -1,0 +1,34 @@
+{% load assessment_tags %}
+
+<div id="question-wrapper" data-question-id="{{ question.id }}" data-question-type="psy_ranking">
+    <div class="question-header">
+        <span class="question-number">Question {{ question.number }}</span>
+        <div class="question-text">{{ question.text.html|safe }}</div>
+    </div>
+    
+    <div class="ranking-groups">
+        {% with ranking_data=question.ranking_structure|parse_json %}
+        {% for group in ranking_data.rightTree %}
+        <div class="ranking-group">
+            <h3 class="group-title">{{ group.text }}</h3>
+            <div class="ranking-statements">
+                {% for statement in group.children %}
+                <div class="ranking-statement">
+                    <span class="statement-text">{{ statement.text }}</span>
+                    <select class="rank-select" data-group-id="{{ group.id }}" data-statement="{{ statement }}">
+                        <option value="">Select Rank</option>
+                        {% for category in ranking_data.leftTree %}
+                        <option value="{{ forloop.counter }}" 
+                            {% if response.answer_data.rankings|get_statement_rank:statement == forloop.counter %}selected{% endif %}>
+                            {{ forloop.counter }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+        {% endwith %}
+    </div>
+</div>

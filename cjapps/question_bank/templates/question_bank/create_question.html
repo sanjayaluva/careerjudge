@@ -1,0 +1,1767 @@
+{% extends 'base.html' %}
+{% load static crispy_forms_tags %}
+
+{% block content %}
+
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="/">Home</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'question_bank:question_list' %}">Question Bank</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Create</li>
+    </ol>
+</nav>
+
+<div class="manage-wrap">
+    <button class="btn btn-sm btn-primary" onclick="outside_form_submit('question-form')"><i class="fas fa-plus"></i> SaveQuestion</button>
+</div>
+
+<h4 class="fw-bold mb-3"><i class="fas fa-cog me-2"></i>{% if question %}Edit{% else %}Create{% endif %} Question</h4>
+
+{% include 'snippets/messages.html' %}
+
+<div class="container mt-4">
+    <form method="post" enctype="multipart/form-data" id="question-form">
+        {% csrf_token %}
+
+        <ul class="nav nav-tabs mb-3" id="questionTabs" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link active" id="basic-tab" data-toggle="tab" href="#basic" role="tab">Basic Info</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="category-tab" data-toggle="tab" href="#category" role="tab">Category</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="content-tab" data-toggle="tab" href="#content" role="tab">Content</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="options-tab" data-toggle="tab" href="#options" role="tab">Options</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="preview-tab" data-toggle="tab" href="#preview" role="tab">Preview</a>
+            </li>
+        </ul>
+
+        <div class="tab-content mb-4" id="questionTabsContent">
+            <div class="tab-pane fade show active" id="basic" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-6">{{ basic_form.title|as_crispy_field }}</div>
+                    <div class="col-md-6">{{ basic_form.type|as_crispy_field }}</div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">{{ basic_form.difficulty_level|as_crispy_field }}</div>
+                    <div class="col-md-6">{{ basic_form.cognitive_level|as_crispy_field }}</div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">{{ basic_form.exposure_limit|as_crispy_field }}</div>
+                    <div class="col-md-6">{{ basic_form.case_sensitive|as_crispy_field }}</div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">{{ basic_form.instructions|as_crispy_field }}</div>
+                    <div class="col-md-6">{{ basic_form.objectives|as_crispy_field }}</div>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="category" role="tabpanel">
+                {{ basic_form.category|as_crispy_field }}
+                <div id="category-tree"></div>
+            </div>
+            <div class="tab-pane fade" id="content" role="tabpanel">
+                {{ basic_form.text|as_crispy_field }}
+                {{ basic_form.paragraph|as_crispy_field }}
+                {{ basic_form.paragraph_interval|as_crispy_field }}
+                {{ basic_form.image|as_crispy_field }}
+                {{ basic_form.audio|as_crispy_field }}
+                {{ basic_form.video|as_crispy_field }}
+
+                <div id="question-type-fields" class="mt-4">
+                    
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="options" role="tabpanel">
+                <div id="option-fields">
+                    <div id="mcq-fields">
+                        <h6>Answer Options:</h6>
+                        {{ option_formset.management_form }}
+                        <table class="table" id="option-table" >
+                            <thead>
+                                <tr>
+                                    <th>Text</th>
+                                    <th>Image</th>
+                                    <th>Is Correct</th>
+                                    <th>Delete</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for form in option_formset %}
+                                    <tr class="option-form">
+                                        <td>{{ form.text }}</td>
+                                        <td>{{ form.image }}</td>
+                                        <td>{{ form.is_correct }}</td>
+                                        <td>{{ form.DELETE }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        <button type="button" data-formset="option" class="btn btn-secondary add-row">Add Option</button>
+                        <script type="text/html" id="option-empty-form">
+                            <tr class="option-form">
+                                <td>{{ option_formset.empty_form.text }}</td>
+                                <td>{{ option_formset.empty_form.image }}</td>
+                                <td>{{ option_formset.empty_form.is_correct }}</td>
+                                <td>{{ option_formset.empty_form.DELETE }}</td>
+                            </tr>
+                        </script>
+                    </div>
+
+                    <div id="fib-fields">
+                        <h6>Fill in the Blank Answers:</h6>
+                        {{ answer_formset.management_form }}
+                        <table class="table" id="answer-table">
+                            <thead>
+                                <tr>
+                                    <th>Text</th>
+                                    {% comment %} <th>Delete</th> {% endcomment %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for form in answer_formset %}
+                                    <tr class="answer-form">
+                                        <td>{{ form.text }}</td>
+                                        {% comment %} <td>{{ form.DELETE }}</td> {% endcomment %}
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        <!--button type="button" data-formset="answer" class="btn btn-secondary add-row">Add Answer</button-->
+                        <script type="text/html" id="answer-empty-form">
+                            <tr class="answer-form">
+                                <td>{{ answer_formset.empty_form.text }}</td>
+                                {% comment %} <td>{{ answer_formset.empty_form.DELETE }}</td> {% endcomment %}
+                            </tr>
+                        </script>
+                    </div>
+
+                    <div id="grid-fields" class="mt-4">
+                        <h6>Grid Selection Items:</h6>
+                        <div class="row">
+                            <div class="col-2">
+                                {{ basic_form.grid_cols|as_crispy_field }}
+                            </div>
+                            <div class="col-2">
+                                {{ basic_form.grid_rows|as_crispy_field }}
+                            </div>
+                            <div class="col-2">
+                                {{ basic_form.grid_type|as_crispy_field }}
+                            </div>
+                        </div>
+                        <div id="grid-options">
+                            {{ grid_formset.management_form }}
+                            <table id="grid-table" class="table table-bordered"></table>
+                        </div>
+                        
+                        {% comment %} <div id="option-popup" style="display: none;">
+                            <div id="popup-content"></div>
+                            <button id="select-option">Select</button>
+                        </div>
+                        <button id="view-all-options">View All Options</button> {% endcomment %}
+                    </div>
+
+                    <div id="hotspot-fields">
+                        <div class="hotspot-container">
+                            <h4>Hotspot Question</h4> <!-- Single/Multiple Answer -->
+                            <div class="row">
+                                <div class="col-md-8">
+                                    {{ basic_form.hotspot_items|as_crispy_field }}
+                                    <div class="canvas-container">
+                                        <canvas id="hotspot-canvas"></canvas>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="canvas-controls mt-2">
+                                        <button type="button" id="rectBtn" class="btn btn-sm btn-primary d-inline">Rectangle</button>
+                                        <button type="button" id="circleBtn" class="btn btn-sm btn-primary d-inline">Circle</button>
+                                        <button type="button" id="polygonBtn" class="btn btn-sm btn-primary d-inline">Polygon</button>
+                                        <button type="button" id="deleteBtn" class="btn btn-sm btn-danger float-end">Delete</button>
+                                        
+                                        <!--button type="button" id="add-hotspot" class="btn btn-sm btn-primary d-inline"><i class="fas fa-plus"></i> Add Hotspot</button>
+                                        <button type="button" id="delete-hotspot" class="btn btn-sm btn-danger d-inline"><i class="fas fa-trash"></i> Delete Selected</button-->
+                                    </div>
+                                    <div class="hotspot-list">
+                                        <h5>Hotspot Areas</h5>
+                                        <ul id="hotspot-areas" class="list-group">
+                                            <!-- Hotspot areas will be dynamically added here -->
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <script>
+                                
+                            </script>
+                        </div>
+                    </div>
+
+                    <div id="matching-fields" class="mt-4">
+                        <h6>Match the Following:</h6>
+                        {{ match_formset.management_form }}
+                        <table class="table table-bordered table-hover" id="match-table">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>Left Item</th>
+                                    <th>Right Item</th>
+                                    <th>Delete</th>
+                                </tr>
+                            </thead>
+                            <tbody id="match-pairs-list">
+                                {% for matching_pair_form in match_formset %}
+                                    <tr class="match-pair-form">
+                                        <td>{{ matching_pair_form.left_item }}</td>
+                                        <td>{{ matching_pair_form.right_item }}</td>
+                                        <td>{{ matching_pair_form.DELETE }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        <button type="button"  data-formset="match" class="btn btn-outline-primary add-row">Add Matching Pair</button>
+                        <script type="text/html" id="match-empty-form">
+                            <tr class="option-form">
+                                <td>{{ match_formset.empty_form.left_item }}</td>
+                                <td>{{ match_formset.empty_form.right_item }}</td>
+                                <td>{{ match_formset.empty_form.DELETE }}</td>
+                            </tr>
+                        </script>
+                    </div>
+
+                    <div id="flash-fields" class="mt-4">
+                        <h6>Flash List (Text / Image):</h6>
+                        <div class="row">
+                            <div class="col-3">
+                                {{ basic_form.flash_items_count|as_crispy_field }}
+                            </div>
+                            <div class="col-3">
+                                {{ basic_form.flash_interval|as_crispy_field }}
+                            </div>
+                        </div>
+
+                        {{ flash_formset.management_form }}
+                        <table class="table table-bordered table-hover" id="flash-table">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>Word</th>
+                                    <th>Image</th>
+                                    <th>Delete</th>
+                                </tr>
+                            </thead>
+                            <tbody id="flash-cards-list">
+                                {% for flash_card_form in flash_formset %}
+                                    <tr class="flash-card-form">
+                                        <td>{{ flash_card_form.text }}</td>
+                                        <td>{{ flash_card_form.image }}</td>
+                                        <td>{{ flash_card_form.DELETE }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        <button type="button" data-formset="flash" class="btn btn-outline-primary add-row">Add Flash Card</button>
+                        <script type="text/html" id="flash-empty-form">
+                            <tr class="option-form">
+                                <td>{{ flash_formset.empty_form.text }}</td>
+                                <td>{{ flash_formset.empty_form.image }}</td>
+                                <td>{{ flash_formset.empty_form.DELETE }}</td>
+                            </tr>
+                        </script>
+                    </div>
+
+                    <div id="rating-scale" class="mt-4">
+                        <div class="row mb-2">
+                            <div class="col-2">
+                                <h6 class="mt-2 mb-0">Rating (Psycometric):</h6>
+                            </div>
+                            <div class="col">
+                                <button type="button" id="toggle-numbering" class="btn btn-sm btn-primary"></button>
+                            </div>
+                        </div>
+                        {{ rating_formset.management_form }}
+                        <table class="table table-bordered table-hover" id="rating-table">
+                            <thead>
+                                <tr>
+                                    <th>Text / Legend</th>
+                                    <th>Rating Value</th>
+                                    <th>Delete</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for form in rating_formset %}
+                                    <tr>
+                                        <td>{{ form.id }}{{ form.text }}</td>
+                                        <td>{{ form.value }}</td>
+                                        <td>
+                                            <button type="button" class="btn btn-sm btn-danger delete-row">Delete</button>
+                                            {{ form.DELETE }}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        <button type="button" data-formset="rating" class="btn btn-outline-primary add-row">Add Rating</button>
+                        <script type="text/html" id="rating-empty-form">
+                            <tr>
+                                <td>{{ rating_formset.empty_form.text }}</td>
+                                <td>{{ rating_formset.empty_form.value }}</td>
+                                <td>
+                                    <button type="button" class="btn btn-sm btn-danger delete-row">Delete</button>
+                                    {{ rating_formset.empty_form.DELETE }}
+                                </td>
+                            </tr>
+                        </script>
+                    </div>
+                    
+                    <div id="ranking-scale" class="mt-4">
+                        <div class="container row">
+                            <div class="panel col">
+                                <h5>Statements</h5>
+                                <button type="button" id="addCategory">Add Category</button>
+                                <div id="leftTree"></div>
+                            </div>
+                            <div class="panel col">
+                                <h5>Rankgroups</h5>
+                                <button type="button" id="addRankgroup">Add Rankgroup</button>
+                                <div id="rightTree"></div>
+                            </div>
+                        </div>
+                        <input type="hidden" name="ranking_data" id="ranking_data">
+                    </div>
+
+                    {% comment %} <div id="ranking-scale" class="mt-4">
+                        <h6>{{ question.text }}</h6>
+                        <form method="post">
+                            {% csrf_token %}
+                            {{ ranking_formset.management_form }}
+                            <table class="table" id="ranking-table">
+                                <thead>
+                                    <tr>
+                                        <th>Item</th>
+                                        <th>Rank</th>
+                                        <th>Delete</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for form in ranking_formset %}
+                                        <tr>
+                                            <td>{{ form.item }}</td>
+                                            <td>{{ form.rank }}</td>
+                                            <td>
+                                                <button type="button" class="btn btn-sm btn-danger delete-row">Delete</button>
+                                                {{ form.DELETE }}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                            <button type="button" class="btn btn-primary add-ranking">Add Ranking Option</button>
+                            <script type="text/html" id="ranking-empty-form">
+                                <tr>
+                                    <td>{{ ranking_formset.empty_form.item }}</td>
+                                    <td>{{ ranking_formset.empty_form.rank }}</td>
+                                    <td>{{ ranking_formset.empty_form.DELETE }}</td>
+                                </tr>
+                            </script>
+                        </form>
+                    </div>
+
+                    <div id="rank-rate-scale" class="mt-4">
+                        <h6>{{ question.text }}</h6>
+                        <form method="post">
+                            {% csrf_token %}
+                            {{ ranknrate_formset.management_form }}
+                            <table class="table" id="rank-rate-table">
+                                <thead>
+                                    <tr>
+                                        <th>Item</th>
+                                        <th>Rank</th>
+                                        <th>Rating</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for form in ranknrate_formset %}
+                                        <tr>
+                                            <td>{{ form.item }}</td>
+                                            <td>{{ form.rank }}</td>
+                                            <td>{{ form.rating }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                            <button type="submit" class="btn btn-primary">Submit</button>
+                        </form>
+                    </div>
+                    
+                    <div id="rating-scale" class="mt-4">
+                        <h6>{{ question.text }}</h6>
+                        <form method="post">
+                            {% csrf_token %}
+                            {{ rating_formset.management_form }}
+                            <table id="rating-table" class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Item</th>
+                                        <th>Rating</th>
+                                        <th>Delete</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for form in rating_formset %}
+                                        <tr>
+                                            <td>{{ form.item }}</td>
+                                            <td>{{ form.rating }}</td>
+                                            <td>
+                                                <button type="button" class="btn btn-sm btn-danger delete-row">Delete</button>
+                                                {{ form.DELETE }}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                            <button type="button" class="btn btn-primary add-rating">Add Rating Option</button>
+                            <script type="text/html" id="rating-empty-form">
+                                <tr>
+                                    <td>{{ rating_formset.empty_form.item }}</td>
+                                    <td>{{ rating_formset.empty_form.rating }}</td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-danger delete-row">Delete</button>
+                                        {{ rating_formset.empty_form.DELETE }}
+                                    </td>
+                                </tr>
+                            </script>
+                        </form>
+                    </div>
+
+                    <div id="forced1-scale" class="mt-4">
+                        <h6>{{ question.text }}</h6>
+                        <form method="post">
+                            {% csrf_token %}
+                            {{ forcedsingle_formset.management_form }}
+                            {% for form in forcedsingle_formset %}
+                                <div class="row mb-3">
+                                    <div class="col-5">
+                                        <input type="radio" name="{{ form.prefix }}-choice" value="left" required> {{ form.left_option }}
+                                    </div>
+                                    <div class="col-2 text-center">OR</div>
+                                    <div class="col-5">
+                                        <input type="radio" name="{{ form.prefix }}-choice" value="right"> {{ form.right_option }}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                            <button type="submit" class="btn btn-primary">Submit</button>
+                        </form>
+                    </div>
+
+                    <div id="forced2-scale" class="mt-4">
+                        <h6>{{ question.text }}</h6>
+                        <form method="post">
+                            {% csrf_token %}
+                            {{ forcedtwo_formset.management_form }}
+                            {% for form in forcedtwo_formset %}
+                                <div class="row mb-3">
+                                    <div class="col-5">
+                                        <input type="radio" name="{{ form.prefix }}-choice" value="left" required> {{ form.left_option }}
+                                        <br>
+                                        {{ form.left_rating }}
+                                    </div>
+                                    <div class="col-2 text-center">OR</div>
+                                    <div class="col-5">
+                                        <input type="radio" name="{{ form.prefix }}-choice" value="right"> {{ form.right_option }}
+                                        <br>
+                                        {{ form.right_rating }}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                            <button type="submit" class="btn btn-primary">Submit</button>
+                        </form>
+                    </div> {% endcomment %}
+
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="preview" role="tabpanel">
+                <h3>Question Preview</h3>
+                <div id="preview-content" class="border p-3 mt-3"></div>
+            </div>
+        </div>
+
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_head %}
+{% include 'django_quill/media.html' %}
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.3.12/themes/default/style.min.css" />
+
+<!--link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/nestable2/1.6.0/nestable.min.css"-->
+<style>
+    /*.container {
+        display: flex;
+        justify-content: space-between;
+    }
+    .panel {
+        width: 45%;
+    }*/
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.3.12/jstree.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
+
+<script>
+
+    // validate and submit form if the submit button is outside the form.
+    function outside_form_submit(form_id = '') {
+        var questionText = $('#quill-id_text .ql-editor').html();
+        if (questionText.trim() === '' || questionText === '<p><br></p>') {
+            alert('Please enter question text');
+            // Switch to content tab to show the error
+            var contentTab = document.querySelector('#content-tab');
+            var tabTrigger = new bootstrap.Tab(contentTab);
+            tabTrigger.show();
+            return false;
+        }
+
+        var selectedCategory = $('#id_category').val();
+        if (!selectedCategory) {
+            alert('Please select a category');
+            var categoryTab = document.querySelector('#category-tab');
+            var tabTrigger = new bootstrap.Tab(categoryTab);
+            tabTrigger.show();
+            return false;
+        }
+
+        var form = document.getElementById(form_id);
+        if (form.checkValidity()) {
+            // updateTreeData();
+            form.submit();
+        } else {
+            // open first tab to correct validation issues.
+            var triggerEl = $('#questionTabs.nav .nav-item a:first').get(0);
+            var tabTrigger = new bootstrap.Tab(triggerEl);
+            tabTrigger.show()
+
+            // highlight invalid field
+            form.reportValidity()
+        }
+    }
+
+    // Category and formset management and multiple choice single checkbox selection logics 
+    $(document).ready(function() {
+
+        // Category selection
+        $('#category-tree').jstree({
+            'core' : {
+                'data' : {
+                    'url' : '{% url 'question_bank:get_categories' %}',
+                    'data' : function (node) {
+                        return {}; //{ 'id' : node.id };
+                    }
+                },
+                'multiple': false,
+                //'expand_selected_onload': true
+            },
+            'plugins' : ['wholerow']
+        }).on('loaded.jstree', function() {
+            $('#category-tree').jstree('open_all');
+        });
+        
+        $('#category-tree').on('changed.jstree', function (e, data) {
+            if (data.selected.length) {
+                var selectedCategory = data.selected[0];
+                $('#id_category').val(selectedCategory);
+            } else {
+                $('#id_category').val('');
+            }
+        });
+        //-------------------------------------
+
+        // formset dynamic row addition
+        function addFormsetRow(formsetPrefix) {
+            var totalForms = $(`#id_${formsetPrefix}-TOTAL_FORMS`);
+            var newIndex = parseInt(totalForms.val());
+            var template = $(`#${formsetPrefix}-empty-form`).html().replace(/__prefix__/g, newIndex);
+            $(`#${formsetPrefix}-table tbody`).append(template);
+            totalForms.val(newIndex + 1);
+        }
+
+        $('.add-row').click(function() {
+            var formsetPrefix = $(this).data('formset');
+            addFormsetRow(formsetPrefix);
+
+            checkOnlyOneCheckbox();
+        });
+        
+        // Initialize existing rows
+        /*$('.formset-row').each(function(index) {
+            $(this).find(':input').each(function() {
+                updateElementIndex(this, index);
+            });
+        });
+        
+        function updateElementIndex(el, index) {
+            var id_regex = new RegExp('(' + formsetPrefix + '-\\d+)');
+            var replacement = formsetPrefix + '-' + index;
+            if ($(el).attr("for")) $(el).attr("for", $(el).attr("for").replace(id_regex, replacement));
+            if (el.id) el.id = el.id.replace(id_regex, replacement);
+            if (el.name) el.name = el.name.replace(id_regex, replacement);
+        }*/
+
+        // select only one checkbox at a time.
+        function checkOnlyOneCheckbox() {
+            const checkboxes = document.querySelectorAll('.single-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const row = this.closest('tr');
+                    const textField = row.querySelector('input[type="text"]');
+                    
+                    if (textField.value.trim() === '') {
+                        this.checked = false;
+                        alert('Please enter text before marking as correct.');
+                        return;
+                    }
+                    
+                    if (this.checked) {
+                        checkboxes.forEach(cb => {
+                            if (cb !== this) cb.checked = false;
+                        });
+                    }
+                });
+            });    
+        }
+        checkOnlyOneCheckbox();
+        
+    });
+
+    // Hotspot question with rectangle, circle and polygon shapes.
+    $(document).ready(function() {
+        
+        // Hotspot question with rectangle, circle and polygon shapes.
+        const canvas = new fabric.Canvas('hotspot-canvas', {
+            selection: true
+        });
+        let isDrawing = false;
+        let startPoint;
+        let currentShape;
+        let currentMode = '';
+        let polygonPoints = [];
+        let polygonLines = [];
+        
+        let hotspotImageLoaded = false;
+        let hotspotCounter = 0;
+        
+        // Load image upon selecting it
+        $('#questionTabs').on('shown.bs.tab', function(e) {
+            let selectedType = $('#id_type').val();
+            if (selectedType.startsWith('cus_hotspot') && e.target.id === 'options-tab' && !hotspotImageLoaded) {
+                var imageField = document.getElementById('id_image');
+                var file = imageField.files[0];
+
+                if (file) {
+                    var reader = new FileReader();
+                    reader.onload = function(f) {
+                        var data = f.target.result;
+                        fabric.Image.fromURL(data, function(img) {
+                            var containerWidth = $('.canvas-container').width();
+                            var scale = containerWidth / img.width;
+                            img.set({
+                                scaleX: scale,
+                                scaleY: scale
+                            });
+                            canvas.setDimensions({width: containerWidth, height: img.height * scale});
+                            canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas));
+                        });
+                    };
+                    reader.readAsDataURL(file);
+
+                    hotspotImageLoaded = true;
+                }
+            }
+        });
+
+        function setMode(mode) {
+            currentMode = mode;
+            canvas.isDrawingMode = false;
+            resetPolygonDrawing();
+        }
+
+        document.getElementById('rectBtn').addEventListener('click', () => setMode('rectangle'));
+        document.getElementById('circleBtn').addEventListener('click', () => setMode('circle'));
+        document.getElementById('polygonBtn').addEventListener('click', () => setMode('polygon'));
+        document.getElementById('deleteBtn').addEventListener('click', deleteSelected);
+        //document.getElementById('saveBtn').addEventListener('click', saveShapes);
+        //document.getElementById('loadBtn').addEventListener('click', loadShapes);
+
+        canvas.on('mouse:down', function(o) {
+            if (currentMode === '') return;
+
+            isDrawing = true;
+            startPoint = canvas.getPointer(o.e);
+
+            switch (currentMode) {
+                case 'rectangle':
+                    drawRectangle(startPoint);
+                    break;
+                case 'circle':
+                    drawCircle(startPoint);
+                    break;
+                case 'polygon':
+                    if (polygonPoints.length > 2 && nearStartPoint(startPoint)) {
+                        finishPolygon();
+                    } else {
+                        addPolygonPoint(startPoint);
+                    }
+                    break;
+            }
+        });
+
+        canvas.on('mouse:move', function(o) {
+            if (!isDrawing) return;
+
+            const pointer = canvas.getPointer(o.e);
+
+            switch (currentMode) {
+                case 'rectangle':
+                    updateRectangle(pointer);
+                    break;
+                case 'circle':
+                    updateCircle(pointer);
+                    break;
+                case 'polygon':
+                    if (polygonPoints.length > 0) {
+                        updatePolygonLine(pointer);
+                        if (nearStartPoint(pointer)) {
+                            canvas.defaultCursor = 'pointer';
+                        } else {
+                            canvas.defaultCursor = 'default';
+                        }
+                    }
+                    break;
+            }
+
+            canvas.renderAll();
+        });
+
+        canvas.on('mouse:up', function() {
+            isDrawing = false;
+            if (currentMode !== 'polygon') {
+                if (currentShape) {
+                    currentShape.setCoords();
+                    currentShape = null;
+                }
+                setMode('');
+
+                saveShapes();
+                updateHotspotList();
+            }
+        });
+
+
+        canvas.on('object:modified', function(options) {
+            updateObject(options.target);
+            updateHotspotList();
+        });
+        
+        canvas.on('object:scaling', function(options) {
+            updateObject(options.target);
+            updateHotspotList();
+        });
+        
+        function updateObject(obj) {
+            obj.setCoords();
+            if (obj.scaleX !== 1 || obj.scaleY !== 1) {
+                obj.set({
+                    width: obj.width * obj.scaleX,
+                    height: obj.height * obj.scaleY,
+                    scaleX: 1,
+                    scaleY: 1
+                });
+            }
+            saveShapes();
+        }
+
+
+        function drawRectangle(point) {
+            currentShape = new fabric.Rect({
+                left: point.x,
+                top: point.y,
+                width: 0,
+                height: 0,
+                fill: 'rgba(255,0,0,0.3)',
+                stroke: 'red',
+                strokeWidth: 2,
+                name: 'Hotspot (Rectangle)',
+                correct: false,
+            });
+            canvas.add(currentShape);
+        }
+
+        function updateRectangle(pointer) {
+            currentShape.set({
+                width: Math.abs(pointer.x - startPoint.x),
+                height: Math.abs(pointer.y - startPoint.y)
+            });
+            currentShape.setCoords();
+        }
+
+        function drawCircle(point) {
+            currentShape = new fabric.Circle({
+                left: point.x,
+                top: point.y,
+                radius: 0,
+                fill: 'rgba(0,0,255,0.3)',
+                stroke: 'blue',
+                strokeWidth: 2,
+                name: 'Hotspot (Circle)',
+                correct: false,
+            });
+            canvas.add(currentShape);
+        }
+
+        function updateCircle(pointer) {
+            const radius = Math.sqrt(Math.pow(pointer.x - startPoint.x, 2) + Math.pow(pointer.y - startPoint.y, 2)) / 2;
+            currentShape.set({
+                radius: radius,
+                left: startPoint.x - radius,
+                top: startPoint.y - radius
+            });
+            currentShape.setCoords();
+        }
+
+        function addPolygonPoint(point) {
+            polygonPoints.push(point);
+            drawPolygonPoint(point);
+            if (polygonPoints.length > 1) {
+                drawPolygonLine(polygonPoints[polygonPoints.length - 2], point);
+            }
+        }
+
+        function updatePolygonLine(pointer) {
+            if (polygonLines.length > 0) {
+                canvas.remove(polygonLines[polygonLines.length - 1]);
+                polygonLines.pop();
+            }
+            if (polygonPoints.length > 0) {
+                drawPolygonLine(polygonPoints[polygonPoints.length - 1], pointer);
+            }
+        }
+
+        function drawPolygonPoint(point) {
+            const circle = new fabric.Circle({
+                left: point.x - 5,
+                top: point.y - 5,
+                radius: 5,
+                fill: 'green',
+                stroke: 'black',
+                strokeWidth: 1,
+                selectable: false,
+                evented: false,
+                isPolygonPoint: true
+            });
+            canvas.add(circle);
+        }
+
+        function drawPolygonLine(from, to) {
+            const line = new fabric.Line([from.x, from.y, to.x, to.y], {
+                stroke: 'green',
+                strokeWidth: 2,
+                selectable: false,
+                evented: false
+            });
+            canvas.add(line);
+            polygonLines.push(line);
+        }
+
+        function nearStartPoint(point) {
+            if (polygonPoints.length < 3) return false;
+            const start = polygonPoints[0];
+            return Math.abs(point.x - start.x) < 10 && Math.abs(point.y - start.y) < 10;
+        }
+
+        function finishPolygon() {
+            if (polygonPoints.length < 3) return;
+
+            canvas.getObjects().forEach(obj => {
+                if (obj.isPolygonPoint || polygonLines.includes(obj)) {
+                    canvas.remove(obj);
+                }
+            });
+
+            const polygon = new fabric.Polygon(polygonPoints, {
+                fill: 'rgba(0,255,0,0.3)',
+                stroke: 'green',
+                strokeWidth: 2,
+                selectable: true,
+                evented: true,
+                name: 'Hotspot (Polygon)',
+                correct: false,
+            });
+            canvas.add(polygon);
+
+            resetPolygonDrawing();
+            canvas.defaultCursor = 'default';
+            setMode('');
+            canvas.renderAll();
+
+            saveShapes();
+            updateHotspotList();
+        }
+
+        function resetPolygonDrawing() {
+            polygonPoints = [];
+            polygonLines = [];
+        }
+
+        function deleteSelected() {
+            const activeObject = canvas.getActiveObject();
+            if (activeObject) {
+                canvas.remove(activeObject);
+                canvas.discardActiveObject();
+                canvas.renderAll();
+
+                saveShapes();
+                updateHotspotList();
+            }
+        }
+
+        // function saveShapes() {
+        //     const shapes = canvas.getObjects().filter(obj => !obj.isPolygonPoint && !polygonLines.includes(obj));
+        //     const shapesData = shapes.map(shape => {
+        //         const commonProps = {
+        //             left: shape.left,
+        //             top: shape.top,
+        //             width: shape.width,
+        //             height: shape.height,
+        //             name: shape.name,
+        //             correct: shape.correct,
+        //         };
+        //         if (shape.type === 'rect') {
+        //             return { ...commonProps, type: 'rect' };
+        //         } else if (shape.type === 'circle') {
+        //             return { ...commonProps, type: 'circle', radius: shape.radius };
+        //         } else if (shape.type === 'polygon') {
+        //             return { ...commonProps, type: 'polygon', points: shape.points };
+        //         }
+        //     });
+        //     //localStorage.setItem('savedShapes', JSON.stringify(shapesData));
+        //     //alert('Shapes saved successfully!');
+        //     $('#id_hotspot_items').val(JSON.stringify(shapesData));
+        // }
+
+        function saveShapes() {
+            const shapes = canvas.getObjects().filter(obj => !obj.isPolygonPoint && !polygonLines.includes(obj));
+            const canvasWidth = canvas.width;
+            const canvasHeight = canvas.height;
+
+            const shapesData = shapes.map(shape => {
+                const commonProps = {
+                    left: (shape.left / canvasWidth) * 100,
+                    top: (shape.top / canvasHeight) * 100,
+                    width: (shape.width / canvasWidth) * 100,
+                    height: (shape.height / canvasHeight) * 100,
+                    name: shape.name,
+                    correct: shape.correct,
+                };
+
+                if (shape.type === 'rect') {
+                    return { ...commonProps, type: 'rect' };
+                } else if (shape.type === 'circle') {
+                    return { 
+                        ...commonProps, 
+                        type: 'circle', 
+                        radius: (shape.radius / canvasWidth) * 100 
+                    };
+                } else if (shape.type === 'polygon') {
+                    return { 
+                        ...commonProps, 
+                        type: 'polygon', 
+                        points: shape.points.map(point => ({
+                            x: (point.x / canvasWidth) * 100,
+                            y: (point.y / canvasHeight) * 100
+                        }))
+                    };
+                }
+            });
+            $('#id_hotspot_items').val(JSON.stringify(shapesData));
+        }
+
+        // function loadShapes() {
+        //     const savedShapesData = $('#id_hotspot_items').val();
+        //     //const savedShapesData = localStorage.getItem('savedShapes');
+        //     if (savedShapesData) {
+        //         const shapesData = JSON.parse(savedShapesData);
+        //         canvas.clear();
+        //         fabric.Image.fromURL(backgroundImagePath, function(img) {
+        //             canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas), {
+        //                 scaleX: canvas.width / img.width,
+        //                 scaleY: canvas.height / img.height
+        //             });
+
+        //             shapesData.forEach(shapeData => {
+        //                 let shape;
+        //                 if (shapeData.type === 'rect') {
+        //                     shape = new fabric.Rect({
+        //                         left: shapeData.left,
+        //                         top: shapeData.top,
+        //                         width: shapeData.width,
+        //                         height: shapeData.height,
+        //                         fill: 'rgba(255,0,0,0.3)',
+        //                         stroke: 'red',
+        //                         strokeWidth: 2
+        //                     });
+        //                 } else if (shapeData.type === 'circle') {
+        //                     shape = new fabric.Circle({
+        //                         left: shapeData.left,
+        //                         top: shapeData.top,
+        //                         radius: shapeData.radius,
+        //                         fill: 'rgba(0,0,255,0.3)',
+        //                         stroke: 'blue',
+        //                         strokeWidth: 2
+        //                     });
+        //                 } else if (shapeData.type === 'polygon') {
+        //                     shape = new fabric.Polygon(shapeData.points, {
+        //                         left: shapeData.left,
+        //                         top: shapeData.top,
+        //                         fill: 'rgba(0,255,0,0.3)',
+        //                         stroke: 'green',
+        //                         strokeWidth: 2
+        //                     });
+        //                 }
+        //                 if (shape) {
+        //                     canvas.add(shape);
+        //                 }
+        //             });
+
+        //             canvas.renderAll();
+        //             createImageMap(shapesData);
+        //         });
+        //         //alert('Shapes loaded successfully!');
+        //     } else {
+        //         alert('No saved shapes found!');
+        //     }
+        // }
+
+        function loadShapes() {
+            const savedShapesData = $('#id_hotspot_items').val();
+            if (savedShapesData) {
+                const shapesData = JSON.parse(savedShapesData);
+                canvas.clear();
+                
+                const canvasWidth = canvas.width;
+                const canvasHeight = canvas.height;
+
+                shapesData.forEach(shapeData => {
+                    let shape;
+                    const left = (shapeData.left * canvasWidth) / 100;
+                    const top = (shapeData.top * canvasHeight) / 100;
+                    
+                    if (shapeData.type === 'rect') {
+                        shape = new fabric.Rect({
+                            left: left,
+                            top: top,
+                            width: (shapeData.width * canvasWidth) / 100,
+                            height: (shapeData.height * canvasHeight) / 100,
+                            fill: 'rgba(255,0,0,0.3)',
+                            stroke: 'red',
+                            strokeWidth: 2
+                        });
+                    } else if (shapeData.type === 'circle') {
+                        shape = new fabric.Circle({
+                            left: left,
+                            top: top,
+                            radius: (shapeData.radius * canvasWidth) / 100,
+                            fill: 'rgba(0,0,255,0.3)',
+                            stroke: 'blue',
+                            strokeWidth: 2
+                        });
+                    } else if (shapeData.type === 'polygon') {
+                        const points = shapeData.points.map(point => ({
+                            x: (point.x * canvasWidth) / 100,
+                            y: (point.y * canvasHeight) / 100
+                        }));
+                        shape = new fabric.Polygon(points, {
+                            left: left,
+                            top: top,
+                            fill: 'rgba(0,255,0,0.3)',
+                            stroke: 'green',
+                            strokeWidth: 2
+                        });
+                    }
+                    if (shape) {
+                        shape.name = shapeData.name;
+                        shape.correct = shapeData.correct;
+                        canvas.add(shape);
+                    }
+                });
+                canvas.renderAll();
+            }
+        }
+
+
+        function updateHotspotList() {
+            var $list = $('#hotspot-areas');
+            $list.empty();
+            canvas.getObjects().forEach(function(obj, index) {
+                var multiple_select = `<input class="form-check-input" type="checkbox" value="${index}" id="hotspot-${index}" ${obj.correct ? 'checked' : ''}>`;
+                var single_select = `<input class="form-check-input" type="radio" name="correct-hotspot" value="${index}" id="hotspot-${index}" ${obj.correct ? 'checked' : ''}>`;
+                var type = $('#id_type').val();
+                //console.log(selectedType);
+
+                $list.append(`
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div class="form-check">
+                            ${type == 'cus_hotspot_single'? single_select : multiple_select}
+                            <label class="form-check-label" for="hotspot-${index}">
+                                ${obj.name}
+                            </label>
+                        </div>
+                        <span class="badge bg-primary rounded-pill">${index + 1}</span>
+                    </li>
+                `);
+            });
+            
+            $('.form-check-input').change(function() {
+                var selectedIndex = parseInt($(this).val());
+                if ($(this).attr('type') == 'radio') {
+                    canvas.getObjects().forEach(function(obj, index) {
+                        obj.correct = (index === selectedIndex);
+                    });
+                } else {
+                    var obj = canvas.getObjects()[selectedIndex];
+                    obj.correct = this.checked;
+                }
+                updateHotspotList();
+            });
+
+            // save hotspots
+            saveShapes();
+        }
+        // hotspot end-------------------------
+
+    });
+
+    // Initialize Bootstrap tabs & Dynamic Fields management
+    $(document).ready(function() {
+        
+        // Initialize Bootstrap tabs -------------------------------------
+        var triggerTabList = [].slice.call(document.querySelectorAll('#questionTabs a'))
+        triggerTabList.forEach(function (triggerEl) {
+            var tabTrigger = new bootstrap.Tab(triggerEl)
+            triggerEl.addEventListener('click', function (event) {
+                event.preventDefault()
+                tabTrigger.show()
+            })
+        });
+
+        // Dynamic fields management -------------------------------------
+        const questionType = $('#id_type');
+        const contentFields = $('#question-type-fields > div');
+        const optionFields = $('#option-fields > div');
+        const previewContent = $('#preview-content');
+        const mediaContent = $('#div_id_paragraph, #div_id_image, #div_id_audio, #div_id_video');
+
+        function updateFormFields() {
+            contentFields.hide();
+            optionFields.hide();
+            mediaContent.hide();
+            $('#div_id_paragraph_interval').hide();
+
+            const selectedType = questionType.val();
+            $('#id_text_helptext').hide();
+            if (selectedType.startsWith('mcq')) {
+                if (!selectedType.endsWith('flash')) {
+                    $('#mcq-fields').show();
+                }
+            } else if (selectedType.startsWith('fib')) {
+                $('#id_text_helptext').show();
+                if (!selectedType.endsWith('flash')) {
+                    $('#fib-fields').show();
+                }
+            }
+
+            if (selectedType === 'cus_hotspot_single' || selectedType === 'cus_hotspot_multiple') {
+                $('#hotspot-fields').show();
+            } else if (selectedType.endsWith('flash')) {
+                $('#flash-fields').show();
+            } else if (selectedType === 'cus_match') {
+                $('#matching-fields').show();
+            } else if (selectedType === 'cus_grid') {
+                $('#grid-fields').show();
+            }
+
+            if (selectedType === 'mcq_image' || selectedType === 'mcq_mixed' || selectedType === 'fib_image' || selectedType === 'cus_hotspot_single' || selectedType ==='cus_hotspot_multiple') {
+                $('#div_id_image').show();
+            } else if (selectedType === 'mcq_audio' || selectedType === 'fib_audio') {
+                $('#div_id_audio').show();
+            } else if (selectedType === 'mcq_video' || selectedType === 'fib_video') {
+                $('#div_id_video').show();
+            } else if (selectedType === 'mcq_paragraph' || selectedType === 'fib_paragraph') {
+                $('#div_id_paragraph').show();
+                $('#div_id_paragraph_interval').show();
+            }
+            
+            if (selectedType === 'psy_rating') {
+                $('#rating-scale').show();
+            } else if (selectedType === 'psy_ranking') {
+                $('#ranking-scale').show();
+            } else if (selectedType === 'psy_rank_n_rate') {
+                $('#rank-rate-scale').show();
+            } else if (selectedType === 'psy_forced_single') {
+                $('#forced1-scale').show();
+            } else if (selectedType === 'psy_forced_two') {
+                $('#forced2-scale').show();
+            }
+            
+        }
+
+        function updatePreview() {
+            const title = $('#id_title').val();
+            const content = $('#id_text').val();
+            const type = questionType.val();
+
+            let previewHtml = `<h4>${title}</h4><p>${content}</p>`;
+
+            if (type.startsWith('mcq')) {
+                previewHtml += '<ul>';
+                $('#options-list tr').each(function() {
+                    const optionContent = $(this).find('input[type="text"]').val();
+                    const isCorrect = $(this).find('input[type="checkbox"]').is(':checked');
+                    previewHtml += `<li>${optionContent} ${isCorrect ? '(Correct)' : ''}</li>`;
+                });
+                previewHtml += '</ul>';
+            }
+
+            previewContent.html(previewHtml);
+        }
+
+        questionType.change(updateFormFields);
+        updateFormFields();
+
+        $('#question-form input, #question-form textarea').on('input', updatePreview);
+        $('#add-option, #add-hotspot, #add-flash-card, #add-matching-pair').click(updatePreview);
+
+        updatePreview();
+    });
+
+    // Grid Question
+    $(document).ready(function() {
+
+        // Dynamic Fields management
+        function updateGrid() {
+            var rows = $('#id_grid_rows').val();
+            var columns = $('#id_grid_cols').val();
+            var grid_type = $('#id_grid_type').val();
+            var table = $('#grid-table');
+            
+            if (rows && columns) {
+                table.empty();
+                for (var i = 0; i < rows; i++) {
+                    var row = $('<tr>');
+                    for (var j = 0; j < columns; j++) {
+                        var cell = $('<td>');
+                        var prefix = 'id_grid-' + (i * columns + j) + '-';
+                        var name_prefix = 'grid-' + (i * columns + j) + '-';
+                        if (grid_type == 'text') {
+                            cell.append($('<input>').attr({
+                                type: 'text',
+                                name: name_prefix + 'text',
+                                id: prefix + 'text',
+                                placeholder: 'Answer'
+                            }));
+                        } else {
+                            cell.append($('<input>').attr({
+                                type: 'file',
+                                name: name_prefix + 'image',
+                                id: prefix + 'image'
+                            }));
+                        }
+                        cell.append($('<input>').attr({
+                            type: 'checkbox',
+                            name: name_prefix + 'is_correct',
+                            id: prefix + 'is_correct',
+                            title: 'Is this answer correct?',
+                            class: 'ms-2'
+                        }));
+                        cell.append($('<input>').attr({
+                            type: 'hidden',
+                            name: name_prefix + 'row',
+                            id: prefix + 'row',
+                            value: i
+                        }));
+                        cell.append($('<input>').attr({
+                            type: 'hidden',
+                            name: name_prefix + 'col',
+                            id: prefix + 'col',
+                            value: j
+                        }));
+                        row.append(cell);
+                    }
+                    table.append(row);
+                }
+                $('#id_grid-TOTAL_FORMS').val(rows * columns); 
+            }
+        }
+    
+        $('#id_grid_rows, #id_grid_cols, #id_grid_type').on('input change', updateGrid);
+        updateGrid();
+    
+        {% comment %}         
+        // Popup functionality
+        $('#grid-table').on('click', 'td', function() {
+            var content = $(this).find('input[type="text"]').val();
+            var imageInput = $(this).find('input[type="file"]');
+            var popupContent = $('#popup-content');
+            popupContent.empty();
+            popupContent.text(content);
+            if (imageInput[0].files && imageInput[0].files[0]) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    popupContent.append($('<img>').attr('src', e.target.result));
+                }
+                reader.readAsDataURL(imageInput[0].files[0]);
+            }
+            $('#option-popup').show();
+        });
+    
+        $('#select-option').click(function() {
+            // Logic to select the option
+            $('#option-popup').hide();
+        });
+    
+        $('#view-all-options').click(function() {
+            var allOptions = [];
+            $('#grid-table td').each(function(index) {
+                var content = $(this).find('input[type="text"]').val();
+                var imageInput = $(this).find('input[type="file"]');
+                var optionContent = (index + 1) + '. ' + content;
+                if (imageInput[0].files && imageInput[0].files[0]) {
+                    optionContent += ' (Image attached)';
+                }
+                allOptions.push(optionContent);
+            });
+            alert(allOptions.join('\n'));
+        });
+        {% endcomment %}
+        
+    });
+
+    // Fill in the blanks question
+    $(document).ready(function() {
+        class FillInTheBlank {
+            constructor(text) {
+                this.originalText = text;
+                this.blanks = [];
+                this.processText();
+            }
+        
+            processText() {
+                const regex = /\{\{([^}]+)\}\}/g;
+                let match;
+                let lastIndex = 0;
+                this.processedText = '';
+            
+                while ((match = regex.exec(this.originalText)) !== null) {
+                    this.processedText += this.originalText.slice(lastIndex, match.index);
+                    this.processedText += `<<BLANK_${this.blanks.length}>>`;
+                    this.blanks.push(match[1]);
+                    lastIndex = regex.lastIndex;
+                }
+            
+                this.processedText += this.originalText.slice(lastIndex);
+            }
+        
+            getProcessedText() {
+                return this.processedText;
+            }
+        
+            getAnswers() {
+                return this.blanks;
+            }
+        
+            generateHTML() {
+                let html = this.processedText;
+                for (let i = 0; i < this.blanks.length; i++) {
+                    const placeholder = `<<BLANK_${i}>>`;
+                    const input = `<input type="text" class="blank" data-index="${i}" placeholder="Enter answer">`;
+                    html = html.replace(placeholder, input);
+                }
+                return html;
+            }
+        }
+        
+        // Function to extract answers and fill the formset
+        function extractAndFillAnswers(questionText) {
+            const question = new FillInTheBlank(questionText);
+            const answers = question.getAnswers();
+            const type = document.querySelector('#id_type').value;
+            
+            const emptyForm = $('#answer-empty-form').html();
+            const formset = document.getElementById('answer-table').getElementsByTagName('tbody')[0];
+            if (answers.length) {
+                if (type.endsWith('flash')) {
+                    alert('Fill in the Blank Flash question does not need placeholders.');
+                    return;
+                }
+
+                formset.innerHTML = '';
+
+                answers.forEach(function(answer, index) {
+                    var newForm = emptyForm.replace(/__prefix__/g, index);
+                    
+                    var newRow = $(newForm);
+                    newRow.find('input[name$="-text"]').attr('value', answer);
+                    
+                    $(formset).append(newRow);
+                });
+                    
+                $('#id_answer-TOTAL_FORMS').val(answers.length);
+            } else {
+                formset.innerHTML = '';
+            }
+        }
+
+        var quillElement = document.querySelector('#quill-id_text');
+        if (quillElement) {
+            var quill = Quill.find(quillElement);
+            if (quill) {
+                quill.on('text-change', function(delta, oldDelta, source) {
+                    if (source == 'user') {
+                        var content = quill.root.innerHTML;
+                        
+                        extractAndFillAnswers(content);
+                    }
+                });
+            }
+        }
+
+    });
+
+    // Rating Question 
+    $(document).ready(function() {
+
+        function getCurrentOrder() {
+            let values = $('#rating-table tbody tr:visible').map(function() {
+                return parseInt($(this).find('input[name$="-value"]').val()) || 0;
+            }).get();
+            return values[0] < values[values.length - 1] ? 'forward' : 'reverse';
+        }
+    
+        function updateRatingValues(keepCurrentOrder = false) {
+            let rows = $('#rating-table tbody tr:not(:hidden)');
+            let currentOrder = keepCurrentOrder ? getCurrentOrder() : (getCurrentOrder() === 'forward' ? 'reverse' : 'forward');
+            let startValue = currentOrder === 'reverse' ? rows.length : 1;
+            
+            rows.each(function(index) {
+                let valueInput = $(this).find('input[name$="-value"]');
+                valueInput.val(currentOrder === 'reverse' ? startValue - index : startValue + index);
+            });
+        
+            $('#toggle-numbering').text(currentOrder === 'forward' ? 'Reverse' : 'Forward');
+        }
+        
+        $('#toggle-numbering').click(function() {
+            updateRatingValues(false);
+        });
+        
+        $('#rating-table').on('click', '.delete-row', function() {
+            let row = $(this).closest('tr');
+            row.hide();
+            row.find('input[name$="-DELETE"]').prop('checked', true);
+            updateRatingValues(true);
+        });
+        
+        $(document).on('click', '[data-formset="rating"].add-row', function() {
+            setTimeout(function() {
+                updateRatingValues(true);
+            }, 100);
+        });
+    
+        // Set initial button text on page load
+        $('#questionTabs a[href="#options"]').on('shown.bs.tab', function (e) {
+            $('#toggle-numbering').text(getCurrentOrder() === 'forward' ? 'Reverse' : 'Forward');
+        });
+    });
+    
+
+    // Ranking Question
+    $(document).ready(function() {
+        // Reset localStorage on first load of create page
+        if (window.location.href.includes('create')) {
+            localStorage.removeItem('leftData');
+            localStorage.removeItem('rightData');
+        }
+
+        // For edit page, check if form was submitted successfully
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('saved') === 'true') {
+            localStorage.removeItem('leftData');
+            localStorage.removeItem('rightData');
+        }
+
+        let leftData = JSON.parse(localStorage.getItem('leftData')) || [];
+        let rightData = JSON.parse(localStorage.getItem('rightData')) || [];
+    
+        function initTrees() {
+            $('#leftTree').jstree({
+                core: {
+                    data: leftData,
+                    check_callback: true
+                },
+                contextmenu: {
+                    items: leftContextMenu
+                },
+                plugins: ['contextmenu', 'types'],
+                types: {
+                    //'#': { 'valid_children': ['category'] },
+                    'category': { 'valid_children': ['subcategory', 'statement'],  icon: 'fa fa-folder-open' },
+                    'subcategory': { 'valid_children': ['statement'], icon: 'fa fa-folder' },
+                    'statement': { 'valid_children': [], icon: 'fa fa-file' },
+                },
+            });
+    
+            $('#rightTree').jstree({
+                core: {
+                    data: rightData,
+                    check_callback: true
+                },
+                contextmenu: {
+                    items: rightContextMenu
+                },
+                plugins: ['contextmenu', 'types'],
+                types: {
+                    'rankgroup': { 'valid_children': ['statement'], icon: 'fa fa-folder' },
+                    'statement': { 'valid_children': [], icon: 'fa fa-file' },
+                },
+            });
+        }
+    
+        function leftContextMenu(node) {
+            let items = {};
+            if (node.state.disabled == true) return {};
+            if (node.type === 'category') {
+                items.addSubcategory = {
+                    label: 'Add Subcategory',
+                    action: function() {
+                        let newNode = {
+                            id: 'sub_' + Date.now(),
+                            text: 'New Subcategory',
+                            type: 'subcategory',
+                            children: []
+                        };
+                        let subcategory = $('#leftTree').jstree('create_node', node, newNode, 'last');
+                        $('#leftTree').jstree('edit', subcategory);
+                        $('#leftTree').jstree('open_node', node);
+                    }
+                };
+            }
+            if (node.type === 'category' || node.type === 'subcategory') {
+                items.addStatement = {
+                    label: 'Add Statement',
+                    action: function() {
+                        let newNode = {
+                            id: 'stmt_' + Date.now(),
+                            text: 'New Statement',
+                            type: 'statement'
+                        };
+                        let statement = $('#leftTree').jstree('create_node', node, newNode, 'last');
+                        $('#leftTree').jstree('edit', statement);
+                    }
+                };
+            }
+            if (node.type === 'statement') {
+                items.addToRankgroup = {
+                    label: 'Add to Rankgroup',
+                    submenu: getRankgroupSubmenu(node)
+                };
+            }
+            items.edit = {
+                label: 'Edit',
+                action: function() {
+                    $('#leftTree').jstree('edit', node);
+                }
+            };
+            items.delete = {
+                label: 'Delete',
+                action: function() {
+                    $('#leftTree').jstree('delete_node', node);
+                }
+            };
+            return items;
+        }
+    
+        function rightContextMenu(node) {
+            let items = {};
+            if (node.type === 'rankgroup') {
+                items.edit = {
+                    label: 'Edit',
+                    action: function() {
+                        $('#rightTree').jstree('edit', node);
+                    }
+                };
+                items.delete = {
+                    label: 'Delete',
+                    action: function() {
+                        deleteRankgroup(node);
+                    }
+                };
+            } else if (node.type === 'statement') {
+                items.delete = {
+                    label: 'Delete',
+                    action: function() {
+                        $('#rightTree').jstree('delete_node', node);
+                        removeStrikethrough(node.id);
+                    }
+                };
+            }
+            return items;
+        }
+    
+        function getRankgroupSubmenu(node) {
+            let submenu = {};
+            $('#rightTree').jstree(true).get_json('#', {flat: true})
+                .filter(n => n.type === 'rankgroup')
+                .forEach(rg => {
+                    submenu[rg.id] = {
+                        label: rg.text,
+                        action: function() {
+                            addStatementToRankgroup(node, rg.id);
+                        }
+                    };
+                });
+            return submenu;
+        }
+    
+        function addStatementToRankgroup(statementNode, rankgroupId) {
+            // Get the category of the statement
+            const categoryNode = $('#leftTree').jstree(true).get_node(statementNode.parent);
+            
+            // Check if any statement from this category is already in the rankgroup
+            const rankgroup = $('#rightTree').jstree(true).get_node(rankgroupId);
+            const existingStatements = rankgroup.children;
+            
+            const hasStatementFromCategory = existingStatements.some(statementId => {
+                const originalId = statementId.replace('ref_', '');
+                const originalNode = $('#leftTree').jstree(true).get_node(originalId);
+                return originalNode.parent === statementNode.parent;
+            });
+
+            if (hasStatementFromCategory) {
+                alert('A statement from this category has already been added to this rank group.');
+                return;
+            }
+
+            // If validation passes, proceed with adding the statement
+            let newNode = {
+                id: 'ref_' + statementNode.id,
+                text: statementNode.text,
+                type: 'statement',
+                data: { originalId: statementNode.id }
+            };
+            $('#leftTree').jstree('set_text', statementNode, '<s>' + statementNode.text + '</s>');
+            $('#leftTree').jstree('disable_node', statementNode);
+            $('#rightTree').jstree('create_node', rankgroupId, newNode, 'last');
+            $('#rightTree').jstree('open_node', rankgroupId);
+        }
+    
+        function removeStrikethrough(id) {
+            let originalId = id.startsWith('ref_') ? id.replace('ref_', '') : id;
+            let node = $('#leftTree').jstree(true).get_node(originalId);
+            if (node) {
+                $('#leftTree').jstree('set_text', node, node.text.replace(/<\/?s>/g, ''));
+                $('#leftTree').jstree('enable_node', node);
+            }
+        }
+
+        function deleteRankgroup(node) {
+            let statements = $('#rightTree').jstree(true).get_node(node).children;
+            statements.forEach(function(statementId) {
+                removeStrikethrough(statementId);
+            });
+            $('#rightTree').jstree('delete_node', node);
+        }
+
+        function countStatementsInCategories() {
+            let categories = $('#leftTree').jstree(true).get_json('#', { flat: false });
+            let counts = categories.map(category => {
+                return countStatements(category);
+            });
+            return counts;
+        }
+        
+        function countStatements(node) {
+            let count = 0;
+            if (node.type === 'statement') {
+                return 1;
+            }
+            if (node.children) {
+                node.children.forEach(child => {
+                    count += countStatements(child);
+                });
+            }
+            return count;
+        }
+    
+        $('#addCategory').click(function() {
+            let newNode = {
+                id: 'cat_' + Date.now(),
+                text: 'New Category',
+                type: 'category',
+                children: []
+            };
+            let category = $('#leftTree').jstree('create_node', '#', newNode, 'last');
+            $('#leftTree').jstree('edit', category);
+        });
+    
+        $('#addRankgroup').click(function() {
+            let statementCounts = countStatementsInCategories();
+            let currentRankgroups = $('#rightTree').jstree(true).get_json('#', { flat: true })
+                .filter(n => n.type === 'rankgroup').length;
+
+            if (currentRankgroups >= statementCounts[0]) {
+                alert('Maximum number of rank groups reached. You cannot create more rank groups than the number of statements in a category.');
+                return;
+            }
+
+            if (!statementCounts.every(count => count === statementCounts[0])) {
+                alert('All categories must have an equal number of statements before creating a new rank group.');
+                return;
+            }
+
+            let newNode = {
+                id: 'rg_' + Date.now(),
+                text: 'New Rankgroup',
+                type: 'rankgroup',
+                children: []
+            };
+            let rankgroup = $('#rightTree').jstree('create_node', '#', newNode, 'last');
+            $('#rightTree').jstree('edit', rankgroup);
+        });
+        
+        $('#rightTree, #leftTree').on('create_node.jstree rename_node.jstree delete_node.jstree', function(e, data) {
+            leftData = $('#leftTree').jstree(true).get_json('#', { flat: false });
+            rightData = $('#rightTree').jstree(true).get_json('#', { flat: false });
+            localStorage.setItem('leftData', JSON.stringify(leftData));
+            localStorage.setItem('rightData', JSON.stringify(rightData));
+
+            var rankingData = {
+                leftTree: leftData,
+                rightTree: rightData
+            };
+            $('#ranking_data').val(JSON.stringify(rankingData));
+        });
+    
+        initTrees();
+    });
+    
+</script>
+{% endblock %}

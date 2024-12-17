@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'assessment/css/complete.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="assessment-complete-container">
+    <div class="complete-header">
+        <h2>Assessment Completed</h2>
+        <div class="assessment-info">
+            <h3>{{ assessment.title }}</h3>
+            <div class="time-info">
+                <span>Started: {{ session.start_time|date:"d M Y, H:i" }}</span>
+                <span>Completed: {{ session.end_time|date:"d M Y, H:i" }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="summary-container">
+        <div class="summary-card">
+            <h4>Overall Summary</h4>
+            <div class="summary-stats">
+                <div class="stat-row">
+                    <div class="stat-item">
+                        <label>Total Questions</label>
+                        <span class="total">{{ summary.total_questions }}</span>
+                    </div>
+                    <div class="stat-item">
+                        <label>Attempted</label>
+                        <span class="attempted">{{ summary.attempted }}</span>
+                    </div>
+                    <div class="stat-item">
+                        <label>Not Attempted</label>
+                        <span class="not-attempted">{{ summary.not_attempted }}</span>
+                    </div>
+                    <div class="stat-item">
+                        <label>Bookmarked</label>
+                        <span class="bookmarked">{{ summary.bookmarked }}</span>
+                    </div>
+                </div>
+                <div class="completion-progress">
+                    <div class="progress">
+                        <div class="progress-bar" role="progressbar" 
+                             style="width: {{ summary.completion_percentage }}%">
+                            {{ summary.completion_percentage }}% Complete
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="sections-summary">
+            <h4>Section-wise Summary</h4>
+            {% for section in sections %}
+            <div class="section-card">
+                <div class="section-header">
+                    <h5>{{ section.title }}</h5>
+                    <span class="question-count">{{ section.answered_count }}/{{ section.total_questions }}</span>
+                </div>
+                <div class="section-progress">
+                    <div class="progress">
+                        <div class="progress-bar" role="progressbar" 
+                             style="width: {{ section.progress }}%">
+                            {{ section.progress }}%
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="action-buttons">
+        <a href="{% url 'dashboard' %}" class="btn btn-primary">
+            <i class="fas fa-home"></i> Back to Dashboard
+        </a>
+        <a href="{#% url 'assessment:review' session.id %#}" class="btn btn-info">
+            <i class="fas fa-search"></i> Review Answers
+        </a>
+    </div>
+</div>
+{% endblock %}

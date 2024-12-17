@@ -1,0 +1,600 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }} | Career Judge{% endblock title %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block content %}
+    <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+        <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">Home</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'training_booking_list' %}">Training Bookings</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Delivery</li>
+        </ol>
+    </nav>
+    <div class="row">
+        <div class="col-auto me-auto">
+            <h4 class="fw-bold mb-3"><i class="fas fa-cog me-2"></i> Training Delivery</h4>
+        </div>
+        <div class="col-auto me-2">
+            <button id="btn_next" class="btn btn-primary" onclick="go_next();">Next</button>
+        </div>
+    </div>
+    {% include 'snippets/messages.html' %}
+
+    <form id="training_delivery_form" method="post" action="">{% csrf_token %}
+        <input type="hidden" name="booking_id" id="booking_id" value="{{ booking_id }}">
+        <input type="hidden" name="training_id" id="training_id" value="{{ training_id }}">
+        <input type="hidden" name="next_id" id="next_id" value="">
+    </form>
+    <div class="container-fluid " style="height: 100vh"><!--min-vh-100 d-flex flex-column-->
+        <div class="row" style="height: calc(100% - max(96px, 20%));">
+            <div class="col-3">
+                <div class="card h-100">
+                    <p class="form-title mb-0">Training Structure</p>
+                    <div class="card-body pt-0">
+                        <div id="training_structure"></div>
+                        <div id="training_structure_open" style="visibility: hidden;"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-9">
+                <div class="card h-100">
+                    <p class="form-title mb-0">Training Content</p>
+                    <div class="card-body pt-0">
+                        <div id="training_completed" class="mt-4 p-5 bg-secondary text-white rounded" style="display: none;">
+                            <h1>Training Completed...</h1>
+                            <p><a class="btn btn-light" href="{% url 'training_booking_list' %}">Back to Booking List.</a></p>
+                          </div>
+                        <div id="training_content">
+                            {% if node.type == 'content' %}
+                                {% if item.type == 'audio' %}
+                                    <audio controls autoplay id="audio_player">
+                                        <source src="{{ item.file.url }}" type="{{ item.mime }}">
+                                        Your browser does not support the audio element.
+                                    </audio>
+                                {% elif item.type == 'video' %}
+                                    <video class="w-100" height="420" autoplay controls id="video_player" >
+                                        <source src="{{ item.file.url }}" type="{{ item.mime }}">
+                                        Your browser does not support the video tag.
+                                    </video>
+                                    <script>
+                                        var video_player = document.getElementById('video_player');
+                                        video_player.addEventListener("ended", function(){
+                                            document.getElementById('btn_next').disabled = false;
+                                        });
+                                        //document.getElementById('btn_next').disabled = true;
+                                    </script>
+                                {% elif item.type == 'text' %}
+                                    <script src="{% static 'vendor/pdfjs/pdf.mjs' %}" type="module"></script>
+
+                                    <script type="module">
+                                        // If absolute URL from the remote server is provided, configure the CORS
+                                        // header on that server.
+                                        var url = '{{item.file.url}}';
+                                    
+                                        // Loaded via <script> tag, create shortcut to access PDF.js exports.
+                                        var { pdfjsLib } = globalThis;
+                                    
+                                        // The workerSrc property shall be specified.
+                                        pdfjsLib.GlobalWorkerOptions.workerSrc = "{% static 'vendor/pdfjs/pdf.worker.mjs' %}";
+                                    
+                                        var pdfDoc = null,
+                                            pageNum = 1,
+                                            pageRendering = false,
+                                            pageNumPending = null,
+                                            scale = 2.0,
+                                            canvas = document.getElementById('the-canvas'),
+                                            ctx = canvas.getContext('2d');
+                                    
+                                        /**
+                                        * Get page info from document, resize canvas accordingly, and render page.
+                                        * @param num Page number.
+                                        */
+                                        function renderPage(num) {
+                                        pageRendering = true;
+                                        // Using promise to fetch the page
+                                        pdfDoc.getPage(num).then(function(page) {
+                                            var viewport = page.getViewport({scale: scale});
+                                            canvas.height = viewport.height;
+                                            canvas.width = viewport.width;
+                                    
+                                            // Render PDF page into canvas context
+                                            var renderContext = {
+                                            canvasContext: ctx,
+                                            viewport: viewport
+                                            };
+                                            var renderTask = page.render(renderContext);
+                                    
+                                            // Wait for rendering to finish
+                                            renderTask.promise.then(function() {
+                                            pageRendering = false;
+                                            if (pageNumPending !== null) {
+                                                // New page rendering is pending
+                                                renderPage(pageNumPending);
+                                                pageNumPending = null;
+                                            }
+                                            });
+                                        });
+                                    
+                                        // Update page counters
+                                        document.getElementById('page_num').textContent = num;
+                                        }
+                                    
+                                        /**
+                                        * If another page rendering in progress, waits until the rendering is
+                                        * finised. Otherwise, executes rendering immediately.
+                                        */
+                                        function queueRenderPage(num) {
+                                        if (pageRendering) {
+                                            pageNumPending = num;
+                                        } else {
+                                            renderPage(num);
+                                        }
+                                        }
+                                    
+                                        /**
+                                        * Displays previous page.
+                                        */
+                                        function onPrevPage() {
+                                        if (pageNum <= 1) {
+                                            return;
+                                        }
+                                        pageNum--;
+                                        queueRenderPage(pageNum);
+                                        }
+                                        document.getElementById('prev').addEventListener('click', onPrevPage);
+                                    
+                                        /**
+                                        * Displays next page.
+                                        */
+                                        function onNextPage() {
+                                        if (pageNum >= pdfDoc.numPages) {
+                                            return;
+                                        }
+                                        pageNum++;
+                                        queueRenderPage(pageNum);
+                                        }
+                                        document.getElementById('next').addEventListener('click', onNextPage);
+                                    
+                                        /**
+                                        * Asynchronously downloads PDF.
+                                        */
+                                        pdfjsLib.getDocument(url).promise.then(function(pdfDoc_) {
+                                        pdfDoc = pdfDoc_;
+                                        document.getElementById('page_count').textContent = pdfDoc.numPages;
+                                    
+                                        // Initial/first page rendering
+                                        renderPage(pageNum);
+                                        });
+                                    </script>
+                                    
+                                    <h5>{{item.name}}</h5>
+                                    
+                                    <!--p>Please use <a href="https://mozilla.github.io/pdf.js/getting_started/#download"><i>official releases</i></a> in production environments.</p-->
+                                    
+                                    <div class="text-center">
+                                        <button id="prev">Previous page</button>
+                                        <button id="next">Next page</button>
+                                        &nbsp; &nbsp;
+                                        <span>Page: <span id="page_num"></span> / <span id="page_count"></span></span>
+                                    </div>
+                                    
+                                    <canvas id="the-canvas" class="w-100 h-100"></canvas>
+                                {% endif %}
+                            {% elif node.type == 'assignment' %}
+                                <h5 class="mt-2"><b>Assignment :</b> {{item.title}}</h5>
+                                <p>{{item.desc}}</p>
+                                <h6 class="mt-2"><b>Reference Links :</b></h6>
+                                {% for link in item.links.all %}
+                                <a class="d-block" href="{{ link.link }}" target="_blank">Reference link {{ forloop.counter }}</a>
+                                {% endfor %}
+
+                                {% if item.submit_report == True %}
+                                <h6 class="mt-4 text-bold"><b>Submit Report file : </b></h6>
+                                <form method="post" action="" id="report_submit_form" class="mt-2" enctype="multipart/form-data">{% csrf_token %}
+                                    <input type="hidden" name="submit_report" value="true" />
+                                    <input type="hidden" name="assignment_id" value="{{ item.id }}" />
+                                    <input type="hidden" name="tracker_id" value="{{ tracker.id }}" />
+                                    <input type="hidden" name="booking_id" value="{{ booking_id }}" />
+                                    <input type="file" class="d-block" name="report_file" id="report_file" />
+                                    <button id="btn_report_submit" class="btn btn-sm btn-primary mt-2">Submit</button>
+                                </form>
+                                <script>
+                                    $('#btn_report_submit').click(function(e){
+                                        ev.preventDefault();
+                                        evt.stopPropagation();
+                                        
+                                        var form = document.getElementById('report_submit_form');
+                                        var formData = new FormData(form);    
+
+                                        $.post(window.location.pathname, formData, function(data) {
+                                            console.log(data);
+                                        });
+                                    });
+                                </script>
+                                {% endif %}
+                            {% elif node.type == 'livesession' %}
+                                <h5 class="mt-2"><b>Live Session :</b> {{ item.name }}</h5>
+                                <h6><b>Session Objectives :</b></h6>
+                                <p>{{ item.objectives | linebreaks }}</p>
+                                <h6><b>Session Duration :</b> {{ item.duration }} {{ item.get_duration_type_display}}</h6>
+                                
+                                <!--h6><b>Session start time :</b> {#{ item.start_time }#}</h6>
+                                <h6><b>Session end time :</b> {#{ item.end_time }#}</h6-->
+                                
+
+                                {% if not item.tracker_livesession %}
+                                <button data-id="{{ item.id }}" id="initiate_live_session" class="btn btn-sm btn-primary mt-3" {% if item.tracker_livesession %}disabled{% endif %}>Initiate Live Session</button>
+                                {% endif %}
+
+                                {% if item.tracker_livesession and item.tracker_livesession.trainer_scheduled == True %}
+                                <p id="livesession_msg" class="text-success mt-2 small">
+                                    Trainer Scheduled the Live Session on : <span class="text-danger">{{ item.tracker_livesession.start_time }}</span><br>
+                                    Duration : <span class="text-danger">{{ item.tracker_livesession.duration }} minutes.</span>
+                                </p>
+                                <a target="_blank" class="btn btn-sm btn-primary" href="{{ item.tracker_livesession.zoom_response.join_url }}">Meeting Link</a>
+                                {% else %}
+                                <p id="livesession_msg" class="text-danger mt-2 small" {% if not item.tracker_livesession %}style="display: none;"{% endif %}>Request initiated to trainer and he/she will schedule the Live Session soon.</p>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock content %}
+
+{% block header %}
+<link rel="stylesheet" href="{% static 'vendor/jsTree/themes/default/style.min.css' %}">
+<style>
+    table#training_content_table tbody label.form-label,
+    table#training_session_table tbody label.form-label,
+    table#training_assignment_links_table tbody label.form-label,
+    table#training_assignment_table tbody label.form-label {
+        display: none;
+    }
+
+    #training_structure {
+        overflow: hidden;
+    }
+</style>
+{% endblock %}
+
+{% block js %}
+{{ structure_data|json_script:"structure_data" }}
+<script src="{% static 'vendor/jsTree/jstree.min.js' %}"></script>
+<script>
+
+    
+
+    $('#initiate_live_session').on( "click", function(e){
+        var trainer = '{{ training.created_by.id }}';
+        //var sender = '{{ request.user.id }}';
+        var username = '{{ request.user.get_full_name }}';
+        var message = `Live session request recieved from ${username}.`;
+        
+        var livesession_id = $(this).data('id');
+        var tracker_id = '{{ tracker.id }}';
+
+        metadata = `Session:${livesession_id}`;
+
+        send_notification('livesession_request', trainer, message, metadata);
+        initiate_livesession(tracker_id, livesession_id);
+
+        //if ($('#initiate_live_session').prop('disabled') == false) {
+        //$('#initiate_live_session').prop('disabled', true);
+        //}
+    });
+
+    function initiate_livesession(tracker_id, livesession_id) {
+        var csrftoken = getCookie('csrftoken');
+		var formData = new FormData();
+		formData.append('csrfmiddlewaretoken', csrftoken);
+		formData.append('tracker_id', tracker_id);
+		formData.append('livesession_id', livesession_id);
+
+		$.ajax({
+			url : "{% url 'initiate_livesession' %}",
+			type: "POST",
+			data : formData,
+			processData: false,
+			contentType: false,
+			success:function(data, textStatus, jqXHR){
+				console.log(data);
+                if (data.status == true) {
+                    //$('#initiate_live_session').text('Initiated Live Session');
+                    //$('#initiate_live_session').prop('disabled', true);
+                    //$('#btn_next').prop('disabled', true);
+                    
+                    $('#initiate_live_session').hide();
+                    $('#livesession_msg').show();
+                    window.location.reload();
+                }
+			},
+			error: function(jqXHR, textStatus, errorThrown){
+				//if fails     
+			}
+		});
+    }
+
+    function go_next() {
+        var node = next_presentation_node();
+        console.log(node);
+
+        change_current_node(node)
+    }
+
+    function next_presentation_node(){
+        var tree = $("#training_structure").jstree(true);
+        var tree_open = $("#training_structure_open").jstree(true);
+        var current_node = tree.get_selected()[0];
+        var node_obj = tree_open.get_node(current_node);
+
+        return find_next_presentation_node(node_obj);
+    }
+
+    function completed_training() {
+        console.log('completed_training');
+    }
+
+    function find_next_presentation_node(node_obj) {
+        var tree_open = $("#training_structure_open").jstree(true);
+        var next_sibling_dom = tree_open.get_next_dom(node_obj); //, true
+        if (next_sibling_dom == false || next_sibling_dom.length == 0) {
+            //completed_training(); 
+            return 'complete'; 
+        } else {
+            var next_sibling = tree_open.get_node(next_sibling_dom);
+            return loop_to_presentation_node(next_sibling);
+        }
+    }
+    
+    function loop_to_presentation_node(node_obj=null) {
+        //var tree = $("#training_structure").jstree(true);
+        var tree_open = $("#training_structure_open").jstree(true);
+
+        if (node_obj.type == 'content') {
+            return node_obj;
+        } else if (node_obj.type == 'session') {
+            //var children = tree.get_children_dom(node_obj);
+            var children = node_obj.children;
+            var first_child_node_obj = tree_open.get_node(children[0]);
+            return first_child_node_obj;
+        } else if (node_obj.type == 'assignment'){
+            return node_obj;
+        } else if (node_obj.type == 'livesession'){
+            return node_obj;
+        } else {
+            var children = node_obj.children;
+            var pres_node = null;
+            if (children == undefined) { 
+                console.log(node_obj) 
+            }
+            if (children.length == 0) { //return;
+                var next_section = tree_open.get_next_dom(node_obj);
+                if (next_section.length == 0) {
+                    return 'complete';
+                } else {
+                    var next_section_node_obj = tree_open.get_node(next_section);
+                    return loop_to_presentation_node(next_section_node_obj);
+                }
+            }
+            for(var i=0; i<children.length; i++) {
+                var child_node = tree_open.get_node(children[i]);
+                pres_node = loop_to_presentation_node(child_node);
+                if (pres_node) {
+                    return pres_node;
+                }
+            }
+        }
+    }
+
+    function change_current_node(node = {}) {
+        var form = document.getElementById('training_delivery_form');
+        var next_id_el = document.getElementById('next_id');
+        if (node == 'complete') {
+            next_id_el.value = 'complete';
+        } else {
+            next_id_el.value = node.id;
+        }
+        
+        form.submit();
+    }
+
+    $(document).ready(function() {
+
+        var scheduled_training = {% if training.type == training.TYPE_SCHEDULED %}true{% else %}false{% endif %};
+        var structure_data = JSON.parse(document.getElementById('structure_data').textContent);
+
+        $('#training_structure').jstree({  
+            "core": {
+                'check_callback' : false,
+                "data": structure_data,
+                /*'data' : {
+                    'url' : function (node) {
+                        return '/training/structure/json';
+                    },
+                    'data' : function (node) {
+                        return { 'training_id' : $('#training_id').val(), 'mode' : 'delivery' };
+                    }
+                }*/
+            },  
+            types : {
+                // "valid_children" : [ "module" ],
+                // the default type
+                "#":{
+                    "valid_children" : [ "module" ]
+                }, 
+                "module" : {
+                    "max_children"	: -1,
+                    "valid_children": ["lesson"],
+                    "open_node"	: true,
+                    "icon": "fa fa-book",
+                },
+                "lesson" : {
+                    "max_children"	: -1,
+                    "open_node"	: true,
+                    "valid_children": ["topic", "session", "livesession", "assignment"],
+                    "icon": "fa fa-clipboard-list",
+                },
+                "topic" : {
+                    "max_children"	: -1,
+                    "open_node"	: true,
+                    "valid_children": ["subtopic", "session", "livesession", "assignment"],
+                    "icon": "fa fa-list-check",
+                },
+                "subtopic" : {
+                    "max_children"	: -1,
+                    "open_node"	: true,
+                    "icon": "fa fa-list",
+                    "valid_children": ["session", "livesession", "assignment"]
+                },
+                "session" : {
+                    "max_children"	: -1,
+                    "open_node"	: true,
+                    "valid_children": ["content"],
+                    "icon": "fa fa-users-rectangle",
+                },
+                "content" : {
+                    "max_children"	: -1,
+                    "open_node"	: true,
+                    "valid_children": "none",
+                    "icon": "fa fa-file",
+                },
+                "livesession" : {
+                    "max_children"	: -1,
+                    "open_node"	: true,
+                    "valid_children": "none",
+                    "icon": "fa fa-video-camera",
+                },
+                "assignment" : {
+                    "max_children"	: -1,
+                    "open_node"	: true,
+                    "valid_children": "none",
+                    "icon": "fa fa-user-plus",
+                }
+            },
+            "conditionalselect" : function (node, event) {
+                return scheduled_training == true ? false : true;
+            },
+            "plugins": ["types", "conditionalselect"]  
+         
+        }).on('select_node.jstree', function (e, data) { 
+            console.log(e, data);
+            var node = data.node;
+            if (node.type == 'livesession' || node.type == 'content' || node.type == 'assignment') {
+                change_current_node(node);
+            }
+
+            /*if (data.instance.is_disabled(data.node)) {
+                data.instance.close_node(data.node);
+            }*/
+        }).bind('ready.jstree', function (e, data) {  
+            if (scheduled_training == true) {
+                /* disable tree single click event */
+                var els = document.querySelectorAll('i.jstree-ocl');
+                for (var i = 0; i < els.length; i++) {
+                    els[i].addEventListener("click", function(evt) {
+                        evt.stopPropagation();
+                        evt.preventDefault();
+                    }, false);
+                }
+                
+                /* disable tree double click event */
+                var dels = document.querySelectorAll('.jstree-anchor');
+                for (var i = 0; i < dels.length; i++) {
+                    dels[i].addEventListener("dblclick", function(evt) {
+                        evt.stopPropagation();
+                        evt.preventDefault();
+                    }, false);
+                }
+            }
+
+            var completed = {{ completed }}
+            if (completed) {
+                $("#training_structure").jstree(true).close_all();
+                $("#training_completed").show();
+                $("#training_content").hide();
+                
+                $("#btn_next").hide();
+            }
+        });  
+
+        
+
+        $('#training_structure_open').jstree({  
+            "core": {
+                'check_callback' : false,
+                "data": structure_data,
+            },  
+            types : {
+                // "valid_children" : [ "module" ],
+                // the default type
+                "#":{
+                    "valid_children" : [ "module" ]
+                }, 
+                "module" : {
+                    "max_children"	: -1,
+                    "valid_children": ["lesson"],
+                    "open_node"	: true,
+                    "icon": "fa fa-book",
+                },
+                "lesson" : {
+                    "max_children"	: -1,
+                    "open_node"	: true,
+                    "valid_children": ["topic", "session", "livesession", "assignment"],
+                    "icon": "fa fa-clipboard-list",
+                },
+                "topic" : {
+                    "max_children"	: -1,
+                    "open_node"	: true,
+                    "valid_children": ["subtopic", "session", "livesession", "assignment"],
+                    "icon": "fa fa-list-check",
+                },
+                "subtopic" : {
+                    "max_children"	: -1,
+                    "open_node"	: true,
+                    "icon": "fa fa-list",
+                    "valid_children": ["session", "livesession", "assignment"]
+                },
+                "session" : {
+                    "max_children"	: -1,
+                    "open_node"	: true,
+                    "valid_children": ["content"],
+                    "icon": "fa fa-users-rectangle",
+                },
+                "content" : {
+                    "max_children"	: -1,
+                    "open_node"	: true,
+                    "valid_children": "none",
+                    "icon": "fa fa-file",
+                },
+                "livesession" : {
+                    "max_children"	: -1,
+                    "open_node"	: true,
+                    "valid_children": "none",
+                    "icon": "fa fa-video-camera",
+                },
+                "assignment" : {
+                    "max_children"	: -1,
+                    "open_node"	: true,
+                    "valid_children": "none",
+                    "icon": "fa fa-user-plus",
+                }
+            },
+            "conditionalselect" : function (node, event) {
+                return false;
+            },
+            "plugins": ["types", "conditionalselect"]  
+         
+        }).bind('ready.jstree', function (e, data) {  
+            /* disable tree single click event */
+            $('#training_structure_open').jstree(true).open_all();
+        });  
+
+        toggleSidebar();
+
+    });
+</script>
+{% endblock js %}

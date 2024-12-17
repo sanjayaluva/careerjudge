@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="question-preview">
+    <h2>{{ question.title }}</h2>
+    <p>{{ question.text }}</p>
+    
+    {% if question.image %}
+        <img src="{{ question.image.url }}" alt="Question Image">
+    {% endif %}
+    
+    {% if question.audio %}
+        <audio controls>
+        <source src="{{ question.audio.url }}" type="audio/mpeg">
+        </audio>
+    {% endif %}
+    
+    {% if question.video %}
+        <video controls>
+        <source src="{{ question.video.url }}" type="video/mp4">
+        </video>
+    {% endif %}
+    
+    {% if 'hotspot' in question.type %}
+        <div id="hotspot-preview"></div>
+    {% endif %}
+    
+    {% if 'flash' in question.type %}
+        <div id="flash-preview"></div>
+    {% endif %}
+    
+    {% if 'match' in question.type %}
+        <div id="match-preview"></div>
+    {% endif %}
+    
+    <div id="options-preview">
+        {% for option in question.options.all %}
+        <div class="option">
+            {% if option.image %}
+            <img src="{{ option.image.url }}" alt="Option Image">
+            {% endif %}
+            <p>{{ option.text }}</p>
+        </div>
+        {% endif %}
+    </div>
+</div>

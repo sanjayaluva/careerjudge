@@ -1,0 +1,247 @@
+{% load crispy_forms_tags %}
+
+<div id="top-navbar" class="py-1">
+	<div class="container">
+		<div class="nav-wrapper">
+
+			<div class="toggle-btn" onclick="toggleSidebar()">
+				<i class="fas fa-bars"></i>
+			</div>
+
+			<form class="form-header" action="{#% url 'query' %#}" method="GET">
+				<input id="primary-search" class="form-control rounded-end-0" type="text" name="q" value="{{ request.GET.q }}"
+					placeholder="Search All... #course, #program, #Quiz, #News, #Events" required />
+				<button class="btn btn-dark rounded-start-0" type="submit">
+					<i class="fas fa-search"></i>
+				</button>
+			</form>
+
+			
+			
+			<div class="dropdown">
+				<div class="avatar border border-2" style="padding-left: 1px; padding-top: 1px;" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+					<i class="fas fa-bell text-secondary bg-light"></i>
+					<span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+						{{ notifications_count }}
+						<span class="visually-hidden">unread messages</span>
+					</span>
+				</div>
+				<div class="dropdown-menu" style="min-width: 14rem !important;">
+					<hr>
+					{% for notification in notifications %}
+						{% if notification.type == notification.LIVESESSOIN_REQUEST %}
+						<a class="dropdown-item" href="#{#% url 'admin_panel' %#}"><i class="fas {% if notification.read %}fa-envelope-open{% else %}fa-envelope{% endif %} me-2"></i>{{ notification.message }}</a>
+						<div class="clearfix">
+							<button data-id="{{ notification.id }}" id="notification_schedule_{{ forloop.counter0 }}" class="btn btn-sm btn-primary float-end me-3">Schecdule Training</button>
+						</div>
+						{% endif %}
+					{% endfor %}
+					<hr>
+				</div>
+			</div>
+
+			<div class="dropdown">
+				<div class="avatar border border-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+					<img src="{{ request.user.picture.url }}">
+				</div>
+				<div class="dropdown-menu" style="min-width: 14rem !important;">
+					<div class="d-flex flex-column align-items-center">
+						<div class="avatar avatar-md border">
+							<img src="{{ request.user.picture.url }}">
+						</div>
+	
+						<p class="small text-muted text-center mb-0">
+							Last login: {{ request.user.last_login|date }}</p>
+					</div>
+					<hr>
+
+					{#% if request.user.is_lecturer or request.user.is_student %#}
+					<a class="dropdown-item" href="{#% url 'user_course_list' %#}"><i class="fas fa-book me-2"></i>My Courses</a>
+					{#% endif %#}
+
+					{#% if request.user.is_superuser %#}
+					<!-- <a class="dropdown-item" href="{#% url 'admin_panel' %#}"><i class="fas fa-user-tie me-2"></i>Admin
+						Panel</a> -->
+					{#% endif %#}
+
+					<a class="dropdown-item" href="{% url 'profile' %}"><i class="fas fa-user me-2"></i>Profile</a>
+					<a class="dropdown-item" href="{% url 'edit_profile' %}"><i class="fas fa-cog me-2"></i>Setting</a>
+					<hr>
+					<div style="display: flex; justify-content: center; align-items: center;">
+						<!-- <a class="btn btn-secondary" href="{% url 'logout' %}">
+							<i class="fas fa-sign-out-alt"></i> Signout
+						</a> -->
+						<form id="logout-form" method="post" action="{% url 'logout' %}">
+							{% csrf_token %}
+							<button type="submit" class="btn btn-secondary"><i class="fas fa-sign-out-alt"></i> Signout</button>
+						</form>
+					</div>
+				</div>
+			</div>
+
+		</div>
+	</div>
+</div>
+
+
+{% for notification in notifications %}
+	{% if notification.type == notification.LIVESESSOIN_REQUEST %}
+	<!-- schedule live session model -->
+	<div id="scheduleLiveSessionModal" class="modal"  tabindex="-1">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<form id="schedule_training_live_session_form" action="" enctype="multipart/form-data" method="post">{% csrf_token %}
+					<div class="modal-header">
+						<h5 class="modal-title"> Schedule Training Live Session</h5>
+						<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+					</div>
+					<div class="modal-body">
+						<input type="hidden" id="notification_id" name="notification_id" value="" />
+						{{ schedule_training_form | crispy }}
+						{#{ live_session_form|crispy }#}
+						<!--table class="w-100">
+							<tr>
+								<td colspan="2"><input type="text"  name="start_date" id="start_date" value="" /></td>
+								<td colspan="2"><input type="text"  name="end_date" id="end_date" value="" /></td>
+							</tr>
+						</table-->
+						<style>
+							/*#div_id_start_time, #div_id_end_time {
+								width:231px;
+							}*/
+						</style>
+					</div>
+					<div class="modal-footer">
+						<!--button class="btn btn-primary add_training_content"><i class="fa fa-plus"></i>Add Content</button-->
+						<button type="submit" id="save_schedule_training_live_session" class="btn btn-success"><i class="fa fa-save"></i>Save Schedule</button>
+						{% comment %} <button class="btn btn-sm btn-primary add_training_assignment_link_{{assignment_id}}"><i class="fa fa-plus"></i> Add Link</button> {% endcomment %}
+						<button class="btn btn-sm btn-secondary" data-bs-dismiss="modal"><i class="fa fa-close"></i> Close</button>
+						{% comment %} <button class="btn btn-sm btn-success save_training_assignment_link_{{assignment_id}}"><i class="fa fa-plus"></i> Save Link</button> {% endcomment %}
+					</div>
+				</form>
+			</div>
+		</div>
+	</div>
+
+	<script>
+		var btn_notif = document.getElementById('notification_schedule_{{ forloop.counter0 }}');
+		btn_notif.addEventListener('click', function(e){
+			show_schedule_modal(this.dataset.id);
+			//schedule_training(this.dataset.id);
+		});
+
+		function show_schedule_modal(notification_id){
+			var scheduleLiveSessionModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('scheduleLiveSessionModal'));
+			scheduleLiveSessionModal.show();
+			
+			var notif_id_el = document.getElementById('notification_id');
+			notif_id_el.value = notification_id;
+		}
+
+		//var btn_notif = document.getElementById('save_schedule_training_live_session');
+		var schedule_form = document.getElementById('schedule_training_live_session_form');
+		schedule_form.addEventListener('submit', function(e){
+			e.preventDefault();
+			
+			var notif_id = document.getElementById('notification_id').value;
+			var start_time = document.getElementById('id_start_time').value;
+			var duration = document.getElementById('id_duration').value;
+
+			var data = {
+				'notification_id': notif_id,
+				'start_time': start_time, 
+				'duration': duration, 
+			};
+			
+			schedule_training(data);
+
+			//return false;
+		});
+
+		function schedule_training(data){
+			var url = "{% url 'schedule_training' %}"
+			ajax_post(url, data, (data)=>{
+				console.log(data);
+				var scheduleLiveSessionModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('scheduleLiveSessionModal'));
+				scheduleLiveSessionModal.hide();
+
+				window.location.reload();
+			});
+		}
+
+		
+	</script>
+	{% endif %}
+{% endfor %}
+
+<script>
+	function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                // Does this cookie string begin with the name we want?
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+	
+	function send_notification(type, reciever, message, metadata = null) {
+		var csrftoken = getCookie('csrftoken');
+		var formData = new FormData();
+		//formData.append('sender', sender);
+		formData.append('reciever', reciever);
+		formData.append('message', message);
+		formData.append('type', type);
+		formData.append('metadata', metadata);
+		formData.append('csrfmiddlewaretoken', csrftoken);
+
+		$.ajax({
+			url : "{% url 'send_notification' %}",
+			type: "POST",
+			data : formData,
+			processData: false,
+			contentType: false,
+			success:function(data, textStatus, jqXHR){
+				console.log(data);
+			},
+			error: function(jqXHR, textStatus, errorThrown){
+				//if fails     
+			}
+		});
+	}
+
+	function get_notifications() {
+
+	}
+
+	function ajax_post(url, data={}, handler=()=>{}, error=()=>{}) {
+		var csrftoken = getCookie('csrftoken');
+		var form_data = new FormData();
+
+		form_data.append('csrfmiddlewaretoken', csrftoken);
+		for ( var key in data ) {
+			form_data.append(key, data[key]);
+		}
+
+		$.ajax({
+			url : url,
+			type: "POST",
+			data : form_data,
+			processData: false,
+			contentType: false,
+			success:function(data, textStatus, jqXHR){
+				handler(data, textStatus, jqXHR);
+				//console.log(data);
+			},
+			error: function(jqXHR, textStatus, errorThrown){  
+				error(jqXHR, textStatus, errorThrown);
+			}
+		});
+	}
+</script>

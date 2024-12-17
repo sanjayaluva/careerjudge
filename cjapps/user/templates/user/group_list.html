@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }} | Career Judge{% endblock title %}
+
+{% block content %}
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="/">Home</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Users</li>
+    </ol>
+</nav>
+
+<!-- <div id="input-nav"><a href="{#% url 'home' %#}" class="primary1">Home</a> Users</div> -->
+
+{% if request.user.is_superuser %}
+<!-- <div class="manage-wrap">
+    <a class="btn btn-sm btn-primary" href="{% url 'user_add' %}"><i class="fas fa-plus"></i> Add User</a>
+</div> -->
+{% endif %}
+
+<div class="title-1"><i class="fa fa-users"></i>Roles</div>
+
+{% include 'snippets/messages.html' %}
+{#% include 'snippets/filter_form.html' %#}
+
+<div class="table-responsive table-shadow table-light table-striped m-0 mt-3">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th> Name </th>
+                <th> Description </th>
+                <th> Action </th>
+            </tr>
+        </thead>
+        <tbody>
+            
+            {% for group in object_list  %}
+            <tr>
+                <td> {{ forloop.counter }}.</td>
+                <td>{{ group.name }}</td>
+                <td>{{ group.desc }}</td>
+                <!-- <td><a class="btn btn-primary text-light m-auto" href="/admin/auth/group/{{ group.id }}/change">Update Permissions</a></td> -->                
+                <td>
+                    {% if perms.auth.change_group %}
+                    <div class="dropdown">
+                        <button class="btn btn-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fa fa-ellipsis-vertical"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/group/{{ group.id }}/edit"><i class="fas fa-edit"></i> Update Description</a></li>
+                            <li><a class="dropdown-item" href="/admin/auth/group/{{ group.id }}/change"><i class="fas fa-edit"></i> Update Permissions</a></li>
+                        </ul>
+                    </div>
+                    {% endif %}
+                </td>
+
+                {% empty %}
+                <tr>
+                  <td colspan="6">
+                  <span class="text-danger">
+                    No User.
+                    {% if request.user.is_superuser %}
+                    <a href="{% url 'user_add' %}">
+                    <i class="primary" style="font-size: 22px;">
+                       Add User Now.
+                    </i>
+                    {% endif %}
+                    </a>
+                  </span>
+                </td>
+                </tr>
+
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="pagination mb-4">
+        <span class="step-links">
+            {% if page_obj.has_previous %}
+                <a href="?page=1">&laquo; first</a>
+                <a href="?page={{ page_obj.previous_page_number }}">previous</a>
+            {% endif %}
+
+            <span class="current">
+                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+            </span>
+
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}">next</a>
+                <a href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
+            {% endif %}
+        </span>
+    </div>
+</div>
+{% endblock content %}

@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Assessment Complete</h2>
+    
+    <div class="score-summary card mb-4">
+        <div class="card-body">
+            <h4>Score Summary</h4>
+            <p>Total Questions: {{ total_questions }}</p>
+            <p>Correct Answers: {{ correct_answers }}</p>
+            <p>Score: {{ session.score }}%</p>
+        </div>
+    </div>
+
+    <div class="answer-review">
+        <h4>Review Answers</h4>
+        {% for section, responses in sections.items %}
+            <div class="section">
+                <h3>{{ section.title }}</h3>
+                
+                {% for response in responses %}
+                    <div class="question {% if response.is_correct %}correct{% else %}incorrect{% endif %}">
+                        <h4>{{ response.question.title }}</h4>
+                        
+                        <!-- Display question text -->
+                        <div class="question-text">
+                            {{ response.question.text.html|safe }}
+                        </div>
+
+                        <!-- Display user's answer -->
+                        <div class="user-answer">
+                            <h5>Your Answer:</h5>
+                            {% if response.question.type == 'mcq' or response.question.type == 'mcq_flash' %}
+                                Selected option: {{ response.answer_data.selected_option }}
+                            {% elif 'fib' in response.question.type %}
+                                {% for answer in response.answer_data.answers %}
+                                    Blank {{ forloop.counter }}: {{ answer }}<br>
+                                {% endfor %}
+                            {% elif 'cus' in response.question.type %}
+
+                            {% endif %}
+                        </div>
+
+                        <!-- Display correct/incorrect status -->
+                        <div class="answer-status">
+                            {% if response.is_correct %}
+                                <span class="correct">Correct ✓</span>
+                            {% else %}
+                                <span class="incorrect">Incorrect ✗</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endfor %}
+
+        <!-- {% for section, responses in sections.items %}
+            <div class="section-block card mb-4">
+                <div class="card-header">
+                    <h5>{{ section.title }}</h5>
+                </div>
+                <div class="card-body">
+                    {% for response in responses %}
+                        <div class="question-block mb-4 {% if response.is_correct %}correct{% else %}incorrect{% endif %}">
+                            <h6>Question {{ forloop.counter }}: {{ response.question.title }}</h6>
+                            <div class="question-text">{{ response.question.text|safe }}</div>
+                            
+                            <div class="answer-details">
+                                {% if response.question.type == 'mcq_text' or response.question.type == 'mcq_image' %}
+                                    <p>Selected Option: {{ response.answer_data.selected_option }}</p>
+                                {% elif response.question.type == 'fib_text' %}
+                                    <p>Your Answers: {{ response.answer_data.answers|join:", " }}</p>
+                                {% elif response.question.type == 'cus_hotspot_single' or response.question.type == 'cus_hotspot_multiple' %}
+                                    <p>Selected Areas: {{ response.answer_data.value|join:", " }}</p>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="feedback mt-2">
+                                {% if response.is_correct %}
+                                    <span class="badge bg-success">Correct</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Incorrect</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endfor %} -->
+    </div>
+</div>
+<style>
+    .correct {
+        color: green;
+        border-left: 4px solid green;
+        padding-left: 10px;
+    }
+
+    .incorrect {
+        color: red;
+        border-left: 4px solid red;
+        padding-left: 10px;
+    }
+
+    .question {
+        margin-bottom: 20px;
+        padding: 15px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+    }
+
+    .user-answer {
+        background-color: #f5f5f5;
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 4px;
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/questions.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="assessment-container">
+    <!-- Header Section -->
+    <header class="assessment-header">
+        <div class="header-left">
+            <div class="timer-container">
+                <i class="fas fa-clock"></i>
+                <div id="assessment-timer" 
+                     data-duration="{{ assessment.duration_minutes }}"
+                     data-session="{{ session.id }}"
+                     data-start-time="{{ session.start_time|date:'c' }}">
+                    <span id="time-display"></span>
+                </div>
+            </div>
+        </div>
+        <div class="header-center">
+            <h2>{{ assessment.title }}</h2>
+        </div>
+        <div class="header-right">
+            <button type="button" class="btn btn-info" data-toggle="modal" data-target="#instructionsModal">
+                <i class="fas fa-info-circle"></i> Instructions
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <div class="assessment-content">
+        <!-- Left Panel -->
+        <nav class="section-navigator">
+            <!-- Assessment Summary -->
+            <div class="assessment-summary">
+                <h5>Assessment Progress</h5>
+                <div class="summary-stats">
+                    <div class="stat-item">
+                        <label>Total Questions</label>
+                        <span>{{ summary.total_questions }}</span>
+                    </div>
+                    <div class="stat-item">
+                        <label>Attempted</label>
+                        <span class="text-success">{{ summary.attempted }}</span>
+                    </div>
+                    <div class="stat-item">
+                        <label>Not Attempted</label>
+                        <span class="text-warning">{{ summary.not_attempted }}</span>
+                    </div>
+                    <div class="stat-item">
+                        <label>Bookmarked</label>
+                        <span class="text-info">{{ summary.bookmarked }}</span>
+                    </div>
+                    <div class="progress overall-progress">
+                        <div class="progress-bar" role="progressbar" 
+                            style="width: {{ summary.completion_percentage }}%">
+                            {{ summary.completion_percentage }}%
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sections List -->
+            {% for section in sections %}
+            <div class="section-block">
+                <div class="section-header">
+                    <h3>{{ section.title }}</h3>
+                    <div class="section-stats">
+                        <span>{{ section.answered_count }}/{{ section.total_questions }}</span>
+                        <div class="progress">
+                            <div class="progress-bar" role="progressbar" 
+                                style="width: {{ section.progress }}%">
+                                {{ section.progress }}%
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="question-grid">
+                    {% for question in section.questions %}
+                    <div class="question-item {% if question.is_answered %}answered{% endif %} 
+                                        {% if question.is_bookmarked %}bookmarked{% endif %}"
+                        data-question-id="{{ question.id }}"
+                        data-section-id="{{ section.id }}"
+                        data-number="{{ question.number }}">
+                        {{ question.number }}
+                        {% if question.is_bookmarked %}
+                        <i class="fas fa-bookmark"></i>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </nav>
+
+        <!-- Right Panel - Question Display -->
+        <main class="question-display">
+            <div id="question-content">
+                {% include question_template %}
+            </div>
+        </main>
+    </div>
+
+    <!-- Footer Navigation -->
+    <footer class="assessment-footer">
+        <div class="footer-left">
+            <button id="prev-question" class="btn btn-secondary">
+                <i class="fas fa-chevron-left"></i> Previous
+            </button>
+        </div>
+        <div class="footer-center">
+            <button id="bookmark-question" class="btn btn-warning">
+                <i class="fas fa-bookmark"></i> Bookmark
+            </button>
+            <button id="suspend-assessment" class="btn btn-info">
+                <i class="fas fa-pause"></i> Suspend
+            </button>
+        </div>
+        <div class="footer-right">
+            <button id="next-question" class="btn btn-primary">
+                Next <i class="fas fa-chevron-right"></i>
+            </button>
+            <button id="submit-assessment" class="btn btn-success">
+                <i class="fas fa-check"></i> Submit
+            </button>
+        </div>
+    </footer>
+</div>
+
+<!-- Instructions Modal -->
+<div class="modal fade" id="instructionsModal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Assessment Instructions</h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                {{ question.instructions.html|safe }}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+<!-- <script src="{% static 'js/question_handlers.js' %}"></script> -->
+<script src="{% static 'js/assessment_manager.js' %}"></script>
+{% endblock %}

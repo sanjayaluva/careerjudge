@@ -1,0 +1,20 @@
+<div id="question-wrapper" data-question-id="{{ question.id }}" data-question-type="psy_rating">
+    <div class="question-header">
+        <span class="question-number">Question {{ question.number }}</span>
+        <div class="question-text">{{ question.text.html|safe }}</div>
+    </div>
+    <div class="rating-scale">
+        {% for option in question.rating_options.all %}
+        <div class="rating-item">
+            <input type="radio" 
+                   id="rating_{{ option.value }}" 
+                   name="rating" 
+                   value="{{ option.value }}"
+                   {% if option.value == response.answer_data.rating %}checked{% endif %}>
+            <label for="rating_{{ option.value }}">
+                <span class="rating-text">{{ option.text }}</span>
+            </label>
+        </div>
+        {% endfor %}
+    </div>
+</div>

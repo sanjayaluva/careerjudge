@@ -1,0 +1,10 @@
+{% extends 'registration/registration_base.html' %}
+{% block title %}Email Verified | Career Judge{% endblock title %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="alert alert-success">
+    You have successfully verified your e-mail.
+    <a href="{% url 'login' %}" class="link">Login</a>
+</div>
+{% endblock content %}
