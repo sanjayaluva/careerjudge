@@ -14,8 +14,15 @@ from pathlib import Path
 from decouple import config
 import os, sys
 
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
+
+# import environ
+# env = environ.Env()
+# environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
+# environ.Env.read_env(BASE_DIR / '.env')
 
 
 # Quick-start development settings - unsuitable for production
@@ -25,15 +32,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = '0django-insecure-f$hm8p^3fbb8mcxfy#entx=vbujbqcfut_ysedop06ov=_+-%s'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "careerjudge.com", "sanjayaluva.pythonanywhere.com", "*"]
+ALLOWED_HOSTS = []
 
 AUTH_USER_MODEL = 'user.User'
 # AUTH_GROUP_MODEL = 'user.Group'
 
 # Application definition
-
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -132,21 +138,21 @@ USE_TZ = True
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        "ENGINE": config("DB_ENGINE", default="django.db.backends.postgresql"),
-        "NAME": config("DB_NAME"),
-        "USER": config("DB_USER"),
-        "PASSWORD": config("DB_PASSWORD"),
-        "HOST": config("DB_HOST", default="localhost"),
-        "PORT": config("DB_PORT", default=5432),
-        'TIME_ZONE': TIME_ZONE,
-    }
-    # 'default': {
-    #     'ENGINE': 'django.db.backends.sqlite3',
-    #     'NAME': BASE_DIR / 'db.sqlite3',
-    # }
-}
+# DATABASES = {
+#     'default': {
+#         "ENGINE": config("DB_ENGINE", default="django.db.backends.postgresql"),
+#         "NAME": config("DB_NAME"),
+#         "USER": config("DB_USER"),
+#         "PASSWORD": config("DB_PASSWORD"),
+#         "HOST": config("DB_HOST", default="localhost"),
+#         "PORT": config("DB_PORT", default=5432),
+#         'TIME_ZONE': TIME_ZONE,
+#     }
+#     # 'default': {
+#     #     'ENGINE': 'django.db.backends.sqlite3',
+#     #     'NAME': BASE_DIR / 'db.sqlite3',
+#     # }
+# }
 
 
 # Static files (CSS, JavaScript, Images)
