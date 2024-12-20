@@ -2,3 +2,4 @@ static/
 staticfiles/
 __pycache__/
 *.pyc
+.git/
