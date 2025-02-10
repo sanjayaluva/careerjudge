@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load static %}
+{% load static assessment_tags %}
 
 {% block content %}
 <div class="container mt-4">
@@ -56,39 +56,23 @@
             </div>
         {% endfor %}
 
-        <!-- {% for section, responses in sections.items %}
-            <div class="section-block card mb-4">
-                <div class="card-header">
-                    <h5>{{ section.title }}</h5>
-                </div>
-                <div class="card-body">
-                    {% for response in responses %}
-                        <div class="question-block mb-4 {% if response.is_correct %}correct{% else %}incorrect{% endif %}">
-                            <h6>Question {{ forloop.counter }}: {{ response.question.title }}</h6>
-                            <div class="question-text">{{ response.question.text|safe }}</div>
-                            
-                            <div class="answer-details">
-                                {% if response.question.type == 'mcq_text' or response.question.type == 'mcq_image' %}
-                                    <p>Selected Option: {{ response.answer_data.selected_option }}</p>
-                                {% elif response.question.type == 'fib_text' %}
-                                    <p>Your Answers: {{ response.answer_data.answers|join:", " }}</p>
-                                {% elif response.question.type == 'cus_hotspot_single' or response.question.type == 'cus_hotspot_multiple' %}
-                                    <p>Selected Areas: {{ response.answer_data.value|join:", " }}</p>
-                                {% endif %}
-                            </div>
-                            
-                            <div class="feedback mt-2">
-                                {% if response.is_correct %}
-                                    <span class="badge bg-success">Correct</span>
-                                {% else %}
-                                    <span class="badge bg-danger">Incorrect</span>
-                                {% endif %}
-                            </div>
-                        </div>
-                    {% endfor %}
-                </div>
+        {% for section, responses in sections.items %}
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5>{{ section.title }}</h5>
+                <p>Section Score: {{ section_scores|get_item:'section_'|add:section.id }}</p>
             </div>
-        {% endfor %} -->
+            <div class="card-body">
+                {% for response in responses %}
+                <div class="question-response {% if response.is_correct %}correct{% else %}incorrect{% endif %}">
+                    <p>Question: {{ response.question.text }}</p>
+                    <p>Score: {{ response.score }}</p>
+                    <p>Your Answer: {{ response.answer_data }}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
     </div>
 </div>
 <style>

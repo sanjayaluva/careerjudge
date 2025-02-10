@@ -16,30 +16,90 @@
 				</button>
 			</form>
 
-			
-			
 			<div class="dropdown">
 				<div class="avatar border border-2" style="padding-left: 1px; padding-top: 1px;" type="button" data-bs-toggle="dropdown" aria-expanded="false">
 					<i class="fas fa-bell text-secondary bg-light"></i>
 					<span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-						{{ notifications_count }}
+						{{ unread_notifications_count }}
 						<span class="visually-hidden">unread messages</span>
 					</span>
 				</div>
-				<div class="dropdown-menu" style="min-width: 14rem !important;">
-					<hr>
-					{% for notification in notifications %}
-						{% if notification.type == notification.LIVESESSOIN_REQUEST %}
-						<a class="dropdown-item" href="#{#% url 'admin_panel' %#}"><i class="fas {% if notification.read %}fa-envelope-open{% else %}fa-envelope{% endif %} me-2"></i>{{ notification.message }}</a>
-						<div class="clearfix">
-							<button data-id="{{ notification.id }}" id="notification_schedule_{{ forloop.counter0 }}" class="btn btn-sm btn-primary float-end me-3">Schecdule Training</button>
-						</div>
-						{% endif %}
-					{% endfor %}
-					<hr>
+				<div class="dropdown-menu notification-menu" style="min-width: 320px !important;">
+					<div class="dropdown-header d-flex justify-content-between align-items-center">
+						<h6 class="mb-0">Notifications</h6>
+						<a href="#" class="text-muted mark-all-read">Mark all read</a>
+					</div>
+					<div class="notification-list" style="max-height: 300px; overflow-y: auto;">
+						{% for notification in notifications %}
+							<div class="dropdown-item notification-item {% if not notification.read %}unread{% endif %}" 
+								 data-notification-id="{{ notification.id }}">
+								<div class="d-flex justify-content-between">
+									<div class="notification-content">
+										{% if notification.notification_type == 'counselling_booking' %}
+											<a href="{% url 'counselling:booking_detail' notification.content_object.id %}">
+												<i class="fas fa-calendar-check me-2"></i>
+												{{ notification.message }}
+											</a>
+										{% elif notification.notification_type == 'livesession_request' %}
+											<a href="{% url 'training:live_session_detail' notification.content_object.id %}">
+												<i class="fas fa-video me-2"></i>
+												{{ notification.message }}
+											</a>
+										{% elif notification.notification_type == 'question_creation' or notification.notification_type == 'content_review' or notification.notification_type == 'psychometric_review' or notification.notification_type == 'final_approval' %}
+											{% if notification.content_object and notification.content_object.id %}	
+											<a href="{% url 'cjapp:review_task' notification.content_object.id %}">
+												<i class="fas fa-tasks me-2"></i>
+												{{ notification.message }}
+											</a>
+											{% endif %}
+										{% elif notification.notification_type == 'deletion_request' and notification.content_object %}
+											<a href="{% url 'question_bank:review_deletion_request' notification.content_object.id %}">
+												<i class="fas fa-trash-alt me-2"></i>
+												{{ notification.message }}
+											</a>
+										{% elif notification.notification_type == 'deletion_approved' %}
+											<div>
+												<i class="fas fa-check-circle me-2"></i>
+												{{ notification.message }}
+											</div>
+										{% elif notification.notification_type == 'deletion_rejected' %}
+											<div>
+												<i class="fas fa-times-circle me-2"></i>
+												{{ notification.message }}
+											</div>
+										{% endif %}
+									</div>
+									<small class="text-muted">{{ notification.created_at|timesince }} ago</small>
+								</div>
+							</div>
+						{% empty %}
+							<div class="dropdown-item">No notifications</div>
+						{% endfor %}
+					</div>
 				</div>
 			</div>
-
+			
+			<script>
+			$(document).ready(function() {
+				$('.notification-item').click(function() {
+					var notificationId = $(this).data('notification-id');
+					$.post("{% url 'cjapp:mark_notification_read' %}", {
+						notification_id: notificationId,
+						csrfmiddlewaretoken: '{{ csrf_token }}'
+					});
+					$(this).removeClass('unread');
+				});
+			
+				$('.mark-all-read').click(function(e) {
+					e.preventDefault();
+					$.post("{% url 'cjapp:mark_all_notifications_read' %}", {
+						csrfmiddlewaretoken: '{{ csrf_token }}'
+					});
+					$('.notification-item').removeClass('unread');
+				});
+			});
+			</script>
+			
 			<div class="dropdown">
 				<div class="avatar border border-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
 					<img src="{{ request.user.picture.url }}">
@@ -125,10 +185,12 @@
 
 	<script>
 		var btn_notif = document.getElementById('notification_schedule_{{ forloop.counter0 }}');
-		btn_notif.addEventListener('click', function(e){
-			show_schedule_modal(this.dataset.id);
-			//schedule_training(this.dataset.id);
-		});
+		if(btn_notif) {
+			btn_notif.addEventListener('click', function(e){
+				show_schedule_modal(this.dataset.id);
+				//schedule_training(this.dataset.id);
+			});
+		}
 
 		function show_schedule_modal(notification_id){
 			var scheduleLiveSessionModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('scheduleLiveSessionModal'));
@@ -140,23 +202,25 @@
 
 		//var btn_notif = document.getElementById('save_schedule_training_live_session');
 		var schedule_form = document.getElementById('schedule_training_live_session_form');
-		schedule_form.addEventListener('submit', function(e){
-			e.preventDefault();
-			
-			var notif_id = document.getElementById('notification_id').value;
-			var start_time = document.getElementById('id_start_time').value;
-			var duration = document.getElementById('id_duration').value;
+		if(schedule_form) {
+			schedule_form.addEventListener('submit', function(e){
+				e.preventDefault();
+				
+				var notif_id = document.getElementById('notification_id').value;
+				var start_time = document.getElementById('id_start_time').value;
+				var duration = document.getElementById('id_duration').value;
 
-			var data = {
-				'notification_id': notif_id,
-				'start_time': start_time, 
-				'duration': duration, 
-			};
-			
-			schedule_training(data);
+				var data = {
+					'notification_id': notif_id,
+					'start_time': start_time, 
+					'duration': duration, 
+				};
+				
+				schedule_training(data);
 
-			//return false;
-		});
+				//return false;
+			});
+		}
 
 		function schedule_training(data){
 			var url = "{% url 'schedule_training' %}"
@@ -168,7 +232,6 @@
 				window.location.reload();
 			});
 		}
-
 		
 	</script>
 	{% endif %}
@@ -202,7 +265,7 @@
 		formData.append('csrfmiddlewaretoken', csrftoken);
 
 		$.ajax({
-			url : "{% url 'send_notification' %}",
+			url : "{% url 'cjapp:send_notification' %}",
 			type: "POST",
 			data : formData,
 			processData: false,

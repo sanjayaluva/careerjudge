@@ -35,7 +35,14 @@
         </ul>
         <div class="tab-content mb-4" id="assessmentTabsContent">
             <div class="tab-pane fade show active" id="info" role="tabpanel" aria-labelledby="info-tab">
-                {{ form.title|as_crispy_field }}
+                <div class="row">
+                    <div class="col-6">
+                        {{ form.title|as_crispy_field }}
+                    </div>
+                    <div class="col-6">
+                        {{ form.type|as_crispy_field }}
+                    </div>
+                </div>
                 <div class="row">
                     <div class="col-6">
                         {{ form.objective|as_crispy_field }}
@@ -148,6 +155,44 @@
     </div>
     </form>
     <!-- Question score modal end -->
+
+    <!-- Delivery Count Modal -->
+    <div class="modal fade" id="deliveryCountModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Set Delivery Count</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="number" id="deliveryCountInput" class="form-control" min="1">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" onclick="saveDeliveryCount()">Save</button>
+                    <button type="button" class="btn btn-secondary" onclick="resetDeliveryCount()">Reset</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Timer Modal -->
+    <div class="modal fade" id="timerModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Set Timer (Minutes)</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="number" id="timerInput" class="form-control" min="1">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" onclick="saveTimer()">Save</button>
+                    <button type="button" class="btn btn-secondary" onclick="resetTimer()">Reset</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
@@ -264,7 +309,7 @@
                                 }*/
                                 'data': function(node, callback) {
                                     $.getJSON('/assessment/{{ assessment.pk }}/structure/', function(data) {
-                                        level_counts = data.level_counts || {};
+                                        // level_counts = data.level_counts || {};
                                         callback(data.structure.filter(Boolean));  // Filter out any null nodes
                                         //updateLevelCounts();
                                         //savedDeliveryCounts
@@ -306,6 +351,26 @@
                                                 $('#questionModal').data('nodeId', obj.id).modal('show');
                                             }
                                         },
+                                        'set_delivery_count': {
+                                            'label': 'Set Delivery Count',
+                                            'action': function(data) {
+                                                var inst = $.jstree.reference(data.reference);
+                                                var obj = inst.get_node(data.reference);
+                                                if (obj.type === 'section') {
+                                                    openDeliveryCountModal(obj.id);
+                                                }
+                                            },
+                                        },
+                                        'set_timer': {
+                                            'label': 'Set Timer',
+                                            'action': function(data) {
+                                                var inst = $.jstree.reference(data.reference);
+                                                var obj = inst.get_node(data.reference);
+                                                if (obj.type === 'section') {
+                                                    openTimerModal(obj.id);
+                                                }
+                                            }
+                                        },
                                         'score': {
                                             'label': 'Set Score',
                                             'action': function(data) {
@@ -340,23 +405,25 @@
                                     }
                                     if (node && node.type === 'question') {
                                         delete items.rename;
+                                        delete items.set_timer;
                                     }
                                     if (node && node.type === 'question' || node.parents.length >= 4 || tree.get_node(node.children[0]).type === 'question') {
                                         delete items.create;
                                     }
                                     if (node && node.type == 'question' || (node.children.length !== 0 && tree.get_node(node.children[0]).type !== 'question')) {
                                         delete items.attach_question;
+                                        delete items.set_delivery_count;
                                     }
                                     return items;
                                 }
                             }
                         }).on('move_node.jstree rename_node.jstree delete_node.jstree create_node.jstree', function(e, data) {
-                            updateLevelCounts();
-                            saveLevelInfo();
+                            // updateLevelCounts();
+                            // saveLevelInfo();
                         }).on('ready.jstree', function() {
                             $('#jstree').jstree('open_all');
                             
-                            updateLevelCounts(level_counts);
+                            // updateLevelCounts(level_counts);
                         }).on('create_node.jstree', function(e, data) {
                             $.ajax({
                                 url: '/assessment/{{ assessment.pk }}/structure/',
@@ -371,9 +438,9 @@
                                 }),
                                 contentType: 'application/json',
                                 success: function(response) {
-                                    //data.instance.set_id(data.node, response.id);
                                     if (response && response.id) {
                                         data.instance.set_id(data.node, response.id);
+                                        // refreshTree(response.id);  // Refresh after creation
                                     }
                                 }
                             });
@@ -386,7 +453,12 @@
                                     id: data.node.id,
                                     text: data.text
                                 }),
-                                contentType: 'application/json'
+                                contentType: 'application/json',
+                                success: function(response) {
+                                    if (response && response.status == 'success') {
+                                        refreshTree(data.node.id);  // Refresh after creation/edit
+                                    }
+                                }
                             });
                         }).on('delete_node.jstree', function(e, data) {
                             $.ajax({
@@ -396,7 +468,12 @@
                                     action: 'delete',
                                     id: data.node.id
                                 }),
-                                contentType: 'application/json'
+                                contentType: 'application/json',
+                                success: function(response) {
+                                    if (response && response.status == 'success') {
+                                        refreshTree(data.node.id);  // Refresh after creation/edit
+                                    }
+                                }
                             });
                         }).on('move_node.jstree', function(e, data) {
                             $.ajax({
@@ -408,7 +485,12 @@
                                     parent: data.parent,
                                     position: data.position
                                 }),
-                                contentType: 'application/json'
+                                contentType: 'application/json',
+                                success: function(response) {
+                                    if (response && response.status == 'success') {
+                                        refreshTree(data.node.id);  // Refresh after creation/edit
+                                    }
+                                }
                             });
                         });
 
@@ -432,24 +514,182 @@
                 }
             });
 
+            // Initialize the tooltip
+            $('[data-toggle="tooltip"]').tooltip();
+
+            let currentNodeId = null;
+            function openDeliveryCountModal(nodeId) {
+                const node = $tree.jstree(true).get_node(nodeId);
+
+                // Set current delivery count value
+                $('#deliveryCountInput').val(node.data.delivery_count || 0);
+
+                currentNodeId = nodeId;
+                $('#deliveryCountModal').modal('show');
+            }
+
+            function openTimerModal(nodeId) {
+                const node = $tree.jstree(true).get_node(nodeId);
+
+                // Check if timer setting is allowed
+                if (node.data.timer_disabled) {
+                    alert('Timer setting is disabled - parent section has timer set');
+                    return;
+                }
+
+                // Set current timer value
+                $('#timerInput').val(node.data.timer_minutes || 0);
+
+                currentNodeId = nodeId;
+                $('#timerModal').modal('show');
+            }
+
+            window.saveDeliveryCount = function() {
+                const count = $('#deliveryCountInput').val();
+                const node = $tree.jstree(true).get_node(currentNodeId);
+
+                // Count total questions in this section
+                let totalQuestions = 0;
+                function countQuestions(nodeId) {
+                    const currentNode = $tree.jstree(true).get_node(nodeId);
+                    if (currentNode.type === 'question') {
+                        totalQuestions++;
+                    }
+                    if (currentNode.children) {
+                        currentNode.children.forEach(childId => countQuestions(childId));
+                    }
+                }
+                countQuestions(currentNodeId);
+                
+                if (isNaN(count) || count < 1) {
+                    alert('Please enter a valid number greater than 0');
+                    return;
+                }
+
+                if (count > totalQuestions) {
+                    alert(`Delivery count cannot exceed total questions (${totalQuestions})`);
+                    return;
+                }
+
+                $.ajax({
+                    url: `/assessment/${assessmentId}/structure/`,
+                    method: 'POST',
+                    data: JSON.stringify({
+                        action: 'delivery_count',
+                        node_id: currentNodeId,
+                        count: count
+                    }),
+                    contentType: 'application/json',
+                    success: function(response) {
+                        $('#deliveryCountModal').modal('hide');
+                        refreshTree(currentNodeId);
+                    }
+                });
+            }
+
+            window.saveTimer = function() {
+                const minutes = $('#timerInput').val();
+                $.ajax({
+                    url: `/assessment/${assessmentId}/structure/`,
+                    method: 'POST',
+                    data: JSON.stringify({
+                        action: 'timer',
+                        node_id: currentNodeId,
+                        minutes: minutes
+                    }),
+                    contentType: 'application/json',
+                    success: function(response) {
+                        $('#timerModal').modal('hide');
+                        refreshTree(currentNodeId);
+                    }
+                });
+            }
+            
+            window.refreshTree = function(nodeId=null) {
+                // $tree.jstree(true).refresh();  // Force full refresh
+                $tree.jstree(true).refresh(false, true);  // Force full refresh
+                
+                if (nodeId) {
+                    // After refresh, select and scroll to the node
+                    $tree.on('refresh.jstree', function() {
+                        $tree.jstree(true).open_all();
+                        $tree.jstree(true).deselect_all();
+
+                        $tree.jstree('select_node', nodeId);
+                        // Scroll the selected node into view
+                        const node = $tree.find(`#${nodeId}`);
+                        if (node.length) {
+                            node[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                        // Unbind the event handler after execution
+                        $tree.off('refresh.jstree');
+                    });
+                }
+            }
+
+            // Add reset functions
+            window.resetDeliveryCount = function() {
+                const tree = $('#jstree').jstree(true);
+                const node = tree.get_node(currentNodeId);
+                
+                $.ajax({
+                    url: `/assessment/${assessmentId}/structure/`,
+                    method: 'POST',
+                    data: JSON.stringify({
+                        action: 'delivery_count',
+                        node_id: currentNodeId,
+                        count: 0  // Reset to 0
+                    }),
+                    contentType: 'application/json',
+                    success: function(response) {
+                        $('#deliveryCountInput').val('');
+                        $('#deliveryCountModal').modal('hide');
+                        refreshTree(currentNodeId);
+                    }
+                });
+            }
+
+            window.resetTimer = function() {
+                const tree = $('#jstree').jstree(true);
+                const node = tree.get_node(currentNodeId);
+                
+                $.ajax({
+                    url: `/assessment/${assessmentId}/structure/`,
+                    method: 'POST',
+                    data: JSON.stringify({
+                        action: 'timer',
+                        node_id: currentNodeId,
+                        minutes: 0  // Reset to 0
+                    }),
+                    contentType: 'application/json',
+                    success: function(response) {
+                        $('#timerInput').val('');
+                        $('#timerModal').modal('hide');
+                        refreshTree(currentNodeId);
+                    }
+                });
+            }
+
+
+
             function resetSearchForm() {
                 $('#questionSearchForm')[0].reset();
                 $('#searchResults').empty();
             }
 
-            function saveLevelInfo() {
-                var levelCounts = getLevelCounts();
+            // function saveLevelInfo() {
+            //     var levelCounts = getLevelCounts();
                 
-                $.ajax({
-                    url: '/assessment/{{ assessment.pk }}/structure/',
-                    type: 'POST',
-                    data: JSON.stringify({
-                        action: 'level',
-                        level_counts: levelCounts
-                    }),
-                    contentType: 'application/json'
-                });
-            }
+            //     $.ajax({
+            //         url: '/assessment/{{ assessment.pk }}/structure/',
+            //         type: 'POST',
+            //         data: JSON.stringify({
+            //             action: 'level',
+            //             level_counts: levelCounts
+            //         }),
+            //         contentType: 'application/json'
+            //     });
+            // }
 
             /*function saveTree() {
                 var json = $('#jstree').jstree(true).get_json('#', {flat:false});
@@ -517,10 +757,12 @@
             // Handle form submission
             $(document).on('submit', '#questionSearchForm', function(e) {
                 e.preventDefault();
+                const formData = $(this).serialize();
+                const assessmentType = '{{ assessment.type }}';
                 $.ajax({
                     url: '/assessment/question/search',
                     method: 'GET',
-                    data: $(this).serialize(),
+                    data: formData + '&assessment_type=' + assessmentType,
                     success: function(data) {
                         displaySearchResults(data);
                     },
@@ -562,6 +804,7 @@
 
                 //if (confirm(`Are you sure you want to add ${selectedQuestions.length} question(s) to the selected section?`)) {
                     let addedCount = 0;
+                    let existCount = 0;
                     selectedQuestions.forEach(function(question) {
                         if (!checkQuestionExist(question.id)) {
                             $('#jstree').jstree('create_node', selectedNode, {
@@ -572,12 +815,27 @@
                                 li_attr: { class: 'question-node' },
                             }, 'last');
                             addedCount++;
+                        } else {
+                            existCount++;
                         }
                     });
-            
-                    $('#jstree').jstree('open_node', selectedNode);
-                    $('#questionModal').modal('hide');
-                    alert(`Added ${addedCount} new question(s) to the tree.`);
+                    
+                    if (addedCount > 0) {
+                        // Refresh after adding questions
+                        refreshTree(selectedNode);  
+                        
+                        $('#questionModal').modal('hide');
+                        $('#jstree').jstree('open_node', selectedNode);
+                        
+                        if (existCount > 0) {
+                            alert(`Added ${addedCount} new question(s) to the tree. ${existCount} question(s) already exist.`);
+                        } else {
+                            alert(`Added ${addedCount} new question(s) to the tree.`);
+                        }
+                    } else {
+                        alert('No new questions added.');
+                        
+                    }
                 //}
 
                 /*selectedQuestions.forEach(function(question) {
@@ -622,69 +880,6 @@
                 return exists;
             }
             
-            {% comment %} function openScoreModal(questionId) {
-                $.ajax({
-                    url: '/assessment/question/options/' + questionId + '/',
-                    method: 'GET',
-                    success: function(data) {
-                        var modalBody = $('#scoreModalBody');
-                        modalBody.empty();
-                        modalBody.append(`
-                            <div class="row"><div class="col-6">
-                                <label for="correct_score" class="form-label">Correct Score</label>
-                                <input type="number" class="form-control" id="correct_score" value="${data.correct_score}" step="0.1">
-                            </div>
-                            <div class="col-6">
-                                <label for="incorrect_score" class="form-label">Incorrect Score</label>
-                                <input type="number" class="form-control" id="incorrect_score" value="${data.incorrect_score}" step="0.1">
-                            </div></div>
-                        `);
-                        if (data && Array.isArray(data)) {
-                            data.forEach(function(option, index) {
-                                modalBody.append(`
-                                    <div class="mb-3">
-                                        <label for="score${option.id}" class="form-label">${option.text}</label>
-                                        <input type="number" class="form-control" id="score${option.id}" value="${option.score}" step="0.1">
-                                    </div>
-                                `);
-                            });
-                        }
-                        $('#questionScoreModal').data('questionId', questionId).modal('show');
-                    },
-                    error: function(xhr, status, error) {
-                        console.error("Error fetching question data:", error);
-                    }
-                });
-            }
-
-            $('#saveScores').on('click', function() {
-                var questionId = $('#questionScoreModal').data('questionId');
-                var data = {
-                    correct_score: parseFloat($('#correct_score').val()),
-                    incorrect_score: parseFloat($('#incorrect_score').val()),
-                    options: {}
-                };
-                $('#scoreModalBody input[id^="score"]').each(function() {
-                    data.options[this.id.replace('score', '')] = parseFloat($(this).val());
-                });
-                
-                $.ajax({
-                    url: '/assessment/question/' + questionId + '/set-scores/',
-                    method: 'POST',
-                    data: JSON.stringify(data),
-                    contentType: 'application/json',
-                    headers: {
-                        'X-CSRFToken': $('input[name=csrfmiddlewaretoken]').val()
-                    },
-                    success: function(response) {
-                        console.log('Scores saved successfully');
-                        $('#questionScoreModal').modal('hide');
-                    },
-                    error: function(xhr, status, error) {
-                        console.error('Error saving scores:', error);
-                    }
-                });
-            }); {% endcomment %}
 
             function openScoreModal(questionId) {
                 $.ajax({
@@ -783,56 +978,56 @@
             });
             
 
-            var level_counts = {};
-            function updateLevelCounts(savedDeliveryCounts = {}) {
-                var totalQuestions = {};
+            // var level_counts = {};
+            // function updateLevelCounts(savedDeliveryCounts = {}) {
+            //     var totalQuestions = {};
                 
-                function traverse(node, level) {
-                    if (node.type === 'question') {
-                        totalQuestions[level] = (totalQuestions[level] || 0) + 1;
-                    } else if (node.children) {
-                        node.children.forEach(child => traverse(child, level + 1));
-                    }
-                }
+            //     function traverse(node, level) {
+            //         if (node.type === 'question') {
+            //             totalQuestions[level] = (totalQuestions[level] || 0) + 1;
+            //         } else if (node.children) {
+            //             node.children.forEach(child => traverse(child, level + 1));
+            //         }
+            //     }
                 
-                var treeData = $tree.jstree(true).get_json('#', {flat: false});
-                if (treeData) treeData.forEach(node => traverse(node, 0));
+            //     var treeData = $tree.jstree(true).get_json('#', {flat: false});
+            //     if (treeData) treeData.forEach(node => traverse(node, 0));
     
-                var totalHtml = '<h6><b>Assigned Count:</b></h6>';
-                var deliveryHtml = '<h6><b>Delivery Count:</b></h6>';
+            //     var totalHtml = '<h6><b>Assigned Count:</b></h6>';
+            //     var deliveryHtml = '<h6><b>Delivery Count:</b></h6>';
                 
-                for (var level in totalQuestions) {
-                    totalHtml += `<div class="mb-2">
-                        <label>Level-${level}: ${totalQuestions[level]}</label>
-                    </div>`;
-                    var savedCount = savedDeliveryCounts[level] ? savedDeliveryCounts[level].delivery : totalQuestions[level];
-                    deliveryHtml += `<div class="mb-2">
-                        <label for="delivery-${level}">Level-${level}:</label>
-                        <input type="number" id="delivery-${level}" class="form-control form-control-sm" 
-                            value="${savedCount}" 
-                            min="1" max="${totalQuestions[level]}">
-                    </div>`;
-                }
+            //     for (var level in totalQuestions) {
+            //         totalHtml += `<div class="mb-2">
+            //             <label>Level-${level}: ${totalQuestions[level]}</label>
+            //         </div>`;
+            //         var savedCount = savedDeliveryCounts[level] ? savedDeliveryCounts[level].delivery : totalQuestions[level];
+            //         deliveryHtml += `<div class="mb-2">
+            //             <label for="delivery-${level}">Level-${level}:</label>
+            //             <input type="number" id="delivery-${level}" class="form-control form-control-sm" 
+            //                 value="${savedCount}" 
+            //                 min="1" max="${totalQuestions[level]}">
+            //         </div>`;
+            //     }
                 
-                $('#assigned-count').html(totalHtml);
-                $('#delivery-count').html(deliveryHtml);
-            }
+            //     $('#assigned-count').html(totalHtml);
+            //     $('#delivery-count').html(deliveryHtml);
+            // }
 
-            function getLevelCounts() {
-                var levelCounts = {};
-                $('#delivery-count input[type="number"]').each(function() {
-                    var level = this.id.split('-')[1];
-                    levelCounts[level] = {
-                        total: parseInt($('#assigned-count').find(`label:contains("Level-${level}:")`).text().split(':')[1].trim()),
-                        delivery: parseInt($(this).val())
-                    };
-                });
-                return levelCounts;
-            }
+            // function getLevelCounts() {
+            //     var levelCounts = {};
+            //     $('#delivery-count input[type="number"]').each(function() {
+            //         var level = this.id.split('-')[1];
+            //         levelCounts[level] = {
+            //             total: parseInt($('#assigned-count').find(`label:contains("Level-${level}:")`).text().split(':')[1].trim()),
+            //             delivery: parseInt($(this).val())
+            //         };
+            //     });
+            //     return levelCounts;
+            // }
 
-            $(document).on('change', '#delivery-count input[type="number"]', function() {
-                saveLevelInfo();
-            });
+            // $(document).on('change', '#delivery-count input[type="number"]', function() {
+            //     saveLevelInfo();
+            // });
             
 
 

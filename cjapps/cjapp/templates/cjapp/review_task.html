@@ -1,0 +1,288 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="/">Home</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'cjapp:task_list' %}">Tasks</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Review</li>
+    </ol>
+</nav>
+
+<div class="manage-wrap">
+    <!-- <a href="{% url 'assessment_create' %}" class="btn btn-success">Create Assessment</a> -->
+</div>
+
+<h4 class="fw-bold mb-3"><i class="fas fa-cog me-2"></i>Review Task</h4>
+
+{% include 'snippets/messages.html' %}
+
+<!-- Review Task -->
+<div class="container mt-4">
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4>{{ task.name }}</h4>
+        </div>
+        <div class="card-body">
+            <p><strong>Type:</strong> {{ task.get_task_type_display }}</p>
+            <p><strong>Current Step:</strong> {{ task.get_step_display }}</p>
+            <p><strong>Status:</strong> {{ task.get_status_display }}</p>
+            <p><strong>Description:</strong> {{ task.description }}</p>
+            <p><strong>Created By:</strong> {{ task.created_by.get_full_name }}</p>
+            <p><strong>Created At:</strong> {{ task.created_at|date:"F d, Y" }}</p>
+            <p><strong>SME:</strong> {{ task.sme_user.get_full_name }}</p>
+            <p><strong>Reviewer:</strong> {{ task.reviewer_user.get_full_name }}</p>
+            <p><strong>Psychometrician:</strong> {{ task.psychometrician_user.get_full_name }}</p>
+        </div>
+    </div>
+
+    {% if task.step == 'question_creation' and user == task.sme_user %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h4>Create/Link Question</h4>
+                <p>Question Type: {{ task.get_question_type_display }}</p>
+                <p>Progress: {{ task.questions_created }} of {{ task.number_of_questions }} questions</p>
+            </div>
+            <div class="card-body">
+                <h5>Linked Questions:</h5>
+                <ul class="list-group mb-3">
+                    {% for question in linked_questions %}
+                    <li class="list-group-item">{{ question.title }}</li>
+                    {% endfor %}
+                </ul>
+
+                {% if task.questions_created < task.number_of_questions %}
+                    <a href="{% url 'question_bank:create_question' task.id %}"  
+                       class="btn btn-primary mb-3">Create New Question</a>
+                {% else %}
+                    {% if task.status != 'completed' %}
+                    <form method="post">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-success mt-3">Submit for Review</button>
+                    </form>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h4>Questions Review ({{ task.questions.count }})</h4>
+            <div class="btn-group">
+                <button class="btn btn-outline-primary" id="prevQuestion">Previous</button>
+                <select class="form-select mx-2" id="questionSelector" style="width: auto;">
+                    {% for question in task.questions.all %}
+                        <option value="{{ forloop.counter0 }}">Question {{ forloop.counter }}</option>
+                    {% endfor %}
+                </select>
+                <button class="btn btn-outline-primary" id="nextQuestion">Next</button>
+            </div>
+        </div>
+
+        {% for question in task.questions.all %}
+        <div class="question-details" id="question-{{ forloop.counter0 }}" style="display: none;">
+            <div class="card-body">
+                <ul class="nav nav-tabs" id="questionTabs-{{ forloop.counter0 }}" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link active" id="basic-tab-{{ forloop.counter0 }}" data-bs-toggle="tab" href="#basic-{{ forloop.counter0 }}" role="tab">Basic Info</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="content-tab-{{ forloop.counter0 }}" data-bs-toggle="tab" href="#content-{{ forloop.counter0 }}" role="tab">Content</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="options-tab-{{ forloop.counter0 }}" data-bs-toggle="tab" href="#options-{{ forloop.counter0 }}" role="tab">Options</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="metadata-tab-{{ forloop.counter0 }}" data-bs-toggle="tab" href="#metadata-{{ forloop.counter0 }}" role="tab">Metadata</a>
+                    </li>
+                </ul>
+            
+                <div class="tab-content mt-3" id="questionTabContent-{{ forloop.counter0 }}">
+                    <div class="tab-pane fade show active" id="basic-{{ forloop.counter0 }}" role="tabpanel">
+                        <p><strong>Title:</strong> {{ question.title }}</p>
+                        <p><strong>Type:</strong> {{ question.get_type_display }}</p>
+                        <p><strong>Category:</strong> {{ question.category }}</p>
+                        <p><strong>Difficulty Level:</strong> {{ question.get_difficulty_level_display }}</p>
+                        <p><strong>Cognitive Level:</strong> {{ question.get_cognitive_level_display }}</p>
+                        <p><strong>Exposure Limit:</strong> {{ question.exposure_limit }}</p>
+                        <p><strong>Case Sensitive:</strong> {{ question.case_sensitive }}</p>
+                        <p><strong>Instructions:</strong> {{ question.instructions.html|safe }}</p>
+                        <p><strong>Objectives:</strong> {{ question.objectives.html|safe }}</p>
+                    </div>
+                
+                    <div class="tab-pane fade" id="content-{{ forloop.counter0 }}" role="tabpanel">
+                        <p><strong>Question Text:</strong> {{ question.text.html|safe }}</p>
+                        {% if question.paragraph.plain %}
+                            <p><strong>Paragraph:</strong> {{ question.paragraph.html|safe }}</p>
+                        {% endif %}
+                        {% if question.image %}
+                            <p><strong>Image:</strong> <img src="{{ question.image.url }}" class="img-fluid"></p>
+                        {% endif %}
+                        {% if question.audio %}
+                            <p><strong>Audio:</strong> <audio controls src="{{ question.audio.url }}"></audio></p>
+                        {% endif %}
+                        {% if question.video %}
+                            <p><strong>Video:</strong> <video controls src="{{ question.video.url }}"></video></p>
+                        {% endif %}
+                    </div>
+
+                    <div class="tab-pane fade" id="options-{{ forloop.counter0 }}" role="tabpanel">
+                        {% if 'mcq' in question.type %}
+                            {% for option in question.options.all %}
+                            <div class="mb-2">
+                                <strong>Option {{ forloop.counter }}:</strong>
+                                {% if option.text %}{{ option.text }}{% endif %}
+                                {% if option.image %}<img src="{{ option.image.url }}" class="img-fluid">{% endif %}
+                                {% if option.is_correct %}<span class="badge bg-success">Correct</span>{% endif %}
+                            </div>
+                            {% endfor %}
+                        {% endif %}
+
+                        {% if question.type == 'cus_grid' %}
+                            <div class="grid-container">
+                                {% for option in question.grid_options.all %}
+                                    <div class="grid-item">
+                                        {% if option.text %}{{ option.text }}{% endif %}
+                                        {% if option.image %}<img src="{{ option.image.url }}">{% endif %}
+                                        {% if option.is_correct %}<span class="badge bg-success">Correct</span>{% endif %}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+
+                        {% if question.type == 'cus_match' %}
+                            {% for item in question.match_options.all %}
+                            <div class="mb-2">
+                                <strong>Pair {{ forloop.counter }}:</strong>
+                                Left: {{ item.left_item }} | Right: {{ item.right_item }}
+                            </div>
+                            {% endfor %}
+                        {% endif %}
+
+                        {% if question.type == 'psy_rating' %}
+                            {% for item in question.rating_options.all %}
+                            <div class="mb-2">
+                                <strong>Item {{ forloop.counter }}:</strong>
+                                {{ item.text }} (Value: {{ item.value }})
+                            </div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+
+                    <div class="tab-pane fade" id="metadata-{{ forloop.counter0 }}" role="tabpanel">
+                        <p><strong>Created By:</strong> {{ question.created_by.get_full_name }}</p>
+                        <p><strong>Created At:</strong> {{ question.created_at|date:"F d, Y" }}</p>
+                        <p><strong>Last Updated:</strong> {{ question.updated_at|date:"F d, Y" }}</p>
+                        <p><strong>Status:</strong> {{ question.get_status_display }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const questions = document.querySelectorAll('.question-details');
+        const selector = document.getElementById('questionSelector');
+        const prevBtn = document.getElementById('prevQuestion');
+        const nextBtn = document.getElementById('nextQuestion');
+    
+        function showQuestion(index) {
+            questions.forEach(q => q.style.display = 'none');
+            questions[index].style.display = 'block';
+            selector.value = index;
+            prevBtn.disabled = index === 0;
+            nextBtn.disabled = index === questions.length - 1;
+        }
+    
+        if (questions.length > 0) {
+            showQuestion(0);
+        }
+    
+        selector.addEventListener('change', (e) => {
+            showQuestion(parseInt(e.target.value));
+        });
+    
+        prevBtn.addEventListener('click', () => {
+            const currentIndex = parseInt(selector.value);
+            if (currentIndex > 0) {
+                showQuestion(currentIndex - 1);
+            }
+        });
+    
+        nextBtn.addEventListener('click', () => {
+            const currentIndex = parseInt(selector.value);
+            if (currentIndex < questions.length - 1) {
+                showQuestion(currentIndex + 1);
+            }
+        });
+    });
+    </script>
+
+
+
+    {% if form %}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4>Review Form</h4>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                <div class="form-group mb-2">
+                    <label class="form-label">Review Decision</label>
+                    <select name="decision" class="form-control" id="reviewDecision">
+                        <option value="approve">Approve</option>
+                        <option value="reject">Reject</option>
+                    </select>
+                </div>
+                
+                <div id="ratingField" class="form-group">
+                    {{ form.rating|as_crispy_field }}
+                </div>
+                
+                <div id="commentsField" class="form-group" style="display:none;">
+                    {{ form.comments|as_crispy_field }}
+                </div>
+                
+                <button type="submit" class="btn btn-success">Submit Review</button>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+    document.getElementById('reviewDecision').addEventListener('change', function() {
+        const ratingField = document.getElementById('ratingField');
+        const commentsField = document.getElementById('commentsField');
+        
+        if (this.value === 'approve') {
+            ratingField.style.display = 'block';
+            commentsField.style.display = 'none';
+        } else {
+            ratingField.style.display = 'none';
+            commentsField.style.display = 'block';
+        }
+    });
+    </script>
+    {% endif %}
+
+    {% if task.step == 'final_approval' and user == task.created_by %}
+        <div class="card">
+            <div class="card-header">
+                <h4>Final Approval</h4>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <button type="submit" name="action" value="approve" class="btn btn-success">
+                        Approve & Activate Question
+                    </button>
+                </form>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

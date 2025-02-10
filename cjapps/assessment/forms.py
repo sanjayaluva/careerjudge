@@ -28,7 +28,7 @@ class AssessmentForm(forms.ModelForm):
 
     class Meta:
         model = Assessment
-        fields = ['title', 'objective', 'description', 'instructions', 'description_img', 'instructions_img', 'display_order', 'duration_minutes' ]
+        fields = ['title', 'type', 'objective', 'description', 'instructions', 'description_img', 'instructions_img', 'display_order', 'duration_minutes' ]
         widgets = {
             'objective': QuillFormField(),
             'description': QuillFormField(),

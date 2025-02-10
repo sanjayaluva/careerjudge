@@ -5,7 +5,7 @@ from .models import Category
 from django.core.exceptions import ValidationError
 from django.contrib import messages
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 from .models import Question, GridOption
@@ -19,11 +19,20 @@ from . import forms
 import json
 from .utils import DecimalEncoder
 
+# request to delete requirements
+from django.utils import timezone
+from .models import DeletionRequest
+from cjapp.services import NotificationService
+from django.contrib.auth import get_user_model
+User = get_user_model()
+
+from cjapp.models import Task
+
 def manage_categories(request):
-    return render(request, 'question_bank/manage_categories.html')
+    return render(request, 'question_bank/manage_categories.html', {'user': request.user})
 
 def get_categories(request):
-    categories = Category.objects.all()
+    categories = Category.objects.filter(is_deleted=False)
     return JsonResponse([{
         'id': category.id,
         'parent': category.parent_id or '#',
@@ -78,7 +87,10 @@ def delete_category(request):
     category_id = request.POST.get('id')
     try:
         category = Category.objects.get(id=category_id)
-        category.delete()
+        # category.delete()
+        category.is_deleted = True
+        category.deleted_at = timezone.now()
+        category.save()
         return JsonResponse({'status': 'success'})
     except Category.DoesNotExist:
         return JsonResponse({'status': 'error', 'message': 'Category not found'}, status=404)
@@ -87,9 +99,15 @@ def delete_category(request):
 # question section
 
 @login_required
-def create_question(request):
+def create_question(request, task_id=None):
     if request.method == 'POST':
         basic_form = QuestionBasicForm(request.POST, request.FILES)
+        if task_id:
+            task = Task.objects.get(id=task_id)
+            # Set the type field value before validation
+            basic_form.data = basic_form.data.copy()
+            basic_form.data['type'] = task.question_type
+
         if basic_form.is_valid():
             question = basic_form.save(commit=False)
             question.created_by = request.user
@@ -110,11 +128,11 @@ def create_question(request):
                 grid_formset.save()
 
             rating_formset = forms.PsyRatingFormSet(request.POST, instance=question, prefix='rating')
-            if question.type == 'psy_rating':
+            if question.type == 'psy_rating' or question.type == 'psy_rank_rate':
                 if rating_formset.is_valid():
                     rating_formset.save()
 
-            if question.type == 'psy_ranking':
+            if question.type == 'psy_ranking' or question.type == 'psy_rank_rate':
                 question.ranking_structure = request.POST.get('ranking_data')
                 question.save()
 
@@ -122,13 +140,22 @@ def create_question(request):
                 request, f"Question ({question.title}) has been created successfully."
             )
 
-            return redirect('question_bank:question_list')
+            if task_id:
+                return redirect('cjapp:review_task', task_id=task_id, question_id=question.id)
+            else:
+                return redirect('question_bank:question_list')
         else:
             messages.error(
                 request, f"Something went wrong, please fill all fields correctly."
             )
     # else:
     basic_form = QuestionBasicForm()
+
+    if task_id:
+        task = Task.objects.get(id=task_id)
+        basic_form.fields['type'].initial = task.question_type
+        basic_form.fields['type'].widget.attrs['readonly'] = True
+        basic_form.fields['type'].disabled = True
 
     grid_formset = GridOptionFormSet(prefix='grid')
     option_formset = QuestionOptionFormSet(prefix='option')
@@ -202,7 +229,12 @@ def edit_question(request, pk):
         flash_formset = FlashCardFormSet(prefix='flash', instance=question)
         answer_formset = AnswerOptionFormSet(prefix='answer', instance=question)
         grid_formset = GridOptionFormSet(prefix='grid', instance=question)
-    
+
+        # Add validation for grid_cols
+        if question.grid_cols is None:
+            question.grid_cols = 1  # Set a default value
+            question.save()
+            
         grid_forms = [grid_formset.forms[i:i+question.grid_cols] for i in range(0, len(grid_formset.forms), question.grid_cols)]
 
         rating_formset = forms.PsyRatingFormSet(prefix='rating', instance=question)
@@ -233,9 +265,9 @@ def question_detail(request, pk):
 @login_required
 def question_list(request):
     if request.user.is_superuser:
-        questions = Question.objects.all().order_by('-created_at')
+        questions = Question.objects.filter(is_deleted=False).order_by('-created_at')
     else:
-        questions = Question.objects.filter(created_by=request.user).order_by('-created_at')
+        questions = Question.objects.filter(created_by=request.user, is_deleted=False).order_by('-created_at')
     return render(request, 'question_bank/question_list.html', {'questions': questions})
 
 @login_required
@@ -390,3 +422,116 @@ def fetch_jstree_data(request):
             data = []
     
     return JsonResponse(data, safe=False)
+
+@login_required
+@csrf_exempt
+def request_deletion(request):
+    if request.method == 'POST':
+        request_type = request.POST.get('type')
+        item_id = request.POST.get('id')
+        
+        deletion_request = DeletionRequest(
+            request_type=request_type,
+            requested_by=request.user
+        )
+        
+        if request_type == 'category':
+            category = get_object_or_404(Category, id=item_id)
+            if category.children.exists():
+                messages.error(request, "Cannot request deletion of category with subcategories. Delete subcategories first.")
+                return JsonResponse({'status': 'error'})
+            deletion_request.category = category
+            
+        elif request_type == 'subcategory':
+            subcategory = get_object_or_404(PsySubcategory, id=item_id)
+            deletion_request.subcategory = subcategory
+            
+        elif request_type == 'question':
+            question = get_object_or_404(Question, id=item_id)
+            deletion_request.question = question
+            
+        deletion_request.save()
+        
+        # Send notification to all CJ admin users
+        cj_admins = User.objects.filter(role=User.CJ_ADMIN)
+
+        # Send notification to all CJ admins
+        for admin in cj_admins:
+            NotificationService.send_notification(
+                sender=request.user,
+                receiver=admin,
+                message=f"New deletion request for {request_type}",
+                notification_type='deletion_request',
+                related_object=deletion_request
+            )
+        
+        messages.success(request, f"Deletion request for {request_type} has been submitted.")
+        return JsonResponse({'status': 'success'})
+    
+    return JsonResponse({'status': 'error'})
+
+@login_required
+@user_passes_test(lambda u: u.is_cjadmin)
+def review_deletion_request(request, request_id):
+    deletion_request = get_object_or_404(DeletionRequest, id=request_id)
+    
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        deletion_request.reviewed_by = request.user
+        deletion_request.reviewed_at = timezone.now()
+
+        if action == 'approve':
+            deletion_request.status = 'approved'
+            deletion_request.save()
+
+            now = timezone.now()
+            if deletion_request.request_type == 'category':
+                # deletion_request.category.delete()
+                deletion_request.category.is_deleted = True
+                deletion_request.category.deleted_at = now
+                deletion_request.category.save()
+            elif deletion_request.request_type == 'question':
+                # deletion_request.question.delete()
+                deletion_request.question.is_deleted = True
+                deletion_request.question.deleted_at = now
+                deletion_request.question.save()
+                
+            # deletion_request.status = 'approved'
+            
+            NotificationService.send_notification(
+                sender=request.user,
+                receiver=deletion_request.requested_by,
+                message=f"Your deletion request has been approved",
+                notification_type='deletion_approved',
+                related_object=deletion_request
+            )
+            
+        elif action == 'reject':
+            deletion_request.status = 'rejected'
+            deletion_request.rejection_reason = request.POST.get('reason')
+            
+            NotificationService.send_notification(
+                sender=request.user,
+                receiver=deletion_request.requested_by,
+                message=f"Your deletion request has been rejected",
+                notification_type='deletion_rejected',
+                related_object=deletion_request
+            )
+        
+        deletion_request.save()
+        messages.success(request, f"Deletion request has been {action}d")
+        return redirect('question_bank:deletion_requests_list')
+        
+    return render(request, 'question_bank/review_deletion_request.html', {
+        'deletion_request': deletion_request
+    })
+
+@login_required
+def deletion_requests_list(request):
+    if request.user.is_cjadmin:
+        requests = DeletionRequest.objects.filter(status='pending')
+    else:
+        requests = DeletionRequest.objects.filter(requested_by=request.user)
+    return render(request, 'question_bank/deletion_requests_list.html', {
+        'deletion_requests': requests
+    })

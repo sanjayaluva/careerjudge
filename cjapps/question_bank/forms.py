@@ -41,7 +41,7 @@ class QuestionBasicForm(forms.ModelForm):
         fields = [
             'title', 'type', 'instructions', 'objectives', 'exposure_limit', 'difficulty_level', 'cognitive_level', 'case_sensitive',
             'text', 'paragraph', 'image', 'audio', 'video', 'hotspot_items', 'grid_cols', 'grid_rows', 'grid_type', 'flash_items_count', 'flash_interval',
-            'category', 'paragraph_interval'
+            'category', 'paragraph_interval', 'right_score', 'wrong_score'
         ]
         widgets = {
             'instructions': QuillFormField(),
@@ -116,29 +116,29 @@ PsyRatingFormSet     = forms.inlineformset_factory(Question, models.PsyRatingIte
 #     item = forms.CharField(widget=forms.TextInput(attrs={'readonly': 'readonly'}))
 #     rank = forms.IntegerField(widget=forms.HiddenInput())
 
-class RankRateItemForm(forms.Form):
-    item = forms.CharField(widget=forms.TextInput(attrs={'readonly': 'readonly'}))
-    rank = forms.IntegerField(widget=forms.HiddenInput())
-    rating = forms.IntegerField(widget=forms.NumberInput(attrs={'min': 1, 'max': 5}))
+# class RankRateItemForm(forms.Form):
+#     item = forms.CharField(widget=forms.TextInput(attrs={'readonly': 'readonly'}))
+#     rank = forms.IntegerField(widget=forms.HiddenInput())
+#     rating = forms.IntegerField(widget=forms.NumberInput(attrs={'min': 1, 'max': 5}))
 
-class RatingItemForm(forms.Form):
-    item = forms.CharField(widget=forms.TextInput(attrs={})) #'readonly': 'readonly'
-    rating = forms.IntegerField(widget=forms.NumberInput(attrs={'min': 1, 'max': 5}), initial=1)
+# class RatingItemForm(forms.Form):
+#     item = forms.CharField(widget=forms.TextInput(attrs={})) #'readonly': 'readonly'
+#     rating = forms.IntegerField(widget=forms.NumberInput(attrs={'min': 1, 'max': 5}), initial=1)
 
-class ForcedChoiceSingleForm(forms.Form):
-    left_option = forms.CharField(widget=forms.TextInput(attrs={'readonly': 'readonly'}))
-    right_option = forms.CharField(widget=forms.TextInput(attrs={'readonly': 'readonly'}))
-    choice = forms.ChoiceField(choices=[('left', 'Left'), ('right', 'Right')], widget=forms.RadioSelect)
+# class ForcedChoiceSingleForm(forms.Form):
+#     left_option = forms.CharField(widget=forms.TextInput(attrs={'readonly': 'readonly'}))
+#     right_option = forms.CharField(widget=forms.TextInput(attrs={'readonly': 'readonly'}))
+#     choice = forms.ChoiceField(choices=[('left', 'Left'), ('right', 'Right')], widget=forms.RadioSelect)
 
-class ForcedChoiceTwoForm(forms.Form):
-    left_option = forms.CharField(widget=forms.TextInput(attrs={'readonly': 'readonly'}))
-    right_option = forms.CharField(widget=forms.TextInput(attrs={'readonly': 'readonly'}))
-    choice = forms.ChoiceField(choices=[('left', 'Left'), ('right', 'Right')], widget=forms.RadioSelect)
-    left_rating = forms.IntegerField(widget=forms.NumberInput(attrs={'min': 1, 'max': 5}))
-    right_rating = forms.IntegerField(widget=forms.NumberInput(attrs={'min': 1, 'max': 5}))
+# class ForcedChoiceTwoForm(forms.Form):
+#     left_option = forms.CharField(widget=forms.TextInput(attrs={'readonly': 'readonly'}))
+#     right_option = forms.CharField(widget=forms.TextInput(attrs={'readonly': 'readonly'}))
+#     choice = forms.ChoiceField(choices=[('left', 'Left'), ('right', 'Right')], widget=forms.RadioSelect)
+#     left_rating = forms.IntegerField(widget=forms.NumberInput(attrs={'min': 1, 'max': 5}))
+#     right_rating = forms.IntegerField(widget=forms.NumberInput(attrs={'min': 1, 'max': 5}))
 
-# RankingFormSet = forms.formset_factory(RankingItemForm, extra=0)
-RankRateFormSet = forms.formset_factory(RankRateItemForm, extra=0)
-RatingFormSet = forms.formset_factory(RatingItemForm, extra=0)
-ForcedChoiceSingleFormSet = forms.formset_factory(ForcedChoiceSingleForm, extra=0)
-ForcedChoiceTwoFormSet = forms.formset_factory(ForcedChoiceTwoForm, extra=0)
+# # RankingFormSet = forms.formset_factory(RankingItemForm, extra=0)
+# RankRateFormSet = forms.formset_factory(RankRateItemForm, extra=0)
+# RatingFormSet = forms.formset_factory(RatingItemForm, extra=0)
+# ForcedChoiceSingleFormSet = forms.formset_factory(ForcedChoiceSingleForm, extra=0)
+# ForcedChoiceTwoFormSet = forms.formset_factory(ForcedChoiceTwoForm, extra=0)

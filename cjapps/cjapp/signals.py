@@ -10,31 +10,34 @@ from django.contrib.auth import get_user_model
 User = get_user_model()
 from django.utils import formats
 
-from cjapp.notifications import send_notification
+from cjapp.services import NotificationService
 
 @receiver(post_save, sender=Booking)
 def booking_post_save(sender, instance, **kwargs):
-    """Notify User upon successfull payment for counselling booking."""
+    """Notify counsellor upon successful payment for counselling booking."""
     if instance.paid:
         counsellor = instance.counsellor
-        counsellor_name = instance.counsellor.get_full_name
         counselee = instance.counselee
-        counselee_name = instance.counselee.get_full_name
-        category = instance.category.name
         booked_at = formats.date_format(instance.booked, 'Y-m-d H:i')
         booking_date = instance.date
         timeslot = TIME_SLOTS[instance.timeslot]
+        category = instance.category.name
         
-        message = f'Booking Received on {booked_at}, from : {counselee_name} to {counsellor_name}, on topic {category} at {booking_date} : {timeslot}'
-        # link = reverse('counselling_booking_detail', args=[str(instance.pk)])
-        # notification = Notification(type=sender=counselee, reciever=counsellor, message=message) #, link=link
-        # notification.metadata = f'{sender.__name__}:{instance.pk}'
-        # # notification.link = link
-        # notification.save()
-        
-        metadata = f'{sender.__name__}:{instance.pk}'
+        message = (
+            f'Booking Received on {booked_at}, '
+            f'from: {counselee.get_full_name}, '
+            f'to {counsellor.get_full_name}, '
+            f'for: {category} '
+            f'on {booking_date} at {timeslot}'
+        )
 
-        send_notification(counselee, counsellor, message, Notification.COUSELLING_BOOKING, metadata)
+        NotificationService.send_notification(
+            sender=counselee,
+            receiver=counsellor,
+            message=message,
+            notification_type=Notification.COUNSELLING_BOOKING,
+            related_object=instance
+        )
 
 @receiver(post_migrate)
 def user_group_setup(sender, stdout=None, **kwargs):

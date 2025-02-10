@@ -268,54 +268,50 @@
 
     
 
-    $('#initiate_live_session').on( "click", function(e){
+    $('#initiate_live_session').on("click", function(e) {
         var trainer = '{{ training.created_by.id }}';
-        //var sender = '{{ request.user.id }}';
         var username = '{{ request.user.get_full_name }}';
-        var message = `Live session request recieved from ${username}.`;
-        
+        var message = `Live session request received from ${username}`;
         var livesession_id = $(this).data('id');
         var tracker_id = '{{ tracker.id }}';
-
-        metadata = `Session:${livesession_id}`;
-
-        send_notification('livesession_request', trainer, message, metadata);
-        initiate_livesession(tracker_id, livesession_id);
-
-        //if ($('#initiate_live_session').prop('disabled') == false) {
-        //$('#initiate_live_session').prop('disabled', true);
-        //}
-    });
-
-    function initiate_livesession(tracker_id, livesession_id) {
-        var csrftoken = getCookie('csrftoken');
-		var formData = new FormData();
-		formData.append('csrfmiddlewaretoken', csrftoken);
-		formData.append('tracker_id', tracker_id);
-		formData.append('livesession_id', livesession_id);
-
-		$.ajax({
-			url : "{% url 'initiate_livesession' %}",
-			type: "POST",
-			data : formData,
-			processData: false,
-			contentType: false,
-			success:function(data, textStatus, jqXHR){
-				console.log(data);
-                if (data.status == true) {
-                    //$('#initiate_live_session').text('Initiated Live Session');
-                    //$('#initiate_live_session').prop('disabled', true);
-                    //$('#btn_next').prop('disabled', true);
-                    
+        
+        // Send notification using the new notification service
+        $.ajax({
+            url: "{% url 'send_notification' %}",
+            type: "POST",
+            data: {
+                receiver: trainer,
+                message: message,
+                type: 'livesession_request',
+                csrfmiddlewaretoken: getCookie('csrftoken'),
+                metadata: `${livesession_id}`
+            },
+            success: function(response) {
+                if (response.status) {
+                    initiate_livesession(tracker_id, livesession_id);
                     $('#initiate_live_session').hide();
                     $('#livesession_msg').show();
                     window.location.reload();
                 }
-			},
-			error: function(jqXHR, textStatus, errorThrown){
-				//if fails     
-			}
-		});
+            }
+        });
+    });
+
+    function initiate_livesession(tracker_id, livesession_id) {
+        $.ajax({
+            url: "{% url 'initiate_livesession' %}",
+            type: "POST",
+            data: {
+                tracker_id: tracker_id,
+                livesession_id: livesession_id,
+                csrfmiddlewaretoken: getCookie('csrftoken')
+            },
+            success: function(response) {
+                if (response.status) {
+                    window.location.reload();
+                }
+            }
+        });
     }
 
     function go_next() {

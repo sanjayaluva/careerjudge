@@ -39,6 +39,6 @@ urlpatterns = [
     path('assessment/complete/<int:session_id>/', views.assessment_complete, name='assessment_complete'),
 
     # Validate assessment user answers
-    path('assessment/session/<int:session_id>/validate/', views.validate_all_responses, name='validate_all_responses'),
+    # path('assessment/session/<int:session_id>/validate/', views.validate_all_responses, name='validate_all_responses'),
 
 ]

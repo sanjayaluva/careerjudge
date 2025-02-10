@@ -152,16 +152,31 @@ $(function() {
             }
         });
     }).on('delete_node.jstree', function(e, data) {
-        $.post('{% url "question_bank:delete_category" %}', {
-            id: data.node.id
-        }).done(function(response) {
-            if (response.status === 'success') {
-                toastr.success('Category deleted successfully');
-            } else {
-                toastr.error('Failed to delete category');
-                $.jstree.reference('#category-tree').refresh();
-            }
-        });
+        {% if user.is_cjadmin %}
+            $.post('{% url "question_bank:delete_category" %}', {
+                id: data.node.id
+            }).done(function(response) {
+                if (response.status === 'success') {
+                    toastr.success('Category deleted successfully');
+                } else {
+                    toastr.error('Failed to delete category');
+                    $.jstree.reference('#category-tree').refresh();
+                }
+            });
+        {% else %}
+            $.post('{% url "question_bank:request_deletion" %}', {
+                type: 'category',
+                id: data.node.id
+            }).done(function(response) {
+                if (response.status === 'success') {
+                    toastr.success('Deletion request submitted successfully');
+                    $.jstree.reference('#category-tree').refresh();
+                } else {
+                    toastr.error('Failed to submit deletion request');
+                    $.jstree.reference('#category-tree').refresh();
+                }
+            });
+        {% endif %}
     }).on('create_node.jstree', function(e, data) {
         $.post('{% url "question_bank:create_category" %}', {
             name: data.node.text,
@@ -215,18 +230,33 @@ $(function() {
     $('#delete-category').click(function() {
         if (!selectedNode) return;
 
-        if (confirm('Are you sure you want to delete this category?')) {
-            $.post('{% url "question_bank:delete_category" %}', {
-                id: selectedNode.id
-            }).done(function(response) {
-                if (response.status === 'success') {
-                    toastr.success('Category deleted successfully');
-                    $.jstree.reference('#category-tree').refresh();
-                } else {
-                    toastr.error('Failed to delete category');
-                }
-            });
-        }
+        {% if user.is_cjadmin %}
+            if (confirm('Are you sure you want to delete this category?')) {
+                $.post('{% url "question_bank:delete_category" %}', {
+                    id: selectedNode.id
+                }).done(function(response) {
+                    if (response.status === 'success') {
+                        toastr.success('Category deleted successfully');
+                        $.jstree.reference('#category-tree').refresh();
+                    } else {
+                        toastr.error('Failed to delete category');
+                    }
+                });
+            }
+        {% else %}
+            if (confirm('Are you sure you want to request deletion of this category?')) {
+                $.post('{% url "question_bank:request_deletion" %}', {
+                    type: 'category',
+                    id: selectedNode.id
+                }).done(function(response) {
+                    if (response.status === 'success') {
+                        toastr.success('Deletion request submitted successfully');
+                    } else {
+                        toastr.error('Failed to submit deletion request');
+                    }
+                });
+            }
+        {% endif %}
     });
 
     $('#add-category').click(function() {

@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   web:
     build: .
@@ -11,8 +9,18 @@ services:
     environment:
       - DJANGO_ENV=testing
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/careerjudge
+      - ALLOWED_HOSTS=localhost,127.0.0.1
+      - WAIT_HOSTS=db:5432
+      - WAIT_HOSTS_TIMEOUT=300
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     networks:
       - app-network
+    volumes:
+      - static-files:/app/staticfiles
 
   db:
     image: postgres:13
@@ -23,13 +31,19 @@ services:
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
+      test: ["CMD-SHELL", "pg_isready -U postgres || exit 1"]
+      interval: 10s
       timeout: 5s
       retries: 5
     networks:
       - app-network
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
 
 networks:
   app-network:
     driver: bridge
+
+volumes:
+  static-files:
+  postgres-data:

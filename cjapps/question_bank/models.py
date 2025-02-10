@@ -3,12 +3,15 @@ from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
 User = get_user_model()
 from django_quill.fields import QuillField
-import re
+import re, json
 
 class Category(models.Model):
     name = models.CharField(max_length=100)
     parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='children')
 
+    is_deleted = models.BooleanField(default=False)
+    deleted_at = models.DateTimeField(null=True, blank=True)
+    
     def __str__(self):
         return self.name
 
@@ -31,11 +34,11 @@ class Question(models.Model):
         ('fib_flash', 'Fill in the Blank - Flash-based'),
         ('cus_grid', 'Grid List Selection Items'),
         ('cus_match', 'Match The Following'),
-        ('psy_ranking', 'Psychometric Simple Ranking Scale'),
-        ('psy_rank_n_rate', 'Psychometric First Rank-Then Rate Scale'),
         ('psy_rating', 'Psychometric Standard Rating Scale'),
-        ('psy_forced_single', 'Psychometric Forced-Choice Scale – Single Level Rating'),
-        ('psy_forced_two', 'Psychometric Forced-Choice Scale – Two-Level Rating'),
+        ('psy_ranking', 'Psychometric Simple Ranking Scale'),
+        ('psy_rank_rate', 'Psychometric First Rank-Then Rate Scale'),
+        ('psy_forced_one', 'Psychometric Forced-Choice Scale - Single Level Rating'),
+        ('psy_forced_two', 'Psychometric Forced-Choice Scale - Two-Level Rating'),
     ]
 
     DIFFICULTY_LEVELS = [
@@ -58,7 +61,7 @@ class Question(models.Model):
     STATUS_CHOICES = [
         ('draft', 'Draft'),
         ('review', 'Under Review'),
-        ('approved', 'Approved'),
+        ('active', 'Active'),
         ('inactive', 'Inactive'),
     ]
 
@@ -71,9 +74,10 @@ class Question(models.Model):
     audio = models.FileField(upload_to='question_media/', null=True, blank=True)
     video = models.FileField(upload_to='question_media/', null=True, blank=True)
     paragraph = QuillField(null=True, blank=True) #models.TextField(null=True, blank=True)
+    paragraph_interval = models.PositiveIntegerField(default=10, null=True, blank=True, help_text="Interval in seconds")
+    
     answer = models.TextField(null=True, blank=True)
     is_multiple_answer = models.BooleanField(default=False)
-    paragraph_interval = models.PositiveIntegerField(default=10, null=True, blank=True, help_text="Interval in seconds")
 
     flash_items_count = models.IntegerField(null=True, blank=True)
     flash_interval = models.PositiveIntegerField(default=5, null=True, blank=True, help_text="Interval in seconds")
@@ -81,8 +85,8 @@ class Question(models.Model):
     hotspot_items = models.JSONField(null=True, blank=True)
     negative_score = models.BooleanField(null=True, blank=True, default=False)
 
-    grid_cols = models.IntegerField(null=True, blank=True)
-    grid_rows = models.IntegerField(null=True, blank=True)
+    grid_cols = models.IntegerField(default=1)
+    grid_rows = models.IntegerField(default=1)
     grid_type = models.CharField(max_length=20, choices=[('text', 'Text'), ('image', 'Image')], default='text', null=True, blank=True)
 
     objectives = QuillField(null=True, blank=True) #models.TextField(_('Question Objective'), blank=True, null=True) 
@@ -97,14 +101,19 @@ class Question(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    correct_score = models.DecimalField(max_digits=5, decimal_places=2, default=1.0)
-    incorrect_score = models.DecimalField(max_digits=5, decimal_places=2, default=0.0)
+    # correct_score = models.DecimalField(max_digits=5, decimal_places=2, default=1.0)
+    # incorrect_score = models.DecimalField(max_digits=5, decimal_places=2, default=0.0)
+    right_score = models.PositiveIntegerField(default=1)
+    wrong_score = models.PositiveIntegerField(default=0)
 
     ranking_structure = models.JSONField(null=True, blank=True)
     
-    items = models.JSONField(default=dict)
-    scale_start = models.IntegerField(default=1)
-    scale_end = models.IntegerField(default=5)
+    # items = models.JSONField(default=dict)
+    # scale_start = models.IntegerField(default=1)
+    # scale_end = models.IntegerField(default=5)
+
+    is_deleted = models.BooleanField(default=False)
+    deleted_at = models.DateTimeField(null=True, blank=True)
 
     def save_items(self, items_data):
         self.items = items_data
@@ -174,6 +183,46 @@ class Question(models.Model):
         items = list(self.match_options.all())
         shuffle(items)
         return items
+
+    def validate_ranking_structure(self):
+        """Validates ranking structure for equal categories/subcategories"""
+        if not self.type.startswith('psy_rank'):
+            return True
+            
+        # Parse the JSON structure
+        structure = json.loads(self.ranking_structure)
+        left_tree = structure.get('leftTree', [])
+        
+        # Get all categories
+        categories = [node for node in left_tree if node.get('type') == 'category']
+        
+        # Count subcategories per category
+        subcategory_counts = []
+        statement_counts = []
+        
+        for category in categories:
+            # Get direct children that are subcategories
+            subcategories = [child for child in category.get('children', []) 
+                            if child.get('type') == 'subcategory']
+            
+            subcategory_counts.append(len(subcategories))
+            
+            if subcategories:
+                # Count statements in each subcategory
+                for subcategory in subcategories:
+                    statements = [child for child in subcategory.get('children', []) 
+                                if child.get('type') == 'statement']
+                    statement_counts.append(len(statements))
+            else:
+                # Count direct statements in category
+                statements = [child for child in category.get('children', []) 
+                            if child.get('type') == 'statement']
+                statement_counts.append(len(statements))
+        
+        # Validate equal counts
+        return (len(set(subcategory_counts)) <= 1 and  # All categories have same number of subcategories
+                len(set(statement_counts)) <= 1)        # All have same number of statements
+
 
 class OptionItem(models.Model):
     question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name='options')
@@ -246,3 +295,38 @@ class PsyRankGroup(models.Model):
 class PsyRankGroupStatement(models.Model):
     rank_group = models.ForeignKey(PsyRankGroup, related_name='statements', on_delete=models.CASCADE)
     statement = models.ForeignKey(PsyStatement, related_name='rank_groups', on_delete=models.CASCADE)
+
+class DeletionRequest(models.Model):
+    REQUEST_TYPES = [
+        ('category', 'Category'),
+        ('subcategory', 'Subcategory'),
+        ('question', 'Question')
+    ]
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected')
+    ]
+    
+    request_type = models.CharField(max_length=20, choices=REQUEST_TYPES)
+    category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True)
+    question = models.ForeignKey(Question, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    requested_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='deletion_requests')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    reviewed_by = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='reviewed_requests')
+    rejection_reason = models.TextField(null=True, blank=True)
+
+    def __str__(self):
+        item_name = ''
+        if self.category:
+            item_name = self.category.name
+        elif self.subcategory:
+            item_name = f"{self.subcategory.name} (under {self.subcategory.category.name})"
+        elif self.question:
+            item_name = self.question.title
+            
+        return f"{self.get_request_type_display()} deletion request - {item_name}"

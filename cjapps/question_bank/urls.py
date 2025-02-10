@@ -12,6 +12,7 @@ urlpatterns = [
 
     path('question-bank/questions/', views.question_list, name='question_list'),
     path('question-bank/questions/create/', views.create_question, name='create_question'),
+    path('question-bank/questions/create/<int:task_id>/', views.create_question, name='create_question'),
     path('question-bank/questions/<int:pk>/', views.question_detail, name='question_detail'),
     path('question-bank/questions/<int:pk>/edit/', views.edit_question, name='edit_question'),
     path('question-bank/questions/<int:pk>/delete/', views.delete_question, name='delete_question'),
@@ -26,4 +27,10 @@ urlpatterns = [
     path('create-statement/', views.create_statement, name='create_statement'),
     path('create-rank-group/', views.create_rank_group, name='create_rank_group'),
     path('add-statement-to-rank-group/', views.add_statement_to_rank_group, name='add_statement_to_rank_group'),
+]
+
+urlpatterns += [
+    path('request-deletion/', views.request_deletion, name='request_deletion'),
+    path('review-deletion-request/<int:request_id>/', views.review_deletion_request, name='review_deletion_request'),
+    path('deletion-requests/', views.deletion_requests_list, name='deletion_requests_list'),
 ]

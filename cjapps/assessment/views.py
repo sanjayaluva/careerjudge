@@ -22,16 +22,24 @@ from django.utils import timezone
 # from django.db.models import Prefetch
 
 def assessment_list(request):
-    assessments = Assessment.objects.filter(created_by=request.user).all()
-    paginator = Paginator(assessments, 10)  # Show 10 assessments per page
+    assessment_list = Assessment.objects.filter(created_by=request.user).all()
+    paginator = Paginator(assessment_list, 10)  # Show 10 assessments per page
     page = request.GET.get('page')
+    
     try:
         assessments = paginator.page(page)
     except PageNotAnInteger:
         assessments = paginator.page(1)
     except EmptyPage:
         assessments = paginator.page(paginator.num_pages)
-    return render(request, 'assessment/assessment_list.html', {'assessments': assessments})
+        
+    context = {
+        'assessments': assessments,
+        'is_paginated': True if paginator.num_pages > 1 else False,
+        'page_obj': assessments
+    }
+    
+    return render(request, 'assessment/assessment_list.html', context)
 
 def assessment_create(request):
     if request.method == 'POST':
@@ -85,33 +93,67 @@ def assessment_structure(request, pk):
             return delete_node(assessment, data)
         elif action == 'move':
             return move_node(assessment, data)
-        elif action == 'level':
-            return set_level_count(assessment, data)
-    
+        elif action == 'delivery_count':
+            return set_delivery_count(assessment, data)
+        elif action == 'timer':
+            return set_timer(assessment, data)
+        
     structure = build_structure(assessment)
-    return JsonResponse({'structure': structure, 'level_counts': assessment.level_counts}, safe=False)
+    return JsonResponse({'structure': structure}, safe=False)
 
 def build_structure(assessment):
     def recursive_build(node):
+        if not node:
+            return None
+        
+        level = node.get_level()
+        has_parent_timer = node.has_parent_timer()
+        timer_disabled = has_parent_timer
+    
         children = []
         for child in node.children.all():
             children.append(recursive_build(child))
         
+        tooltip = f"Delivery Count: {node.get_total_delivery_count()}, Timer: {node.get_total_timer()} min"
+        if timer_disabled:
+            tooltip = f"Delivery Count: {node.get_total_delivery_count()}, Timer: disabled."
+
         return {
             'id': str(node.id),
             'text': node.title if node.is_section else node.question.title,
             'type': 'section' if node.is_section else 'question',
             'children': children,
-            'data': {'questionId': node.question.id} if not node.is_section else {},
-            'li_attr': { 'class': 'question-node' } if not node.is_section else {}
+            'data': {
+                'questionId': node.question.id,
+            } if not node.is_section else {
+                'delivery_count': node.delivery_count or 0,
+                'timer_minutes': node.timer_minutes or 0,
+                'level': level,
+                'timer_disabled': timer_disabled,
+            },
+            'li_attr': { 
+                'class': 'question-node' 
+            } if not node.is_section else { 
+                'class': 'section-node', 
+                'data-toggle': 'tooltip', 
+                'title': tooltip,
+            }
         }
     
     return [recursive_build(section) for section in assessment.sections.filter(parent=None)]
 
-def set_level_count(assessment, data):
-    assessment.level_counts = data['level_counts']
-    assessment.save()
-    return JsonResponse({'status': 'success'}, safe=False)
+def set_timer(assessment, data):
+    section = get_object_or_404(Section, id=data['node_id'])
+    section.timer_minutes = int(data['minutes'])
+    section.save()
+    return JsonResponse({'status': 'success'})
+
+def set_delivery_count(assessment, data):
+    section = get_object_or_404(Section, id=data['node_id'])
+    section.delivery_count = int(data['count'])
+    section.save()
+    return JsonResponse({'status': 'success'})
+
 
 def create_node(assessment, data):
     parent = models.Section.objects.get(id=data['parent_id']) if data['parent_id'] else None
@@ -148,6 +190,8 @@ def search_questions(request):
     form = QuestionSearchForm(request.GET)
     questions = Question.objects.all()
 
+    assessment_type = request.GET.get('assessment_type')
+
     if form.is_valid():
         if form.cleaned_data['title']:
             questions = questions.filter(title__icontains=form.cleaned_data['title'])
@@ -161,6 +205,13 @@ def search_questions(request):
             questions = questions.filter(cognitive_level=form.cleaned_data['cognitive_level'])
         if form.cleaned_data['exposure_limit']:
             questions = questions.filter(exposure_limit__lte=form.cleaned_data['exposure_limit'])
+
+        # Filter by assessment type
+        if assessment_type == 'psychometric':
+            questions = questions.filter(type__startswith='psy_')
+        elif assessment_type == 'normal':
+            questions = questions.exclude(type__startswith='psy_')
+
 
     #questions_data = list(questions.values('id', 'title', 'type', 'difficulty_level'))
     questions_data = [
@@ -189,39 +240,16 @@ def get_question_options(request, pk):
     return JsonResponse(data, safe=False)
 
 def set_question_scores(request, pk):
-    section = models.Section.objects.get(id=pk)
-    data = json.loads(request.body)
-    # question = Question.objects.get(id=section.question_id)
-    
-    section.right_score = data['right_score']
-    section.wrong_score = data['wrong_score']
-    section.save()
+    if request.method == 'POST':
+        section = models.Section.objects.get(id=pk)
+        data = json.loads(request.body)
+        # question = Question.objects.get(id=section.question_id)
+        
+        section.right_score = data['right_score']
+        section.wrong_score = data['wrong_score']
+        section.save()
 
-    return JsonResponse({'status': 'success'})
-
-
-# def start_assessment(request, assessment_id):
-#     assessment = get_object_or_404(Assessment, id=assessment_id)
-#     session = AssessmentSession.objects.create(
-#         student=request.user,
-#         assessment=assessment,
-#         remaining_time=assessment.duration_minutes * 60  # Convert minutes to seconds
-#     )
-#     return redirect('take_assessment', session_id=session.id)
-
-
-
-# def assessment_results(request, session_id):
-#     session = get_object_or_404(AssessmentSession, id=session_id)
-#     answers = QuestionResponse.objects.filter(session=session)
-#     context = {
-#         'session': session,
-#         'answers': answers,
-#     }
-#     return render(request, 'assessment/assessment_results.html', context)
-
-# from django.shortcuts import render, redirect, get_object_or_404
-# from django.http import JsonResponse
+        return JsonResponse({'status': 'success'})
 
 
 def get_assessment_summary(session):
@@ -249,6 +277,9 @@ def get_sections_with_progress(session):
     responses = QuestionResponse.objects.filter(session=session)
     answered_questions = {r.question_id: r for r in responses}
     
+    # Track global question number
+    global_question_number = 1
+
     # Get main sections
     main_sections = Section.objects.filter(
         assessment=session.assessment,
@@ -260,6 +291,7 @@ def get_sections_with_progress(session):
         questions_data = []
         
         def collect_section_questions(section):
+            nonlocal global_question_number
             child_sections = Section.objects.filter(parent=section)
             
             for child in child_sections:
@@ -267,11 +299,12 @@ def get_sections_with_progress(session):
                     response = answered_questions.get(child.question_id)
                     questions_data.append({
                         'id': child.question_id,
-                        'number': len(questions_data) + 1,
-                        'is_answered': response is not None,
+                        'number': global_question_number, #len(questions_data) + 1,
+                        'is_answered': response.status == 'answered' if response else False,
                         'is_bookmarked': response.is_bookmarked if response else False,
                         'section_id': main_section.id
                     })
+                    global_question_number += 1
                 else:
                     collect_section_questions(child)
         
@@ -536,18 +569,15 @@ def get_or_create_session(user, assessment_id):
         return session
 
 def get_first_question(assessment_id):
-    first_section = Section.objects.filter(
-        assessment_id=assessment_id,
-        is_section=True,
-        parent=None
-    ).first()
+    assessment_session = AssessmentSession.objects.get(assessment_id=assessment_id)
+    sections_data = get_sections_with_progress(assessment_session)
     
-    if first_section:
-        return Question.objects.filter(
-            section__parent=first_section,
-            section__question_id__isnull=False
-        ).first()
-    
+    # Get first question from the first section that has questions
+    for section in sections_data:
+        if section['questions']:
+            first_question_id = section['questions'][0]['id']
+            return Question.objects.get(id=first_question_id)
+            
     return None
 
 @login_required
@@ -557,106 +587,111 @@ def save_question_response(request, session_id):
     data = json.loads(request.body)
     
     with transaction.atomic():
-        question = Question.objects.get(id=data['question_id'])
-        is_correct = check_answer_correctness(question, data['answer_data'])
-        
-        response = QuestionResponse.objects.update_or_create(
+        response, created = QuestionResponse.objects.update_or_create(
             session=session,
             question_id=data['question_id'],
             defaults={
-                'answer_data': data['answer_data'],
+                'status': data.get('status', 'skipped'),
+                'answer_data': data.get('answer_data', {}),
                 'is_bookmarked': data.get('is_bookmarked', False),
-                'is_correct': is_correct
             }
         )
-        
-    return JsonResponse({'status': 'success'})
 
-def check_answer_correctness(question, answer_data):
-    if not answer_data:
-        return False
-    
-    if question.type.startswith('mcq'):
-        if question.type in ['mcq_text', 'mcq_image', 'mcq_audio', 'mcq_video', 'mcq_paragraph']:
-            selected_option = answer_data.get('selected_option')
-            correct_option = question.options.filter(is_correct=True).first()
-            return selected_option == str(correct_option.id) if correct_option else False
-        else: # mcq_flash
-            pass
-            # return check_mcq_correctness(question, answer_data)
-        # return check_mcq_correctness(question, answer_data)
-    elif question.type.startswith('fib'):
-        if question.type in ['fib_text', 'fib_image', 'fib_audio', 'fib_video', 'fib_paragraph']:
-            user_answers = answer_data.get('answers', [])
-            correct_answers, _ = question.get_fib_info()
-            
-            if len(user_answers) != len(correct_answers):
-                return False
-                
-            return all(
-                user_answer.lower().strip() == correct_answer.lower().strip()
-                for user_answer, correct_answer in zip(user_answers, correct_answers)
-            )
-        else: # fib_flash
-            pass
-        # return check_fib_correctness(question, answer_data)
-    elif question.type.startswith('psy'):
-        if question.type == 'psy_rating':
-            selected_value = answer_data.get('selected_value')
-            correct_value = question.rating_options.filter(is_correct=True).first()
-            return selected_value == correct_value.value if correct_value else False
-        elif question.type == 'psy_ranking':
-            selected_order = answer_data.get('selected_order')
-            correct_order = json.loads(question.ranking_structure) if question.ranking_structure else []
-            return selected_order == correct_order
-        elif question.type == 'psy_rank_n_rate':
-            selected_value = answer_data.get('selected_value')
-            correct_value = question.rating_options.filter(is_correct=True).first()
-            selected_order = answer_data.get('selected_order')
-            correct_order = json.loads(question.ranking_structure) if question.ranking_structure else []
-            return selected_value == correct_value.value if correct_value else False and selected_order == correct_order
-        return False
-    elif question.type.startswith('cus'):
-        if question.type == 'cus_hotspot_single':
-            selected_hotspots = answer_data.get('selected_hotspots')
-            correct_hotspots = question.hotspot_items
-            return selected_hotspots == correct_hotspots
-        elif question.type == 'cus_hotspot_multiple':
-            selected_hotspots = answer_data.get('selected_hotspots')
-            correct_hotspots = question.hotspot_items
-            return selected_hotspots == correct_hotspots
-        elif question.type == 'cus_grid':
-            selected_rows = answer_data.get('selected_rows')
-            correct_rows = json.loads(question.grid_structure) if question.grid_structure else []
-            return selected_rows == correct_rows
-        elif question.type == 'cus_match':
-            selected_pairs = answer_data.get('selected_pairs')
-            correct_pairs = json.loads(question.match_structure) if question.match_structure else []
-            return selected_pairs == correct_pairs
+        # Validate answer and calculate score
+        response.validate_answer()
+        response.calculate_score()
         
-        return False
-        # return check_cus_correctness(question, answer_data)
-    return False
-
-@login_required
-@require_http_methods(['POST'])
-def validate_all_responses(request, session_id):
-    session = get_object_or_404(AssessmentSession, id=session_id, user=request.user)
-    responses = QuestionResponse.objects.filter(session=session)
-    
-    with transaction.atomic():
-        for response in responses:
-            question = response.question
-            is_correct = check_answer_correctness(question, response.answer_data)
-            response.is_correct = is_correct
-            response.save()
-    
     return JsonResponse({
         'status': 'success',
-        'message': 'All responses validated',
-        'total_responses': responses.count(),
-        'correct_responses': responses.filter(is_correct=True).count()
+        'is_correct': response.is_correct,
+        'score': response.score
     })
+
+# def check_answer_correctness(question, answer_data):
+#     if not answer_data:
+#         return False
+    
+#     if question.type.startswith('mcq'):
+#         if question.type in ['mcq_text', 'mcq_image', 'mcq_audio', 'mcq_video', 'mcq_paragraph']:
+#             selected_option = answer_data.get('selected_option')
+#             correct_option = question.options.filter(is_correct=True).first()
+#             return selected_option == str(correct_option.id) if correct_option else False
+#         else: # mcq_flash
+#             pass
+#             # return check_mcq_correctness(question, answer_data)
+#         # return check_mcq_correctness(question, answer_data)
+#     elif question.type.startswith('fib'):
+#         if question.type in ['fib_text', 'fib_image', 'fib_audio', 'fib_video', 'fib_paragraph']:
+#             user_answers = answer_data.get('answers', [])
+#             correct_answers, _ = question.get_fib_info()
+            
+#             if len(user_answers) != len(correct_answers):
+#                 return False
+                
+#             return all(
+#                 user_answer.lower().strip() == correct_answer.lower().strip()
+#                 for user_answer, correct_answer in zip(user_answers, correct_answers)
+#             )
+#         else: # fib_flash
+#             pass
+#         # return check_fib_correctness(question, answer_data)
+#     elif question.type.startswith('psy'):
+#         if question.type == 'psy_rating':
+#             selected_value = answer_data.get('selected_value')
+#             correct_value = question.rating_options.filter(is_correct=True).first()
+#             return selected_value == correct_value.value if correct_value else False
+#         elif question.type == 'psy_ranking':
+#             selected_order = answer_data.get('selected_order')
+#             correct_order = json.loads(question.ranking_structure) if question.ranking_structure else []
+#             return selected_order == correct_order
+#         elif question.type == 'psy_rank_n_rate':
+#             selected_value = answer_data.get('selected_value')
+#             correct_value = question.rating_options.filter(is_correct=True).first()
+#             selected_order = answer_data.get('selected_order')
+#             correct_order = json.loads(question.ranking_structure) if question.ranking_structure else []
+#             return selected_value == correct_value.value if correct_value else False and selected_order == correct_order
+#         return False
+#     elif question.type.startswith('cus'):
+#         if question.type == 'cus_hotspot_single':
+#             selected_hotspots = answer_data.get('selected_hotspots')
+#             correct_hotspots = question.hotspot_items
+#             return selected_hotspots == correct_hotspots
+#         elif question.type == 'cus_hotspot_multiple':
+#             selected_hotspots = answer_data.get('selected_hotspots')
+#             correct_hotspots = question.hotspot_items
+#             return selected_hotspots == correct_hotspots
+#         elif question.type == 'cus_grid':
+#             selected_rows = answer_data.get('selected_rows')
+#             correct_rows = json.loads(question.grid_structure) if question.grid_structure else []
+#             return selected_rows == correct_rows
+#         elif question.type == 'cus_match':
+#             selected_pairs = answer_data.get('selected_pairs')
+#             correct_pairs = json.loads(question.match_structure) if question.match_structure else []
+#             return selected_pairs == correct_pairs
+        
+#         return False
+#         # return check_cus_correctness(question, answer_data)
+#     return False
+
+# @login_required
+# @require_http_methods(['POST'])
+# def validate_all_responses(request, session_id):
+#     session = get_object_or_404(AssessmentSession, id=session_id, user=request.user)
+#     responses = QuestionResponse.objects.filter(session=session)
+    
+#     with transaction.atomic():
+#         for response in responses:
+#             question = response.question
+#             is_correct = response. # check_answer_correctness(question, response.answer_data)
+#             response.is_correct = is_correct
+#             response.save()
+    
+#     return JsonResponse({
+#         'status': 'success',
+#         'message': 'All responses validated',
+#         'total_responses': responses.count(),
+#         'correct_responses': responses.filter(is_correct=True).count()
+#     })
 
 @login_required
 @require_http_methods(['POST'])
@@ -678,6 +713,10 @@ def assessment_control(request, session_id):
         session.is_completed = True
         session.end_time = timezone.now()
         session.save()
+        
+        # Calculate final scores
+        session.calculate_scores()
+        
         return JsonResponse({'status': 'success', 'redirect_url': f'/assessment/complete/{session_id}/'})
     
     return JsonResponse({'status': 'error', 'message': 'Invalid action'})
@@ -690,16 +729,6 @@ def assessment_complete(request, session_id):
     # Get assessment summary
     summary = get_assessment_summary(session)
     
-    # # Get section-wise performance
-    # sections_data = get_sections_with_progress(session)
-    
-    # context = {
-    #     'session': session,
-    #     'summary': summary,
-    #     'sections': sections_data,
-    #     'assessment': session.assessment
-    # }
-
     # Get all responses with questions
     responses = QuestionResponse.objects.filter(session=session).select_related('question')
     
@@ -712,7 +741,8 @@ def assessment_complete(request, session_id):
         sections_with_responses[section].append({
             'question': response.question,
             'answer_data': response.answer_data,
-            'is_correct': response.is_correct
+            'is_correct': response.is_correct,
+            'score': response.score
         })
     
     context = {
@@ -721,7 +751,8 @@ def assessment_complete(request, session_id):
         'summary': summary,
         'total_questions': responses.count(),
         'correct_answers': responses.filter(is_correct=True).count(),
-        'assessment': session.assessment
+        'assessment': session.assessment,
+        'section_scores': session.scores
     }
     
     return render(request, 'assessment/complete.html', context)

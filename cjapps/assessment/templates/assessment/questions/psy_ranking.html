@@ -13,7 +13,7 @@
             <h3 class="group-title">{{ group.text }}</h3>
             <div class="ranking-statements">
                 {% for statement in group.children %}
-                <div class="ranking-statement">
+                <div class="ranking-statement" data-statement-id="{{ statement.data.originalId }}">
                     <span class="statement-text">{{ statement.text }}</span>
                     <select class="rank-select" data-group-id="{{ group.id }}" data-statement="{{ statement }}">
                         <option value="">Select Rank</option>

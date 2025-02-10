@@ -29,7 +29,7 @@ import os
 
 import mimetypes
 from django.apps import apps
-
+from cjapp.services import NotificationService
 
 class TrainingCategoryListView(ListView):
     paginate_by = 5
@@ -276,39 +276,39 @@ def submit_assignment_report_view(request):
 @login_required
 def schedule_livesession_view(request):
     if request.method == 'POST':
-        from cjapp.notifications import get_notification
-
         notification_id = request.POST['notification_id']
-        start_time      = request.POST['start_time']
-        duration        = request.POST['duration']
+        start_time = request.POST['start_time']
+        duration = request.POST['duration']
 
-        notification = get_notification(notification_id)
+        # Get notification and related live session
+        notification = NotificationService.get_notification(notification_id)
+        live_session = notification.content_object
+        
+        # Update live session details
+        live_session.tracker_livesession.start_time = start_time
+        live_session.tracker_livesession.duration = duration
+        live_session.tracker_livesession.trainer_scheduled = True
+        live_session.tracker_livesession.save()
 
-        metadata = notification.metadata.split(':')
-        model_name  = metadata[0]
-        model_id    = metadata[1]
-        model = apps.get_model('training', model_name)
-        livesession = model.objects.get(pk = model_id)
-        livesession.tracker_livesession.start_time = start_time
-        livesession.tracker_livesession.duration = duration
-        livesession.tracker_livesession.trainer_scheduled = True
-        livesession.tracker_livesession.save()
-
+        # Create Zoom meeting
         zoom = ZoomClient()
-        zoom_response = zoom.create_meeting(livesession.name, duration, start_time+':00Z')
-        # livesession.zoom_response = zoom_response
-        # livesession.save()
+        zoom_response = zoom.create_meeting(live_session.name, duration, start_time+':00Z')
+        live_session.tracker_livesession.zoom_response = zoom_response
+        live_session.tracker_livesession.save()
 
-        livesession.tracker_livesession.zoom_response = zoom_response
-        livesession.tracker_livesession.save()
+        # Mark notification as read
+        NotificationService.mark_as_read(notification_id)
 
-        notification.read = True
-        notification.save()
+        # Send confirmation notification to student
+        NotificationService.send_notification(
+            sender=request.user,
+            receiver=live_session.student,
+            message=f"Live session scheduled for {start_time}",
+            notification_type=Notification.LIVE_SESSION_SCHEDULED,
+            related_object=live_session
+        )
 
-        # print(zoom_response)
         return JsonResponse({'status': True, 'data': []}, safe=False)
-    else:
-        return HttpResponseNotAllowed(['POST'])
 
 @login_required
 def training_activate_view(request, training_id=None):

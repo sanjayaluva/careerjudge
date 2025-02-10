@@ -59,6 +59,10 @@
                     <div class="col-md-6">{{ basic_form.instructions|as_crispy_field }}</div>
                     <div class="col-md-6">{{ basic_form.objectives|as_crispy_field }}</div>
                 </div>
+                <div class="row">
+                    <div class="col-md-6">{{ basic_form.right_score|as_crispy_field }}</div>
+                    <div class="col-md-6">{{ basic_form.wrong_score|as_crispy_field }}</div>
+                </div>
             </div>
             <div class="tab-pane fade" id="category" role="tabpanel">
                 {{ basic_form.category|as_crispy_field }}
@@ -270,11 +274,32 @@
                             </tr>
                         </script>
                     </div>
+                    
+                    <div id="ranking-fields" class="mt-3 card p-3">
+                        <div class="row">
+                            <div class="col-2">
+                                <h5 class="mb-2 mb-0">Ranking:</h5>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="panel col">
+                                <h6>Statements</h6>
+                                <button type="button" class="btn btn-sm btn-primary" id="addCategory">Add Category</button>
+                                <div id="leftTree"></div>
+                            </div>
+                            <div class="panel col">
+                                <h6>Rankgroups</h6>
+                                <button type="button" class="btn btn-sm btn-primary" id="addRankgroup">Add Rankgroup</button>
+                                <div id="rightTree"></div>
+                            </div>
+                        </div>
+                        <input type="hidden" name="ranking_data" id="ranking_data">
+                    </div>
 
-                    <div id="rating-scale" class="mt-4">
+                    <div id="rating-fields" class="mt-3 card p-3">
                         <div class="row mb-2">
                             <div class="col-2">
-                                <h6 class="mt-2 mb-0">Rating (Psycometric):</h6>
+                                <h5 class="mb-2 mb-0">Rating:</h5>
                             </div>
                             <div class="col">
                                 <button type="button" id="toggle-numbering" class="btn btn-sm btn-primary"></button>
@@ -302,7 +327,7 @@
                                 {% endfor %}
                             </tbody>
                         </table>
-                        <button type="button" data-formset="rating" class="btn btn-outline-primary add-row">Add Rating</button>
+                        <button type="button" data-formset="rating" class="btn btn-primary add-row btn-sm w-25">Add Rating</button>
                         <script type="text/html" id="rating-empty-form">
                             <tr>
                                 <td>{{ rating_formset.empty_form.text }}</td>
@@ -314,170 +339,8 @@
                             </tr>
                         </script>
                     </div>
+
                     
-                    <div id="ranking-scale" class="mt-4">
-                        <div class="container row">
-                            <div class="panel col">
-                                <h5>Statements</h5>
-                                <button type="button" id="addCategory">Add Category</button>
-                                <div id="leftTree"></div>
-                            </div>
-                            <div class="panel col">
-                                <h5>Rankgroups</h5>
-                                <button type="button" id="addRankgroup">Add Rankgroup</button>
-                                <div id="rightTree"></div>
-                            </div>
-                        </div>
-                        <input type="hidden" name="ranking_data" id="ranking_data">
-                    </div>
-
-                    {% comment %} <div id="ranking-scale" class="mt-4">
-                        <h6>{{ question.text }}</h6>
-                        <form method="post">
-                            {% csrf_token %}
-                            {{ ranking_formset.management_form }}
-                            <table class="table" id="ranking-table">
-                                <thead>
-                                    <tr>
-                                        <th>Item</th>
-                                        <th>Rank</th>
-                                        <th>Delete</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for form in ranking_formset %}
-                                        <tr>
-                                            <td>{{ form.item }}</td>
-                                            <td>{{ form.rank }}</td>
-                                            <td>
-                                                <button type="button" class="btn btn-sm btn-danger delete-row">Delete</button>
-                                                {{ form.DELETE }}
-                                            </td>
-                                        </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                            <button type="button" class="btn btn-primary add-ranking">Add Ranking Option</button>
-                            <script type="text/html" id="ranking-empty-form">
-                                <tr>
-                                    <td>{{ ranking_formset.empty_form.item }}</td>
-                                    <td>{{ ranking_formset.empty_form.rank }}</td>
-                                    <td>{{ ranking_formset.empty_form.DELETE }}</td>
-                                </tr>
-                            </script>
-                        </form>
-                    </div>
-
-                    <div id="rank-rate-scale" class="mt-4">
-                        <h6>{{ question.text }}</h6>
-                        <form method="post">
-                            {% csrf_token %}
-                            {{ ranknrate_formset.management_form }}
-                            <table class="table" id="rank-rate-table">
-                                <thead>
-                                    <tr>
-                                        <th>Item</th>
-                                        <th>Rank</th>
-                                        <th>Rating</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for form in ranknrate_formset %}
-                                        <tr>
-                                            <td>{{ form.item }}</td>
-                                            <td>{{ form.rank }}</td>
-                                            <td>{{ form.rating }}</td>
-                                        </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                            <button type="submit" class="btn btn-primary">Submit</button>
-                        </form>
-                    </div>
-                    
-                    <div id="rating-scale" class="mt-4">
-                        <h6>{{ question.text }}</h6>
-                        <form method="post">
-                            {% csrf_token %}
-                            {{ rating_formset.management_form }}
-                            <table id="rating-table" class="table">
-                                <thead>
-                                    <tr>
-                                        <th>Item</th>
-                                        <th>Rating</th>
-                                        <th>Delete</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for form in rating_formset %}
-                                        <tr>
-                                            <td>{{ form.item }}</td>
-                                            <td>{{ form.rating }}</td>
-                                            <td>
-                                                <button type="button" class="btn btn-sm btn-danger delete-row">Delete</button>
-                                                {{ form.DELETE }}
-                                            </td>
-                                        </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                            <button type="button" class="btn btn-primary add-rating">Add Rating Option</button>
-                            <script type="text/html" id="rating-empty-form">
-                                <tr>
-                                    <td>{{ rating_formset.empty_form.item }}</td>
-                                    <td>{{ rating_formset.empty_form.rating }}</td>
-                                    <td>
-                                        <button type="button" class="btn btn-sm btn-danger delete-row">Delete</button>
-                                        {{ rating_formset.empty_form.DELETE }}
-                                    </td>
-                                </tr>
-                            </script>
-                        </form>
-                    </div>
-
-                    <div id="forced1-scale" class="mt-4">
-                        <h6>{{ question.text }}</h6>
-                        <form method="post">
-                            {% csrf_token %}
-                            {{ forcedsingle_formset.management_form }}
-                            {% for form in forcedsingle_formset %}
-                                <div class="row mb-3">
-                                    <div class="col-5">
-                                        <input type="radio" name="{{ form.prefix }}-choice" value="left" required> {{ form.left_option }}
-                                    </div>
-                                    <div class="col-2 text-center">OR</div>
-                                    <div class="col-5">
-                                        <input type="radio" name="{{ form.prefix }}-choice" value="right"> {{ form.right_option }}
-                                    </div>
-                                </div>
-                            {% endfor %}
-                            <button type="submit" class="btn btn-primary">Submit</button>
-                        </form>
-                    </div>
-
-                    <div id="forced2-scale" class="mt-4">
-                        <h6>{{ question.text }}</h6>
-                        <form method="post">
-                            {% csrf_token %}
-                            {{ forcedtwo_formset.management_form }}
-                            {% for form in forcedtwo_formset %}
-                                <div class="row mb-3">
-                                    <div class="col-5">
-                                        <input type="radio" name="{{ form.prefix }}-choice" value="left" required> {{ form.left_option }}
-                                        <br>
-                                        {{ form.left_rating }}
-                                    </div>
-                                    <div class="col-2 text-center">OR</div>
-                                    <div class="col-5">
-                                        <input type="radio" name="{{ form.prefix }}-choice" value="right"> {{ form.right_option }}
-                                        <br>
-                                        {{ form.right_rating }}
-                                    </div>
-                                </div>
-                            {% endfor %}
-                            <button type="submit" class="btn btn-primary">Submit</button>
-                        </form>
-                    </div> {% endcomment %}
 
                 </div>
             </div>
@@ -541,6 +404,16 @@
             return false;
         }
 
+        // validate ranking structure if type is psy_rank
+        if ($('#id_type').val().startsWith('psy_rank')) {
+            const validation = validateRankingStructure();
+            if (!validation.valid) {
+                // e.preventDefault();
+                alert(validation.messages.join('\n'));
+                return false;
+            }
+        }
+
         var form = document.getElementById(form_id);
         if (form.checkValidity()) {
             // updateTreeData();
@@ -554,6 +427,123 @@
             // highlight invalid field
             form.reportValidity()
         }
+    }
+
+    function validateRankingStructure() {
+        // Get tree data
+        const leftTree = $('#leftTree').jstree(true).get_json('#', {flat: false});
+        const rightTree = $('#rightTree').jstree(true).get_json('#', {flat: false});
+        
+        const validationResults = {
+            valid: true,
+            messages: []
+        };
+
+        // 1. Validate left tree structure
+        const categories = leftTree.filter(node => node.type === 'category');
+        if (categories.length === 0) {
+            validationResults.valid = false;
+            validationResults.messages.push('At least one category is required');
+            return validationResults;
+        }
+
+        // 2. Validate subcategories
+        const subcategoryCounts = categories.map(category => {
+            return category.children.filter(child => child.type === 'subcategory').length;
+        });
+
+        if (!subcategoryCounts.every(count => count === subcategoryCounts[0])) {
+            validationResults.valid = false;
+            validationResults.messages.push('All categories must have equal number of subcategories');
+        }
+
+        // 3. Validate statements per subcategory
+        const statementCounts = [];
+        categories.forEach(category => {
+            category.children.forEach(subcategory => {
+                if (subcategory.type === 'subcategory') {
+                    const stmtCount = subcategory.children.filter(child => 
+                        child.type === 'statement').length;
+                    statementCounts.push(stmtCount);
+                }
+            });
+        });
+
+        if (!statementCounts.every(count => count === statementCounts[0])) {
+            validationResults.valid = false;
+            validationResults.messages.push('All subcategories must have equal number of statements');
+        }
+
+        // 4. Validate right tree structure
+        const rankgroups = rightTree.filter(node => node.type === 'rankgroup');
+        if (rankgroups.length === 0) {
+            validationResults.valid = false;
+            validationResults.messages.push('At least one rank group is required');
+        }
+
+        // 5. Validate rankgroup completeness
+        if (rankgroups.length > 0) {
+            // Calculate total statements per category including all subcategories
+            const getTotalStatementsPerCategory = (category) => {
+                let total = 0;
+                // Direct statements under category
+                total += category.children.filter(child => 
+                    child.type === 'statement').length;
+                
+                // Statements in subcategories
+                category.children.filter(child => 
+                    child.type === 'subcategory').forEach(subcategory => {
+                    total += subcategory.children.filter(child => 
+                        child.type === 'statement').length;
+                });
+                return total;
+            };
+
+            // Get statements count for first category as baseline
+            const totalStatementsFirstCategory = getTotalStatementsPerCategory(categories[0]);
+
+            // Verify all categories have same total statements
+            const allCategoriesHaveEqualStatements = categories.every(category => 
+                getTotalStatementsPerCategory(category) === totalStatementsFirstCategory);
+
+            if (!allCategoriesHaveEqualStatements) {
+                validationResults.valid = false;
+                validationResults.messages.push('All categories must have equal total number of statements');
+            }
+
+            if (rankgroups.length > totalStatementsFirstCategory) {
+                validationResults.valid = false;
+                validationResults.messages.push(`Number of rank groups (${rankgroups.length}) cannot exceed total statements per category (${totalStatementsFirstCategory})`);
+            }
+
+            // Verify each rankgroup has one statement from each category
+            rankgroups.forEach((rankgroup, index) => {
+                const statements = rankgroup.children || [];
+                const categoryRepresentation = new Set();
+                
+                statements.forEach(statement => {
+                    const originalId = statement.id.replace('ref_', '');
+                    const originalNode = $('#leftTree').jstree(true).get_node(originalId);
+                    if (originalNode) {
+                        // Get parent category regardless of subcategory structure
+                        let parentNode = originalNode;
+                        while (parentNode && parentNode.type !== 'category') {
+                            parentNode = $('#leftTree').jstree(true).get_node(parentNode.parent);
+                        }
+                        if (parentNode) {
+                            categoryRepresentation.add(parentNode.id);
+                        }
+                    }
+                });
+
+                if (categoryRepresentation.size !== categories.length) {
+                    validationResults.valid = false;
+                    validationResults.messages.push(`Rank group ${index + 1} must have exactly one statement from each category`);
+                }
+            });
+        }
+
+        return validationResults;
     }
 
     // Category and formset management and multiple choice single checkbox selection logics 
@@ -800,6 +790,7 @@
                 fill: 'rgba(255,0,0,0.3)',
                 stroke: 'red',
                 strokeWidth: 2,
+                hotspotId: 'hotspot_' + Date.now(),
                 name: 'Hotspot (Rectangle)',
                 correct: false,
             });
@@ -822,6 +813,7 @@
                 fill: 'rgba(0,0,255,0.3)',
                 stroke: 'blue',
                 strokeWidth: 2,
+                hotspotId: 'hotspot_' + Date.now(),
                 name: 'Hotspot (Circle)',
                 correct: false,
             });
@@ -903,6 +895,7 @@
                 strokeWidth: 2,
                 selectable: true,
                 evented: true,
+                hotspotId: 'hotspot_' + Date.now(),
                 name: 'Hotspot (Polygon)',
                 correct: false,
             });
@@ -969,6 +962,7 @@
                     top: (shape.top / canvasHeight) * 100,
                     width: (shape.width / canvasWidth) * 100,
                     height: (shape.height / canvasHeight) * 100,
+                    hotspotId: shape.hotspotId,
                     name: shape.name,
                     correct: shape.correct,
                 };
@@ -994,62 +988,6 @@
             });
             $('#id_hotspot_items').val(JSON.stringify(shapesData));
         }
-
-        // function loadShapes() {
-        //     const savedShapesData = $('#id_hotspot_items').val();
-        //     //const savedShapesData = localStorage.getItem('savedShapes');
-        //     if (savedShapesData) {
-        //         const shapesData = JSON.parse(savedShapesData);
-        //         canvas.clear();
-        //         fabric.Image.fromURL(backgroundImagePath, function(img) {
-        //             canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas), {
-        //                 scaleX: canvas.width / img.width,
-        //                 scaleY: canvas.height / img.height
-        //             });
-
-        //             shapesData.forEach(shapeData => {
-        //                 let shape;
-        //                 if (shapeData.type === 'rect') {
-        //                     shape = new fabric.Rect({
-        //                         left: shapeData.left,
-        //                         top: shapeData.top,
-        //                         width: shapeData.width,
-        //                         height: shapeData.height,
-        //                         fill: 'rgba(255,0,0,0.3)',
-        //                         stroke: 'red',
-        //                         strokeWidth: 2
-        //                     });
-        //                 } else if (shapeData.type === 'circle') {
-        //                     shape = new fabric.Circle({
-        //                         left: shapeData.left,
-        //                         top: shapeData.top,
-        //                         radius: shapeData.radius,
-        //                         fill: 'rgba(0,0,255,0.3)',
-        //                         stroke: 'blue',
-        //                         strokeWidth: 2
-        //                     });
-        //                 } else if (shapeData.type === 'polygon') {
-        //                     shape = new fabric.Polygon(shapeData.points, {
-        //                         left: shapeData.left,
-        //                         top: shapeData.top,
-        //                         fill: 'rgba(0,255,0,0.3)',
-        //                         stroke: 'green',
-        //                         strokeWidth: 2
-        //                     });
-        //                 }
-        //                 if (shape) {
-        //                     canvas.add(shape);
-        //                 }
-        //             });
-
-        //             canvas.renderAll();
-        //             createImageMap(shapesData);
-        //         });
-        //         //alert('Shapes loaded successfully!');
-        //     } else {
-        //         alert('No saved shapes found!');
-        //     }
-        // }
 
         function loadShapes() {
             const savedShapesData = $('#id_hotspot_items').val();
@@ -1098,6 +1036,7 @@
                         });
                     }
                     if (shape) {
+                        shape.hotspotId = shapeData.hotspotId;
                         shape.name = shapeData.name;
                         shape.correct = shapeData.correct;
                         canvas.add(shape);
@@ -1122,7 +1061,10 @@
                         <div class="form-check">
                             ${type == 'cus_hotspot_single'? single_select : multiple_select}
                             <label class="form-check-label" for="hotspot-${index}">
-                                ${obj.name}
+                                <input type="text" class="hotspot-name-input" 
+                                    value="${obj.name}" 
+                                    data-hotspot-id="${obj.hotspotId}"
+                                    style="border:none; background:transparent;">
                             </label>
                         </div>
                         <span class="badge bg-primary rounded-pill">${index + 1}</span>
@@ -1130,6 +1072,7 @@
                 `);
             });
             
+            // Update the correct hotspot answer
             $('.form-check-input').change(function() {
                 var selectedIndex = parseInt($(this).val());
                 if ($(this).attr('type') == 'radio') {
@@ -1141,6 +1084,19 @@
                     obj.correct = this.checked;
                 }
                 updateHotspotList();
+            });
+
+            // Handle name changes
+            $('.hotspot-name-input').change(function() {
+                var hotspotId = $(this).data('hotspot-id');
+                var newName = $(this).val();
+                var objects = canvas.getObjects();
+                objects.forEach(function(obj) {
+                    if (obj.hotspotId === hotspotId) {
+                        obj.name = newName;
+                    }
+                });
+                saveShapes();
             });
 
             // save hotspots
@@ -1211,15 +1167,16 @@
             }
             
             if (selectedType === 'psy_rating') {
-                $('#rating-scale').show();
+                $('#rating-fields').show();
             } else if (selectedType === 'psy_ranking') {
-                $('#ranking-scale').show();
-            } else if (selectedType === 'psy_rank_n_rate') {
-                $('#rank-rate-scale').show();
-            } else if (selectedType === 'psy_forced_single') {
-                $('#forced1-scale').show();
+                $('#ranking-fields').show();
+            } else if (selectedType === 'psy_rank_rate') {
+                $('#rating-fields').show();
+                $('#ranking-fields').show();
+            } else if (selectedType === 'psy_forced_one') {
+                $('#forced1-fields').show();
             } else if (selectedType === 'psy_forced_two') {
-                $('#forced2-scale').show();
+                $('#forced2-fields').show();
             }
             
         }
@@ -1761,6 +1718,56 @@
         });
     
         initTrees();
+
+        // function validateCategoryStructure() {
+        //     const categories = $('#leftTree').jstree(true).get_json('#', { flat: false });
+            
+        //     // Count subcategories per category
+        //     const subCategoryCounts = categories.map(category => {
+        //         return {
+        //             categoryId: category.id,
+        //             subCount: category.children.filter(child => child.type === 'subcategory').length
+        //         };
+        //     });
+
+        //     // Validate equal subcategories
+        //     const firstSubCount = subCategoryCounts[0]?.subCount;
+        //     const hasEqualSubcategories = subCategoryCounts.every(cat => cat.subCount === firstSubCount);
+
+        //     // Count statements per subcategory
+        //     const statementCounts = [];
+        //     categories.forEach(category => {
+        //         category.children.forEach(subcat => {
+        //             if (subcat.type === 'subcategory') {
+        //                 statementCounts.push({
+        //                     subcategoryId: subcat.id,
+        //                     stmtCount: subcat.children.filter(child => child.type === 'statement').length
+        //                 });
+        //             }
+        //         });
+        //     });
+
+        //     // Validate equal statements per subcategory
+        //     const firstStmtCount = statementCounts[0]?.stmtCount;
+        //     const hasEqualStatements = statementCounts.every(sub => sub.stmtCount === firstStmtCount);
+
+        //     return {
+        //         isValid: hasEqualSubcategories && hasEqualStatements,
+        //         errors: []
+        //     };
+        // }
+
+        // // Add validation before form submission
+        // $('#question-form').on('submit', function(e) {
+        //     if ($('#id_type').val().startsWith('psy_ranking')) {
+        //         const validation = validateCategoryStructure();
+        //         if (!validation.isValid) {
+        //             e.preventDefault();
+        //             alert('Categories must have equal number of subcategories and statements');
+        //             return false;
+        //         }
+        //     }
+        // });
     });
     
 </script>

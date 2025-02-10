@@ -1,7 +1,7 @@
 # from ..settings import *
 # Import all base settings here
 from .base import *
-from decouple import config
+# from decouple import config
 
 # import environ
 # env = environ.Env()

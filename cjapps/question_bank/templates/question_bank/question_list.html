@@ -11,6 +11,10 @@
 
 <div class="manage-wrap">
     <a href="{% url 'question_bank:create_question' %}" class="btn btn-success">Create Question</a>
+    
+    <a href="{% url 'question_bank:manage_categories' %}" class="btn btn-info">Question Categories</a>
+    <a href="{% url 'question_bank:deletion_requests_list' %}" class="btn btn-danger">Deletion Requests</a>
+    
 </div>
 
 <h4 class="fw-bold mb-3"><i class="fas fa-cog me-2"></i>Question List</h4>
@@ -24,6 +28,7 @@
             <th>Title</th>
             <th>Type</th>
             <th>Difficulty</th>
+            <th>Status</th>
             <th>Actions</th>
         </tr>
     </thead>
@@ -33,6 +38,7 @@
             <td>{{ question.title }}</td>
             <td>{{ question.get_type_display }}</td>
             <td>{{ question.get_difficulty_level_display }}</td>
+            <td>{{ question.get_status_display }}</td>
             <td>
                 <div class="dropdown">
                     <button class="btn btn-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -41,7 +47,11 @@
                     <ul class="dropdown-menu">
                         <li><a class="dropdown-item" href="{% url 'question_bank:question_detail' question.pk %}"><i class="fas fa-edit"></i> View</a></li>
                         <li><a class="dropdown-item" href="{% url 'question_bank:edit_question' question.pk %}"><i class="fas fa-edit"></i> Edit</a></li>
+                        {% if user.is_cjadmin %}
                         <li><a class="dropdown-item" href="{% url 'question_bank:delete_question' question.pk %}"><i class="fas fa-edit"></i> Delete</a></li>
+                        {% else %}
+                        <li><a class="dropdown-item" href="#" onclick="requestDeletion('question', {{ question.pk }})"><i class="fas fa-trash"></i> Request Deletion</a></li>
+                        {% endif %}
                     </ul>
                 </div>
                 {% comment %} <a href="{% url 'question_bank:question_detail' question.pk %}" class="btn btn-sm btn-info">View</a>
@@ -56,5 +66,23 @@
         {% endfor %}
     </tbody>
 </table>
+{% endblock %}
 
+{% block extra_js %}
+<script>
+    function requestDeletion(type, id) {
+        if(confirm('Are you sure you want to request deletion of this item?')) {
+            $.post('{% url "question_bank:request_deletion" %}', {
+                type: type,
+                id: id
+            }).done(function(response) {
+                if (response.status === 'success') {
+                    toastr.success('Deletion request submitted successfully');
+                } else {
+                    toastr.error('Failed to submit deletion request');
+                }
+            });
+        }
+    }
+</script>
 {% endblock %}

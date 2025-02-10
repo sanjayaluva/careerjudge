@@ -38,9 +38,7 @@
 		{% url 'training_category_list' as train_cat %}
 		{% url 'training_booking_list' as train_book %}
 
-		
-		
-		
+			
 		{% comment %}
 		{% url 'home' as hom %} {% url 'dashboard' as dash %} {% url 'profile' as prof %}
 		{% url 'user_list' as usr %}
@@ -113,16 +111,14 @@
 			</li>
 			{% endif %}
 
-			{% url 'question_bank:manage_categories' as qb_category %}
-			
+			<!-- {% url 'question_bank:manage_categories' as qb_category %}
 			{% if perms.question_bank.qb_category_view %}
 			<li class="{% if request.path == qb_category %}active{% endif %}">
 				<a href="{% url 'question_bank:manage_categories' %}"><i class="fas fa-home"></i>QB Category</a>
 			</li>
-			{% endif %}
+			{% endif %} -->
 			
 			{% url 'question_bank:question_list' as question_list %}
-
 			{% if perms.question_bank.add_question %}
 			<li class="{% if request.path == question_list %}active{% endif %}">
 				<a href="{% url 'question_bank:question_list' %}"><i class="fas fa-home"></i>Question Bank</a>
@@ -136,6 +132,20 @@
 				<a href="{% url 'assessment_list' %}"><i class="fas fa-home"></i>Assessment</a>
 			</li>
 			{% endif %}
+
+			{% url 'cjapp:task_list' as task_list %}
+			{#% if perms.task.view_task %#}
+			<li class="{% if request.path == task_list %}active{% endif %}">
+				<a href="{% url 'cjapp:task_list' %}"><i class="fas fa-gear"></i>Tasks</a>
+			</li>
+			{#% endif %#}
+
+			<!-- {% url 'question_bank:deletion_requests_list' as deletion_requests_list %}
+			{#% if perms.question_bank.deletion_requests_list %#}
+			<li class="{% if request.path == deletion_requests_list %}active{% endif %}">
+				<a href="{% url 'question_bank:deletion_requests_list' %}"><i class="fas fa-gear"></i>Deletion Request</a>
+			</li>
+			{#% endif %#} -->
 
 			{% comment %}
 			<li class="{% if request.path == prof %}active{% endif %}">

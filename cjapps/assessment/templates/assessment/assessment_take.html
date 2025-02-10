@@ -67,8 +67,8 @@
             {% for section in sections %}
             <div class="section-block">
                 <div class="section-header">
-                    <h3>{{ section.title }}</h3>
-                    <div class="section-stats">
+                    <h3>{{ section.title }} <span class="fs-6">({{ section.answered_count }}/{{ section.total_questions }})</span></h3>
+                    <!--div class="section-stats">
                         <span>{{ section.answered_count }}/{{ section.total_questions }}</span>
                         <div class="progress">
                             <div class="progress-bar" role="progressbar" 
@@ -76,7 +76,7 @@
                                 {{ section.progress }}%
                             </div>
                         </div>
-                    </div>
+                    </div-->
                 </div>
                 <div class="question-grid">
                     {% for question in section.questions %}
@@ -147,6 +147,10 @@
 {% endblock %}
 
 {% block extra_js %}
+{{ sections|json_script:"sections-data" }}
+<!-- <script>
+    const sections = {{ sections|safe }}; 
+</script>-->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
 <!-- <script src="{% static 'js/question_handlers.js' %}"></script> -->
 <script src="{% static 'js/assessment_manager.js' %}"></script>

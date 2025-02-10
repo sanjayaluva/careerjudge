@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">Home</a></li>
+        <li class="breadcrumb-item active">Deletion Requests</li>
+    </ol>
+</nav>
+
+<h4 class="fw-bold mb-3"><i class="fas fa-trash me-2"></i>Deletion Requests</h4>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Type</th>
+            <th>Item</th>
+            <th>Requested By</th>
+            <th>Status</th>
+            <th>Created At</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for request in deletion_requests %}
+        <tr>
+            <td>{{ request.get_request_type_display }}</td>
+            <td>
+                {% if request.category %}
+                    {{ request.category.name }}
+                {% elif request.subcategory %}
+                    {{ request.subcategory.name }} (under {{ request.subcategory.category.name }})
+                {% elif request.question %}
+                    {{ request.question.title }}
+                {% endif %}
+            </td>
+            <td>{{ request.requested_by.username }}</td>
+            <td>{{ request.get_status_display }}</td>
+            <td>{{ request.created_at|date:"M d, Y" }}</td>
+            <td>
+                {% if request.status == 'pending' and user.is_cjadmin %}
+                    <a href="{% url 'question_bank:review_deletion_request' request.id %}" class="btn btn-sm btn-primary">Review</a>
+                {% endif %}
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="6">No deletion requests found.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

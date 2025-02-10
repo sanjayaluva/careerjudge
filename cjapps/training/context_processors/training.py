@@ -1,15 +1,18 @@
 from training.forms import ScheduleTrainingForm
-from cjapp.notifications import get_user_notifications
-
-
+from cjapp.services import NotificationService
 
 def schedule_form(request):
-
-    context_dict = {
-        "schedule_training_form": ScheduleTrainingForm(),
-    }
-    notifications_data = get_user_notifications(request.user)
-
-    context_dict.update(notifications_data)
+    if request.user.is_authenticated:
+        context_dict = {
+            "schedule_training_form": ScheduleTrainingForm(),
+            "notifications": NotificationService.get_user_notifications(request.user)[:10],
+            "unread_notifications_count": NotificationService.get_user_notifications(request.user, unread_only=True).count()
+        }
+    else :
+        context_dict = {
+            "schedule_training_form": None,
+            "notifications": None,
+            "unread_notifications_count": 0
+        }
     
     return context_dict

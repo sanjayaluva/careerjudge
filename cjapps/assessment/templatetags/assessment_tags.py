@@ -66,3 +66,7 @@ def index(list_obj, i):
 @register.filter
 def get_range(value):
     return range(value)
+
+@register.filter
+def get_item(dictionary, key):
+    return dictionary.get(key, 0)

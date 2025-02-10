@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">Create New Task</h2>
+    
+    <form method="post" class="task-creation-form">
+        {% csrf_token %}
+
+        <div class="card">
+            <div class="card-header">
+                Task Details
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        {{ form.name|as_crispy_field }}
+                    </div>
+                    <div class="col-md-4">
+                        {{ form.type|as_crispy_field }}
+                    </div>
+                    <div class="col-md-4">
+                        {{ form.due_date|as_crispy_field }}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-8">
+                        {{ form.description|as_crispy_field }}
+                    </div>
+                    <div class="col-4">
+                        {{ form.sme_user|as_crispy_field }}
+                        {{ form.reviewer_user|as_crispy_field }}
+                        {{ form.psychometrician_user|as_crispy_field }}
+                    </div>
+                </div>
+                <div>
+                    
+                </div>
+            </div>
+            <div class="card-footer">
+                <button type="submit" class="btn btn-primary">Create Task</button>
+                <a href="{% url 'cjapp:task_list' %}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Optional: Add any custom JavaScript for form validation or enhancement
+    $(document).ready(function() {
+        // Example: Datepicker for due date
+        $('#id_due_date').datepicker({
+            format: 'yyyy-mm-dd',
+            autoclose: true
+        });
+    });
+</script>
+{% endblock %}

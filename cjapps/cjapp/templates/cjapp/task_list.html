@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="/">Home</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'cjapp:task_list' %}">Tasks</a></li>
+      <li class="breadcrumb-item active" aria-current="page">List</li>
+    </ol>
+</nav>
+
+<div class="manage-wrap">
+    <!-- <a href="{% url 'assessment_create' %}" class="btn btn-success">Create Assessment</a> -->
+    {% if user.is_cjadmin %}
+    <a href="{% url 'cjapp:create_task' %}" class="btn btn-primary">Create New Task</a>
+    {% endif %}
+</div>
+
+<h4 class="fw-bold mb-3"><i class="fas fa-cog me-2"></i>Tasks</h4>
+
+{% include 'snippets/messages.html' %}
+
+<div class="container mt-4 mb-4">
+    <div class="card">
+        <div class="card-body">
+            <div class="list-group">
+                {% for task in tasks %}
+                <a href="{% url 'cjapp:review_task' task.id %}" class="list-group-item list-group-item-action">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h5 class="mb-1">{{ task.name }} | {{ task.get_step_display }}</h5>
+                        <small>{{ task.created_at|timesince }} ago</small>
+                    </div>
+                    <p class="mb-1">{{ task.description }}</p>
+                    <small>
+                        Type: {{ task.get_task_type_display }} |
+                        Current Step: {{ task.get_step_display }} |
+                        Status: {{ task.get_status_display }}
+                    </small>
+                </a>
+                {% empty %}
+                <p>No tasks found.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
