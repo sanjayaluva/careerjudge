@@ -181,38 +181,45 @@ class AssessmentSession(models.Model):
         elapsed = timezone.now() - self.start_time
         remaining = (self.assessment.duration_minutes * 60) - elapsed.total_seconds()
         return max(0, int(remaining))
-
+      
     def calculate_scores(self):
-        responses = QuestionResponse.objects.filter(session=self)
-        
-        # Calculate scores for each response
-        for response in responses:
-            response.validate_answer()
-            response.calculate_score()
-            
-        # Calculate section scores bottom-up
         def calculate_section_scores(section):
             total = 0
-            if section.question:
-                response = responses.filter(question=section.question).first()
+            if section.is_section:
+                # Calculate scores for child sections
+                for child in section.children.all():
+                    child_score = calculate_section_scores(child)
+                    total += child_score
+                    self.scores[f'section_{child.id}'] = child_score
+            else:
+                # Calculate score for question node
+                response = QuestionResponse.objects.filter(
+                    session=self,
+                    question=section.question
+                ).first()
                 if response:
-                    total += response.score
-                    
-            for child in section.children.all():
-                child_score = calculate_section_scores(child)
-                total += child_score
-                self.scores[f'section_{child.id}'] = child_score
-                
+                    response.validate_answer()
+                    response.calculate_score()
+                    total = response.score
+
             return total
-            
-        # Start from root sections
-        root_sections = self.assessment.sections.filter(parent=None)
+
+        # Start calculation from root sections
+        root_sections = Section.objects.filter(
+            assessment=self.assessment,
+            parent=None,
+            is_section=True
+        )
+
+        total_score = 0
         for section in root_sections:
-            total = calculate_section_scores(section)
-            self.scores[f'section_{section.id}'] = total
-            
+            section_score = calculate_section_scores(section)
+            total_score += section_score
+            self.scores[f'section_{section.id}'] = section_score
+
+        self.scores['total'] = total_score
         self.save()
-    
+        
     def complete_assessment(self):
         self.status = 'completed'
         self.is_completed = True
@@ -236,93 +243,256 @@ class QuestionResponse(models.Model):
     response_time = models.DateTimeField(auto_now=True)
     is_bookmarked = models.BooleanField(default=False)
     is_correct = models.BooleanField(null=True)
+    
     score = models.IntegerField(default=0)  # Add this field to store individual question scores
+    psy_score = models.JSONField(default=dict)
 
     class Meta:
         unique_together = ['session', 'question']
-
+    
     def calculate_score(self):
         if self.question.type.startswith('psy'):
-            if self.is_correct:
-                self.score = self.calculate_psy_score() or 0
+            self.psy_score = self.calculate_psy_score()
         else:
-            if self.is_correct:
-                section = Section.objects.get(question=self.question)
-                self.score = section.right_score or self.question.right_score or 1
-            else:
-                section = Section.objects.get(question=self.question)
-                self.score = -(section.wrong_score or self.question.wrong_score or 0)
+            self.score = self.calculate_normal_score()
         self.save()
+
+    def calculate_normal_score(self):
+        if self.is_correct:
+            section = Section.objects.filter(question=self.question).first()
+            return section.right_score or self.question.right_score or 1
+        else:
+            section = Section.objects.filter(question=self.question).first()
+            return -(section.wrong_score or self.question.wrong_score or 0)
     
     def calculate_psy_score(self):
         if self.question.type == 'psy_rating':
-            self.score = self.answer_data.get('rating', 0)
-            self.save()
+            return self.calculate_rating_score()
         elif self.question.type == 'psy_ranking':
-            structure = json.loads(self.question.ranking_structure)
-            rankings = self.answer_data.get('rankings', {})
-            
-            # Build node lookup maps
-            statement_map = {}
-            category_map = {}
-            subcategory_map = {}
-            
-            # Map all nodes by ID
-            for category in structure['leftTree']:
-                if category['type'] == 'category':
-                    category_map[category['id']] = category
-                    for child in category['children']:
-                        if child['type'] == 'subcategory':
-                            subcategory_map[child['id']] = {
-                                'node': child,
-                                'category_id': category['id']
+            return self.calculate_ranking_score()
+        elif self.question.type == 'psy_rank_rate':
+            return self.calculate_rank_rate_score()
+        elif self.question.type == 'psy_forced_one':
+            return self.calculate_forced_choice_score()
+        elif self.question.type == 'psy_forced_two':
+            return self.calculate_forced_choice_score(with_rating=True)
+        
+
+    def calculate_rating_score(self):
+        return {'rating': self.answer_data.get('rating', 0)}
+    
+    def calculate_ranking_score(self):
+        structure = json.loads(self.question.ranking_structure)
+        rankings = self.answer_data.get('rankings', {})
+
+        # Initialize score containers
+        scores = {
+            'categories': defaultdict(int),
+            'subcategories': defaultdict(int),
+            'statements': defaultdict(int)
+        }
+
+        # Build node lookup maps
+        statement_map = {}
+        category_map = {}
+        subcategory_map = {}
+
+        # Map all nodes by ID and store their text
+        for category in structure['leftTree']:
+            if category['type'] == 'category':
+                category_map[category['id']] = {'text': category['text']}
+                for child in category['children']:
+                    if child['type'] == 'subcategory':
+                        subcategory_map[child['id']] = {
+                            'node': child,
+                            'category_id': category['id'],
+                            'text': child['text']
+                        }
+                        for stmt in child['children']:
+                            statement_map[stmt['id']] = {
+                                'node': stmt,
+                                'category_id': category['id'],
+                                'subcategory_id': child['id'],
+                                'text': stmt['text']
                             }
-                            for stmt in child['children']:
-                                statement_map[stmt['id']] = {
-                                    'node': stmt,
-                                    'category_id': category['id'],
-                                    'subcategory_id': child['id']
-                                }
-                        elif child['type'] == 'statement':
-                            statement_map[child['id']] = {
-                                'node': child,
-                                'category_id': category['id']
-                            }
-            
-            # Calculate reverse scoring slab
-            total_categories = len(category_map)
-            score_slab = {rank: total_categories - rank + 1 
-                        for rank in range(1, total_categories + 1)}
-            
-            # Initialize score containers
-            scores = {
-                'categories': defaultdict(int),
-                'subcategories': defaultdict(int),
-                'statements': defaultdict(int)
-            }
-            
-            # Calculate scores using node references
-            for stmt_id, rank in rankings.items():
-                score = score_slab[rank]
-                stmt_info = statement_map.get(stmt_id)
-                
-                if stmt_info:
-                    scores['statements'][stmt_id] = score
-                    scores['categories'][stmt_info['category_id']] += score
-                    
-                    if 'subcategory_id' in stmt_info:
-                        scores['subcategories'][stmt_info['subcategory_id']] += score
-            
-            # Store detailed scoring information
-            self.score = sum(scores['categories'].values())
-            self.answer_data['scoring_details'] = {
-                'score_slab': score_slab,
+                    elif child['type'] == 'statement':
+                        statement_map[child['id']] = {
+                            'node': child,
+                            'category_id': category['id'],
+                            'text': child['text']
+                        }
+
+        # Calculate reverse scoring slab
+        total_categories = len(category_map)
+        score_slab = {rank: total_categories - rank + 1 for rank in range(1, total_categories + 1)}
+
+        # Calculate scores using node references
+        for stmt_id, rank in rankings.items():
+            score = score_slab[rank]
+            stmt_info = statement_map.get(stmt_id)
+
+            if stmt_info:
+                scores['statements'][stmt_id] = score
+                scores['categories'][stmt_info['category_id']] += score
+
+                if 'subcategory_id' in stmt_info:
+                    scores['subcategories'][stmt_info['subcategory_id']] += score
+
+        # Store detailed scoring information in a single structure
+        ranking_details = {
+            'score_slab': score_slab,
+            'scores': {
                 'category_scores': dict(scores['categories']),
                 'subcategory_scores': dict(scores['subcategories']),
-                'statement_scores': dict(scores['statements'])
+                'statement_scores': dict(scores['statements']),
+            },
+            'maps': {
+                'statement_map': statement_map,
+                'subcategory_map': subcategory_map,
+                'category_map': category_map
             }
-            self.save()
+        }
 
+        return ranking_details
+    
+    def calculate_rank_rate_score(self):
+        structure = json.loads(self.question.ranking_structure)
+        rankings = self.answer_data.get('rankings', {})
+        ratings = self.answer_data.get('ratings', {})
+
+        # Initialize score containers
+        scores = {
+            'categories': defaultdict(int),
+            'subcategories': defaultdict(int),
+            'statements': defaultdict(int)
+        }
+
+        # Build node lookup maps
+        statement_map = {}
+        category_map = {}
+        subcategory_map = {}
+
+        # Map all nodes by ID and store their text
+        for category in structure['leftTree']:
+            if category['type'] == 'category':
+                category_map[category['id']] = {'text': category['text']}
+                for child in category['children']:
+                    if child['type'] == 'subcategory':
+                        subcategory_map[child['id']] = {
+                            'node': child,
+                            'category_id': category['id'],
+                            'text': child['text']
+                        }
+                        for stmt in child['children']:
+                            statement_map[stmt['id']] = {
+                                'node': stmt,
+                                'category_id': category['id'],
+                                'subcategory_id': child['id'],
+                                'text': stmt['text']
+                            }
+                    elif child['type'] == 'statement':
+                        statement_map[child['id']] = {
+                            'node': child,
+                            'category_id': category['id'],
+                            'text': child['text']
+                        }
+
+        # Calculate reverse scoring slab
+        total_categories = len(category_map)
+        score_slab = {rank: total_categories - rank + 1 for rank in range(1, total_categories + 1)}
+
+        # Calculate scores using node references
+        for stmt_id, rank in rankings.items():
+            rating = ratings.get(stmt_id, 0)
+            rank_score = score_slab[rank]
+            score = rank_score * rating
+            stmt_info = statement_map.get(stmt_id)
+
+            if stmt_info:
+                scores['statements'][stmt_id] = score
+                scores['categories'][stmt_info['category_id']] += score
+
+                if 'subcategory_id' in stmt_info:
+                    scores['subcategories'][stmt_info['subcategory_id']] += score
+
+        # Store detailed scoring information in a single structure
+        ranking_details = {
+            'score_slab': score_slab,
+            'scores': {
+                'category_scores': dict(scores['categories']),
+                'subcategory_scores': dict(scores['subcategories']),
+                'statement_scores': dict(scores['statements']),
+            },
+            'maps': {
+                'statement_map': statement_map,
+                'subcategory_map': subcategory_map,
+                'category_map': category_map
+            }
+        }
+
+        return ranking_details
+
+    def calculate_forced_choice_score(self, with_rating=False):
+        structure = json.loads(self.question.ranking_structure)
+        choices = self.answer_data.get('choices', {})
+        ratings = self.answer_data.get('ratings', {}) if with_rating else {}
+        statements = self.answer_data.get('statements', {})
+
+        scores = {
+            'categories': defaultdict(int),
+            'subcategories': defaultdict(int),
+            'statements': defaultdict(int)
+        }
+
+        # Build node maps
+        statement_map = {}
+        category_map = {}
+        subcategory_map = {}
+
+        # Map nodes
+        for category in structure['leftTree']:
+            category_map[category['id']] = {'text': category['text']}
+            for child in category['children']:
+                if child['type'] == 'subcategory':
+                    subcategory_map[child['id']] = {
+                        'category_id': category['id'],
+                        'text': child['text']
+                    }
+                    for stmt in child['children']:
+                        statement_map[stmt['id']] = {
+                            'category_id': category['id'],
+                            'subcategory_id': child['id'],
+                            'text': stmt['text']
+                        }
+                elif child['type'] == 'statement':
+                    statement_map[child['id']] = {
+                        'category_id': category['id'],
+                        'text': child['text']
+                    }
+
+        # Calculate scores
+        for stmt_id, stmt_data in statements.items():
+            stmt_info = statement_map.get(stmt_id)
+            if stmt_info:
+                score = stmt_data['score']
+                scores['statements'][stmt_id] = score
+                scores['categories'][stmt_info['category_id']] += score
+                if 'subcategory_id' in stmt_info:
+                    scores['subcategories'][stmt_info['subcategory_id']] += score
+
+        return {
+            'scores': {
+                'category_scores': dict(scores['categories']),
+                'subcategory_scores': dict(scores['subcategories']),
+                'statement_scores': dict(scores['statements']),
+            },
+            'maps': {
+                'statement_map': statement_map,
+                'subcategory_map': subcategory_map,
+                'category_map': category_map
+            }
+        }
+    
     def validate_answer(self):
         # If no meaningful answer data, treat as skipped
         if not self.answer_data or self.status == 'skipped':
@@ -366,12 +536,6 @@ class QuestionResponse(models.Model):
             )
 
     def _validate_custom(self):
-        # if self.question.type == 'cus_hotspot_single':
-        #     selected = self.answer_data.get('selected_hotspots')
-        #     return selected == self.question.hotspot_items
-        # elif self.question.type == 'cus_hotspot_multiple':
-        #     selected = self.answer_data.get('selected_hotspots')
-        #     return selected == self.question.hotspot_items
         if self.question.type == 'cus_hotspot_single':
             selected = self.answer_data.get('selected_hotspots', [])
             correct_hotspots = self.question.hotspot_items
@@ -386,28 +550,19 @@ class QuestionResponse(models.Model):
             correct_ids = {spot['hotspotId'] for spot in correct_hotspots if spot.get('correct')}
             return selected_ids == correct_ids
         elif self.question.type == 'cus_grid':
-            selected = self.answer_data.get('selected_rows')
-            correct = json.loads(self.question.grid_structure) if self.question.grid_structure else []
-            return selected == correct
+            selected_cells = self.answer_data.get('selected_cells', [])
+            correct_cells = [opt.id for opt in self.question.grid_options.filter(is_correct=True)]
+            return set(selected_cells) == set(correct_cells)
         elif self.question.type == 'cus_match':
-            selected = self.answer_data.get('selected_pairs')
-            correct = json.loads(self.question.match_structure) if self.question.match_structure else []
-            return selected == correct
+            user_matches = self.answer_data.get('matches', {})
+            correct_matches = {str(item.id): item.right_item for item in self.question.match_options.all()}
+            return user_matches == correct_matches
         return False
     
     def _validate_psy(self):
-        # selected = self.answer_data.get('selected_option')
-        # correct = self.question.options.filter(is_correct=True).first()
-        # return selected == str(correct.id) if correct else False
         if self.question.type == 'psy_rating':
-            selected = self.answer_data.get('rating')
-            # correct = self.question.rating_options.filter(is_correct=True).first()
-            # return selected == correct.value if correct else False
-            return selected is not None
+            return True if self.answer_data.get('rating') is not None else False
         elif self.question.type == 'psy_ranking':
-            # selected = self.answer_data.get('selected_order')
-            # correct = json.loads(self.question.ranking_structure) if self.question.ranking_structure else []
-            # return selected == correct:
             structure = json.loads(self.question.ranking_structure)
             
             # Get all statement IDs from rankgroups
@@ -423,7 +578,7 @@ class QuestionResponse(models.Model):
             ranked_statements = set(rankings.keys())
             
             # Check if all required statements are ranked with unique values
-            rank_values = list(rankings.values())
+            # rank_values = list(rankings.values())
             return ranked_statements == required_statements #and len(rank_values) == len(set(rank_values))
 
         return False

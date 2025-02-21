@@ -61,8 +61,8 @@
                     <div class="col-md-6">{{ basic_form.objectives|as_crispy_field }}</div>
                 </div>
                 <div class="row">
-                    <div class="col-md-6">{{ basic_form.right_score|as_crispy_field }}</div>
-                    <div class="col-md-6">{{ basic_form.wrong_score|as_crispy_field }}</div>
+                    <div class="col-md-3">{{ basic_form.right_score|as_crispy_field }}</div>
+                    <div class="col-md-3">{{ basic_form.wrong_score|as_crispy_field }}</div>
                 </div>
             </div>
             <div class="tab-pane fade" id="category" role="tabpanel">
@@ -299,18 +299,50 @@
                             </div>
                         </div>
                         <div class="row">
-                            <div class="panel col">
+                            <div class="panel col-6 text-truncate">
                                 <h6>Statements</h6>
                                 <button type="button" class="btn btn-sm btn-primary" id="addCategory">Add Category</button>
                                 <div id="leftTree"></div>
                             </div>
-                            <div class="panel col">
+                            <div class="panel col-6 text-truncate">
                                 <h6>Rankgroups</h6>
                                 <button type="button" class="btn btn-sm btn-primary" id="addRankgroup">Add Rankgroup</button>
                                 <div id="rightTree"></div>
                             </div>
                         </div>
                         <input type="hidden" name="ranking_data" id="ranking_data">
+                    </div>
+
+                    <div id="forced-fields" class="question-type-section" style="display:none;">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header d-flex justify-content-between align-items-center px-2">
+                                        <h6 class="mb-0">Categories & Statements</h6>
+                                        <div class="btn-group">
+                                            <button type="button" class="btn btn-sm btn-primary" id="addForcedCategory">Add Category</button>
+                                            <button type="button" class="btn btn-sm btn-primary" id="addForcedSubcategory">Subcategory</button>
+                                            <button type="button" class="btn btn-sm btn-primary" id="addForcedStatement">Statement</button>
+                                        </div>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="forcedLeftTree" class="tree-container"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header d-flex justify-content-between align-items-center px-2">
+                                        <h6 class="mb-0">Choice Groups</h6>
+                                        <button type="button" class="btn btn-sm btn-primary" id="addForcedChoiceGroup">Add Choice Group</button>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="forcedRightTree" class="tree-container"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <input type="hidden" name="forced_data" id="forced_data" value='{{ question.ranking_structure|default_if_none:'{}'|safe }}'>
                     </div>
 
                     <div id="rating-fields" class="mt-3 card p-3">
@@ -1157,9 +1189,12 @@
                 $('#rating-fields').show();
                 $('#ranking-fields').show();
             } else if (selectedType === 'psy_forced_one') {
-                $('#forced1-fields').show();
+                $('#forced-fields').show();
+                // initForcedTrees();
             } else if (selectedType === 'psy_forced_two') {
-                $('#forced2-fields').show();
+                $('#forced-fields').show();
+                $('#rating-fields').show();
+                // initForcedTrees();
             }
             
         }
@@ -1595,31 +1630,49 @@
         }
     
         function addStatementToRankgroup(statementNode, rankgroupId) {
-            // Get the category of the statement
-            const categoryNode = $('#leftTree').jstree(true).get_node(statementNode.parent);
+            // Get the parent hierarchy of the statement
+            let parentNode = $('#leftTree').jstree(true).get_node(statementNode.parent);
+            let categoryNode = parentNode;
             
-            // Check if any statement from this category is already in the rankgroup
+            // If parent is subcategory, get the category
+            if (parentNode.type === 'subcategory') {
+                categoryNode = $('#leftTree').jstree(true).get_node(parentNode.parent);
+            }
+            
+            // Check if any statement from this category/subcategory is already in the rankgroup
             const rankgroup = $('#rightTree').jstree(true).get_node(rankgroupId);
             const existingStatements = rankgroup.children;
             
-            const hasStatementFromCategory = existingStatements.some(statementId => {
+            const hasStatementFromSameHierarchy = existingStatements.some(statementId => {
                 const originalId = statementId.replace('ref_', '');
                 const originalNode = $('#leftTree').jstree(true).get_node(originalId);
-                return originalNode.parent === statementNode.parent;
+                const originalParent = $('#leftTree').jstree(true).get_node(originalNode.parent);
+                
+                // If using subcategories, check both category and subcategory match
+                if (parentNode.type === 'subcategory') {
+                    return originalParent.id === parentNode.id;
+                }
+                // If directly under category, check category match
+                return originalParent.id === categoryNode.id;
             });
 
-            if (hasStatementFromCategory) {
-                alert('A statement from this category has already been added to this rank group.');
+            if (hasStatementFromSameHierarchy) {
+                alert('A statement from this category/subcategory has already been added to this rank group.');
                 return;
             }
 
-            // If validation passes, proceed with adding the statement
+            // Proceed with adding the statement
             let newNode = {
                 id: 'ref_' + statementNode.id,
                 text: statementNode.text,
                 type: 'statement',
-                data: { originalId: statementNode.id }
+                data: { 
+                    originalId: statementNode.id,
+                    categoryId: categoryNode.id,
+                    subcategoryId: parentNode.type === 'subcategory' ? parentNode.id : null
+                }
             };
+            
             $('#leftTree').jstree('set_text', statementNode, '<s>' + statementNode.text + '</s>');
             $('#leftTree').jstree('disable_node', statementNode);
             $('#rightTree').jstree('create_node', rankgroupId, newNode, 'last');
@@ -1715,8 +1768,307 @@
     
         initTrees();
 
-
     });
+
+    // Initialize trees when question type is forced choice
+    $(document).ready(function() {
+        const questionType = $('#id_type').val();
+        if (questionType.startsWith('psy_forced')) {
+            // Load saved data if exists
+            let savedData = null;
+            try {
+                savedData = JSON.parse($('#forced_data').val());
+            } catch(e) {}
+
+            // Initialize trees with saved or empty data
+            initForcedTrees(savedData);
+        }
+    });
+
+    function initForcedTrees(savedData) {
+        const leftData = savedData?.leftTree || [];
+        const rightData = savedData?.rightTree || [];
+
+        $('#forcedLeftTree').jstree({
+            core: {
+                data: leftData,
+                check_callback: true
+            },
+            contextmenu: {
+                items: forcedLeftContextMenu
+            },
+            plugins: ['contextmenu', 'types'],
+            types: {
+                'category': { 'valid_children': ['subcategory', 'statement'], icon: 'fa fa-folder-open' },
+                'subcategory': { 'valid_children': ['statement'], icon: 'fa fa-folder' },
+                'statement': { 'valid_children': [], icon: 'fa fa-file' },
+            },
+        });
+
+        $('#forcedRightTree').jstree({
+            core: {
+                data: rightData,
+                check_callback: function(operation, node, parent, position, more) {
+                    if (operation === 'move_node') {
+                        const choiceGroup = this.get_node(parent);
+                        if (choiceGroup.children.length >= 2) {
+                            alert('A choice group can only have 2 statements');
+                            return false;
+                        }
+                        
+                        const existingStatements = choiceGroup.children.map(id => {
+                            const node = this.get_node(id);
+                            return node.data?.categoryId;
+                        });
+                        
+                        if (existingStatements.includes(node.data?.categoryId)) {
+                            alert('Statements in a choice group must be from different categories');
+                            return false;
+                        }
+                    }
+                    return true;
+                }
+            },
+            contextmenu: {
+                items: forcedRightContextMenu
+            },
+            plugins: ['contextmenu', 'types', 'dnd'],
+            types: {
+                'choicegroup': { 'valid_children': ['statement'], icon: 'fa fa-object-group' },
+                'statement': { 'valid_children': [], icon: 'fa fa-file' },
+            },
+        });
+
+        // Event handlers with renamed elements
+        $('#addForcedCategory').click(function() {
+            let newNode = {
+                id: 'fcat_' + Date.now(),
+                text: 'New Category',
+                type: 'category',
+                children: []
+            };
+            let category = $('#forcedLeftTree').jstree('create_node', '#', newNode, 'last');
+            $('#forcedLeftTree').jstree('edit', category);
+        });
+
+        $('#addForcedChoiceGroup').click(function() {
+            let newNode = {
+                id: 'fchoice_' + Date.now(),
+                text: 'New Choice Group',
+                type: 'choicegroup',
+                children: []
+            };
+            let group = $('#forcedRightTree').jstree('create_node', '#', newNode, 'last');
+            $('#forcedRightTree').jstree('edit', group);
+        });
+
+        $('#addForcedSubcategory').click(function() {
+            let selectedNode = $('#forcedLeftTree').jstree('get_selected')[0];
+            if (!selectedNode || $('#forcedLeftTree').jstree(true).get_node(selectedNode).type !== 'category') {
+                alert('Please select a category first');
+                return;
+            }
+            let newNode = {
+                id: 'fsub_' + Date.now(),
+                text: 'New Subcategory',
+                type: 'subcategory',
+                children: []
+            };
+            let subcategory = $('#forcedLeftTree').jstree('create_node', selectedNode, newNode, 'last');
+            $('#forcedLeftTree').jstree('edit', subcategory);
+        });
+
+        $('#addForcedStatement').click(function() {
+            let selectedNode = $('#forcedLeftTree').jstree('get_selected')[0];
+            if (!selectedNode || !['category', 'subcategory'].includes($('#forcedLeftTree').jstree(true).get_node(selectedNode).type)) {
+                alert('Please select a category or subcategory first');
+                return;
+            }
+            let newNode = {
+                id: 'fstmt_' + Date.now(),
+                text: 'New Statement',
+                type: 'statement',
+                data: {
+                    categoryId: $('#forcedLeftTree').jstree(true).get_node(selectedNode).type === 'category' ? selectedNode : $('#forcedLeftTree').jstree(true).get_node(selectedNode).parent,
+                    subcategoryId: $('#forcedLeftTree').jstree(true).get_node(selectedNode).type === 'subcategory' ? selectedNode : null
+                }
+            };
+            let statement = $('#forcedLeftTree').jstree('create_node', selectedNode, newNode, 'last');
+            $('#forcedLeftTree').jstree('edit', statement);
+        });
+
+        // Save tree data on changes
+        $('#forcedRightTree, #forcedLeftTree').on('create_node.jstree rename_node.jstree delete_node.jstree move_node.jstree', function() {
+            updateForcedTreeData();
+        });
+    }
+
+    function forcedLeftContextMenu(node) {
+        let items = {};
+        
+        if (node.type === 'category') {
+            items.addSubcategory = {
+                label: 'Add Subcategory',
+                action: function() {
+                    let newNode = {
+                        id: 'fsub_' + Date.now(),
+                        text: 'New Subcategory',
+                        type: 'subcategory',
+                        children: []
+                    };
+                    let subcategory = $('#forcedLeftTree').jstree('create_node', node, newNode, 'last');
+                    $('#forcedLeftTree').jstree('edit', subcategory);
+                    $('#forcedLeftTree').jstree('open_node', node);
+                }
+            };
+        }
+
+        if (node.type === 'category' || node.type === 'subcategory') {
+            items.addStatement = {
+                label: 'Add Statement',
+                action: function() {
+                    let newNode = {
+                        id: 'fstmt_' + Date.now(),
+                        text: 'New Statement',
+                        type: 'statement',
+                        data: {
+                            categoryId: node.type === 'category' ? node.id : node.parent,
+                            subcategoryId: node.type === 'subcategory' ? node.id : null
+                        }
+                    };
+                    let statement = $('#forcedLeftTree').jstree('create_node', node, newNode, 'last');
+                    $('#forcedLeftTree').jstree('edit', statement);
+                }
+            };
+        }
+
+        if (node.type === 'statement') {
+            items.addToChoiceGroup = {
+                label: 'Add to Choice Group',
+                submenu: getForcedChoiceGroupSubmenu(node)
+            };
+        }
+
+        items.edit = {
+            label: 'Edit',
+            action: function() {
+                $('#forcedLeftTree').jstree('edit', node);
+            }
+        };
+
+        items.delete = {
+            label: 'Delete',
+            action: function() {
+                $('#forcedLeftTree').jstree('delete_node', node);
+            }
+        };
+
+        return items;
+    }
+
+    function forcedRightContextMenu(node) {
+        let items = {};
+
+        if (node.type === 'choicegroup') {
+            items.edit = {
+                label: 'Edit',
+                action: function() {
+                    $('#forcedRightTree').jstree('edit', node);
+                }
+            };
+            items.delete = {
+                label: 'Delete',
+                action: function() {
+                    deleteForcedChoiceGroup(node);
+                }
+            };
+        } else if (node.type === 'statement') {
+            items.delete = {
+                label: 'Delete',
+                action: function() {
+                    $('#forcedRightTree').jstree('delete_node', node);
+                    removeForcedStrikethrough(node.id);
+                }
+            };
+        }
+        return items;
+    }
+
+    function getForcedChoiceGroupSubmenu(node) {
+        let submenu = {};
+        $('#forcedRightTree').jstree(true).get_json('#', {flat: true})
+            .filter(n => n.type === 'choicegroup')
+            .forEach(cg => {
+                submenu[cg.id] = {
+                    label: cg.text,
+                    action: function() {
+                        addStatementToForcedChoiceGroup(node, cg.id);
+                    }
+                };
+            });
+        return submenu;
+    }
+
+    function addStatementToForcedChoiceGroup(statementNode, choiceGroupId) {
+        const choiceGroup = $('#forcedRightTree').jstree(true).get_node(choiceGroupId);
+        
+        if (choiceGroup.children.length >= 2) {
+            alert('A choice group can only have 2 statements');
+            return;
+        }
+
+        const existingStatements = choiceGroup.children.map(id => {
+            const node = $('#forcedRightTree').jstree(true).get_node(id);
+            return node.data?.categoryId;
+        });
+
+        if (existingStatements.includes(statementNode.data?.categoryId)) {
+            alert('Statements in a choice group must be from different categories');
+            return;
+        }
+
+        let newNode = {
+            id: 'fref_' + statementNode.id,
+            text: statementNode.text,
+            type: 'statement',
+            data: { 
+                originalId: statementNode.id,
+                categoryId: statementNode.data.categoryId,
+                subcategoryId: statementNode.data.subcategoryId
+            }
+        };
+        
+        $('#forcedLeftTree').jstree('set_text', statementNode, '<s>' + statementNode.text + '</s>');
+        $('#forcedLeftTree').jstree('disable_node', statementNode);
+        $('#forcedRightTree').jstree('create_node', choiceGroupId, newNode, 'last');
+        $('#forcedRightTree').jstree('open_node', choiceGroupId);
+    }
+
+    function removeForcedStrikethrough(id) {
+        let originalId = id.startsWith('fref_') ? id.replace('fref_', '') : id;
+        let node = $('#forcedLeftTree').jstree(true).get_node(originalId);
+        if (node) {
+            $('#forcedLeftTree').jstree('set_text', node, node.text.replace(/<\/?s>/g, ''));
+            $('#forcedLeftTree').jstree('enable_node', node);
+        }
+    }
+
+    function deleteForcedChoiceGroup(node) {
+        let statements = $('#forcedRightTree').jstree(true).get_node(node).children;
+        statements.forEach(function(statementId) {
+            removeForcedStrikethrough(statementId);
+        });
+        $('#forcedRightTree').jstree('delete_node', node);
+    }
+    
+    function updateForcedTreeData() {
+        const data = {
+            leftTree: $('#forcedLeftTree').jstree(true).get_json('#', {flat: false}),
+            rightTree: $('#forcedRightTree').jstree(true).get_json('#', {flat: false})
+        };
+        $('#forced_data').val(JSON.stringify(data));
+    }
+
     
 </script>
 {% endblock %}

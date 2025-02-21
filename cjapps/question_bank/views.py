@@ -128,12 +128,16 @@ def create_question(request, task_id=None):
                 grid_formset.save()
 
             rating_formset = forms.PsyRatingFormSet(request.POST, instance=question, prefix='rating')
-            if question.type == 'psy_rating' or question.type == 'psy_rank_rate':
+            if question.type == 'psy_rating' or question.type == 'psy_rank_rate' or question.type == 'psy_forced_two':
                 if rating_formset.is_valid():
                     rating_formset.save()
 
             if question.type == 'psy_ranking' or question.type == 'psy_rank_rate':
                 question.ranking_structure = request.POST.get('ranking_data')
+                question.save()
+
+            if question.type in ['psy_forced_one', 'psy_forced_two']:
+                question.ranking_structure = request.POST.get('forced_data')
                 question.save()
 
             messages.success(
@@ -209,11 +213,16 @@ def edit_question(request, pk):
             grid_formset.save()
         
         rating_formset = forms.PsyRatingFormSet(request.POST, prefix='rating', instance=question)
-        if question.type == 'psy_rating' and rating_formset.is_valid():
-            rating_formset.save()
+        if question.type == 'psy_rating' or question.type == 'psy_rank_rate' or question.type == 'psy_forced_two':
+            if rating_formset.is_valid():
+                rating_formset.save()
 
-        if question.type == 'psy_ranking':
+        if question.type == 'psy_ranking' or question.type == 'psy_rank_rate':
             question.ranking_structure = request.POST.get('ranking_data')
+            question.save()
+
+        if question.type in ['psy_forced_one', 'psy_forced_two']:
+            question.ranking_structure = request.POST.get('forced_data')
             question.save()
 
         messages.success(

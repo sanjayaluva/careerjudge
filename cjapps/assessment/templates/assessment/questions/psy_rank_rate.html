@@ -1,0 +1,124 @@
+{% load assessment_tags %}
+
+<div id="question-wrapper" data-question-id="{{ question.id }}" data-question-type="psy_rank_rate">
+    <div class="question-header">
+        <span class="question-number">Question {{ question.number }}</span>
+        <div class="question-text">{{ question.text.html|safe }}</div>
+    </div>
+    
+    <!-- Ranking Groups -->
+    <div class="ranking-groups">
+        {% with ranking_data=question.ranking_structure|parse_json %}
+        {% for group in ranking_data.rightTree %}
+        <div class="ranking-group">
+            <h3 class="group-title">{{ group.text }}</h3>
+            <div class="ranking-statements">
+                {% for statement in group.children %}
+                <div class="ranking-statement" data-statement-id="{{ statement.data.originalId }}" 
+                    {% if response.answer_data.ratings|get_statement_rating:statement %}
+                        data-rating="{{ response.answer_data.ratings|get_statement_rating:statement }}"
+                    {% endif %}>
+                    <div class="statement-content">
+                        <span class="statement-text">{{ statement.text }}</span>
+                    </div>
+                    <div class="">
+                        <select class="rank-select p-1" data-group-id="{{ group.id }}" data-statement="{{ statement }}">
+                            <option value="">Rank</option>
+                            {#% with saved_rank=response.answer_data.rankings|get_statement_rank:statement %#}
+                            {% with saved_rank=response.answer_data.rankings|get_statement_rank:statement.data.originalId %}
+                            {% for category in ranking_data.leftTree %}
+                            <option value="{{ forloop.counter }}" 
+                            {% if saved_rank == forloop.counter %}selected{% endif %}>
+                                {{ forloop.counter }}
+                            </option>
+                            {% endfor %}
+                            {% endwith %}
+                        </select>
+                        <div class="rating-field ms-1">
+                            <!-- <button class="rating-trigger-btn btn btn-outline-secondary">Rate</button> -->
+                            <button class="rating-trigger-btn btn py-0 px-1 btn btn-primary {% if response.answer_data.ratings|get_statement_rating:statement %}rated{% endif %}">
+                                {% if response.answer_data.ratings|get_statement_rating:statement %}
+                                    Rated: {{ response.answer_data.ratings|get_statement_rating:statement }}
+                                {% else %}
+                                    Rate
+                                {% endif %}
+                            </button>
+                            <div class="rating-popup">
+                                {% for option in question.rating_options.all %}
+                                <div class="rating-option" data-value="{{ option.value }}">
+                                    <span class="rating-value">{{ option.value }}</span>
+                                    <span class="rating-text">{{ option.text }}</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+        {% endwith %}
+    </div>
+    
+    <!-- Rating Scale -->
+    <!-- <div class="rating-scale">
+        <div class="question-text">{{ question.text.html|safe }}</div>
+        {% for option in question.rating_options.all %}
+        <div class="rating-item">
+            <input type="radio" 
+                    id="rating_{{ option.value }}" 
+                    class="rating-input" 
+                    name="rating" 
+                    value="{{ option.value }}"
+                    {% if option.value == response.answer_data.rating %}checked{% endif %}>
+            <label for="rating_{{ option.value }}">
+                <span class="rating-text">{{ option.text }}</span>
+            </label>
+        </div>
+        {% endfor %}
+    </div> -->
+</div>
+
+<style>
+    .rating-field {
+        display: inline-flex;
+        align-items: center;
+        margin-left: 10px;
+
+        position: relative;
+    }
+
+    .rating-trigger-btn.rated {
+        background-color: #28a745;
+        color: white;
+        border-color: #28a745;
+    }
+
+    .rating-popup {
+        display: none;
+        position: absolute;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        /* padding: 10px; */
+        z-index: 1000;
+    }
+
+    .rating-option {
+        display: flex;
+        align-items: center;
+        padding: 5px 10px;
+        cursor: pointer;
+    }
+
+    .rating-option:hover {
+        background: #f5f5f5;
+    }
+
+    .rating-value {
+        font-weight: bold;
+        margin-right: 10px;
+    }
+
+</style>

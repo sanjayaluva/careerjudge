@@ -40,7 +40,7 @@ class Question(models.Model):
         ('psy_forced_one', 'Psychometric Forced-Choice Scale - Single Level Rating'),
         ('psy_forced_two', 'Psychometric Forced-Choice Scale - Two-Level Rating'),
     ]
-
+    
     DIFFICULTY_LEVELS = [
         ('veasy', 'Very Easy'),
         ('easy', 'Easy'),

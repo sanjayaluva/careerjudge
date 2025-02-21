@@ -1,0 +1,34 @@
+{% load assessment_tags %}
+
+<div id="question-wrapper" data-question-id="{{ question.id }}" data-question-type="psy_forced_one">
+    <div class="question-header">
+        <span class="question-number">Question {{ question.number }}</span>
+        <div class="question-text">{{ question.text.html|safe }}</div>
+    </div>
+    
+    <div class="forced-choice-groups">
+        {% with structure=question.ranking_structure|json_decode %}
+        {% if structure %}
+        {% for group in structure.rightTree %}
+        <div class="forced-choice-group" data-group-id="{{ group.id }}">
+            <h3 class="group-title">{{ group.text }}</h3>
+            <div class="statement-choices">
+                {% for statement in group.children %}
+                <div class="statement-choice" data-statement-id="{{ statement.data.originalId }}">
+                    <input type="radio" 
+                        id="choice_{{ statement.data.originalId }}"
+                        name="choice_{{ group.id }}" 
+                        value="{{ statement.data.originalId }}"
+                        {% with choices=response.answer_data.choices %}
+                        {% if choices|get_statement_choice:statement %}checked{% endif %}
+                        {% endwith %}>
+                    <label for="choice_{{ statement.data.originalId }}">{{ statement.text }}</label>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+    </div>
+</div>

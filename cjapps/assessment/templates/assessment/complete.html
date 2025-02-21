@@ -8,9 +8,13 @@
     <div class="score-summary card mb-4">
         <div class="card-body">
             <h4>Score Summary</h4>
-            <p>Total Questions: {{ total_questions }}</p>
-            <p>Correct Answers: {{ correct_answers }}</p>
-            <p>Score: {{ session.score }}%</p>
+            <p class="mb-0">Total Questions: {{ total_questions }}</p>
+            {% if not is_psychometric %}
+            <p class="mb-0">Correct Answers: {{ correct_answers }}</p>
+            <!-- <p class="mb-0">Score: {{ session.score }}%</p> -->
+            <p class="mb-0">Total Points: {{ session.scores.total|default:0 }}</p>
+            <p class="mb-0">Score: {{ session.scores.total|calculate_percentage:summary.total_questions }}%</p>
+            {% endif %}
         </div>
     </div>
 
@@ -18,10 +22,10 @@
         <h4>Review Answers</h4>
         {% for section, responses in sections.items %}
             <div class="section">
-                <h3>{{ section.title }}</h3>
+                <!-- <h3>{{ section.title }}</h3> -->
                 
                 {% for response in responses %}
-                    <div class="question {% if response.is_correct %}correct{% else %}incorrect{% endif %}">
+                    <div class="question {% if not is_psychometric %}{%if response.is_correct %}correct{% else %}incorrect{% endif %}{% endif %}">
                         <h4>{{ response.question.title }}</h4>
                         
                         <!-- Display question text -->
@@ -32,17 +36,84 @@
                         <!-- Display user's answer -->
                         <div class="user-answer">
                             <h5>Your Answer:</h5>
-                            {% if response.question.type == 'mcq' or response.question.type == 'mcq_flash' %}
-                                Selected option: {{ response.answer_data.selected_option }}
-                            {% elif 'fib' in response.question.type %}
-                                {% for answer in response.answer_data.answers %}
-                                    Blank {{ forloop.counter }}: {{ answer }}<br>
-                                {% endfor %}
-                            {% elif 'cus' in response.question.type %}
-
+                            {% if is_psychometric %}
+                                {% if response.question.type == 'psy_rating' %}
+                                    Rating: {{ response.psy_score.rating }}
+                                {% elif response.question.type == 'psy_ranking' or response.question.type == 'psy_rank_rate' or response.question.type == 'psy_forced_one' or response.question.type == 'psy_forced_two' %}
+                                    <ul class="category-list">
+                                        {% for category_id, category_score in response.psy_score.scores.category_scores.items %}
+                                            <li>
+                                                <div class="category-header" onclick="toggleVisibility('category-{{ category_id }}')">
+                                                    <strong>{{ response.psy_score.maps.category_map|get_item:category_id|get_item:'text'|safe }} <span class="badge bg-warning text-dark">{{ category_score }}</span></strong>
+                                                </div>
+                                                {% if response.psy_score.maps.subcategory_map %}
+                                                    <ul id="category-{{ category_id }}" class="subcategory-list" style="display: none;">
+                                                        {% for subcategory_id, subcategory_score in response.psy_score.scores.subcategory_scores.items %}
+                                                            {% if response.psy_score.maps.subcategory_map|get_item:subcategory_id|get_item:'category_id' == category_id %}
+                                                                <li>
+                                                                    <div class="subcategory-header" onclick="toggleVisibility('subcategory-{{ subcategory_id }}')">
+                                                                        <strong>{{ response.psy_score.maps.subcategory_map|get_item:subcategory_id|get_item:'text'|safe }} <span class="badge bg-warning text-dark">{{ subcategory_score }}</span></strong>
+                                                                    </div>
+                                                                    <ul id="subcategory-{{ subcategory_id }}" class="statement-list" style="display: none;">
+                                                                        {% for statement_id, statement_score in response.psy_score.scores.statement_scores.items %}
+                                                                            {% if response.psy_score.maps.statement_map|get_item:statement_id|get_item:'subcategory_id' == subcategory_id %}
+                                                                                <li>{{ response.psy_score.maps.statement_map|get_item:statement_id|get_item:'text'|remove_strike|safe }} <span class="badge bg-warning text-dark">{{ statement_score }}</span></li>
+                                                                            {% endif %}
+                                                                        {% endfor %}
+                                                                    </ul>
+                                                                </li>
+                                                            {% endif %}
+                                                        {% endfor %}
+                                                    </ul>
+                                                {% else %}
+                                                    <ul id="category-{{ category_id }}" class="statement-list" style="display: none;">
+                                                        {% for statement_id, statement_score in response.psy_score.scores.statement_scores.items %}
+                                                            {% if response.psy_score.maps.statement_map|get_item:statement_id|get_item:'category_id' == category_id %}
+                                                            <li>{{ response.psy_score.maps.statement_map|get_item:statement_id|get_item:'text'|remove_strike|safe }} <span class="badge bg-warning text-dark">{{ statement_score }}</span></li>
+                                                            {% endif %}
+                                                        {% endfor %}
+                                                    </ul>
+                                                {% endif %}
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                {% endif %}
+                            {% else %}
+                                {% if response.question.type|startswith:'mcq_' %}
+                                    Selected option: {{ response.answer_data.selected_option|get_option_text:response.question.options }}
+                                {% elif response.question.type|startswith:'fib_' %}
+                                    {% for answer in response.answer_data.answers %}
+                                        Blank {{ forloop.counter }}: {{ answer }}<br>
+                                    {% endfor %}
+                                {% elif response.question.type|startswith:'cus_' %}
+                                    {% if response.question.type == 'cus_grid' %}
+                                        Selected cells: {{ response.answer_data.selected_cells|length }}
+                                    {% elif response.question.type == 'cus_match' %}
+                                        Matched pairs: {{ response.answer_data.matches|length }}
+                                    {% elif response.question.type == 'cus_hotspot_single' or response.question.type == 'cus_hotspot_multiple' %}
+                                        <div class="selected-hotspots">
+                                            <h5>Selected Areas:</h5>
+                                            <ul class="list-unstyled">
+                                                {% for hotspot in response.answer_data.selected_hotspots %}
+                                                    {% with hotspot_data=response.question.hotspot_items|get_hotspot_by_id:hotspot.hotspotId %}
+                                                        <li>
+                                                            <span class="badge bg-info">{{ hotspot_data.name }}</span>
+                                                            {% if hotspot_data.correct %}
+                                                                <i class="fas fa-check text-success"></i>
+                                                            {% else %}
+                                                                <i class="fas fa-times text-danger"></i>
+                                                            {% endif %}
+                                                        </li>
+                                                    {% endwith %}
+                                                {% endfor %}
+                                            </ul>
+                                        </div>
+                                    {% endif %}
+                                {% endif %}
                             {% endif %}
                         </div>
 
+                        {% if not is_psychometric %}
                         <!-- Display correct/incorrect status -->
                         <div class="answer-status">
                             {% if response.is_correct %}
@@ -51,28 +122,12 @@
                                 <span class="incorrect">Incorrect ✗</span>
                             {% endif %}
                         </div>
+                        {% endif %}
                     </div>
                 {% endfor %}
             </div>
         {% endfor %}
 
-        {% for section, responses in sections.items %}
-        <div class="card mb-3">
-            <div class="card-header">
-                <h5>{{ section.title }}</h5>
-                <p>Section Score: {{ section_scores|get_item:'section_'|add:section.id }}</p>
-            </div>
-            <div class="card-body">
-                {% for response in responses %}
-                <div class="question-response {% if response.is_correct %}correct{% else %}incorrect{% endif %}">
-                    <p>Question: {{ response.question.text }}</p>
-                    <p>Score: {{ response.score }}</p>
-                    <p>Your Answer: {{ response.answer_data }}</p>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-        {% endfor %}
     </div>
 </div>
 <style>
@@ -102,4 +157,35 @@
         border-radius: 4px;
     }
 </style>
+
+<!-- collapse statements -->
+<style>
+    .category-header, .subcategory-header {
+        cursor: pointer;
+        padding: 5px;
+        background-color: #f0f0f0;
+        margin-bottom: 5px;
+        border-radius: 4px;
+    }
+    
+    .category-header:hover, .subcategory-header:hover {
+        background-color: #e0e0e0;
+    }
+    
+    .subcategory-list, .statement-list {
+        margin-left: 20px;
+        list-style-type: none;
+        padding-left: 0;
+    }
+</style>
+<script>
+    function toggleVisibility(id) {
+        var element = document.getElementById(id);
+        if (element.style.display === "none") {
+            element.style.display = "block";
+        } else {
+            element.style.display = "none";
+        }
+    }
+</script>
 {% endblock %}

@@ -607,92 +607,6 @@ def save_question_response(request, session_id):
         'score': response.score
     })
 
-# def check_answer_correctness(question, answer_data):
-#     if not answer_data:
-#         return False
-    
-#     if question.type.startswith('mcq'):
-#         if question.type in ['mcq_text', 'mcq_image', 'mcq_audio', 'mcq_video', 'mcq_paragraph']:
-#             selected_option = answer_data.get('selected_option')
-#             correct_option = question.options.filter(is_correct=True).first()
-#             return selected_option == str(correct_option.id) if correct_option else False
-#         else: # mcq_flash
-#             pass
-#             # return check_mcq_correctness(question, answer_data)
-#         # return check_mcq_correctness(question, answer_data)
-#     elif question.type.startswith('fib'):
-#         if question.type in ['fib_text', 'fib_image', 'fib_audio', 'fib_video', 'fib_paragraph']:
-#             user_answers = answer_data.get('answers', [])
-#             correct_answers, _ = question.get_fib_info()
-            
-#             if len(user_answers) != len(correct_answers):
-#                 return False
-                
-#             return all(
-#                 user_answer.lower().strip() == correct_answer.lower().strip()
-#                 for user_answer, correct_answer in zip(user_answers, correct_answers)
-#             )
-#         else: # fib_flash
-#             pass
-#         # return check_fib_correctness(question, answer_data)
-#     elif question.type.startswith('psy'):
-#         if question.type == 'psy_rating':
-#             selected_value = answer_data.get('selected_value')
-#             correct_value = question.rating_options.filter(is_correct=True).first()
-#             return selected_value == correct_value.value if correct_value else False
-#         elif question.type == 'psy_ranking':
-#             selected_order = answer_data.get('selected_order')
-#             correct_order = json.loads(question.ranking_structure) if question.ranking_structure else []
-#             return selected_order == correct_order
-#         elif question.type == 'psy_rank_n_rate':
-#             selected_value = answer_data.get('selected_value')
-#             correct_value = question.rating_options.filter(is_correct=True).first()
-#             selected_order = answer_data.get('selected_order')
-#             correct_order = json.loads(question.ranking_structure) if question.ranking_structure else []
-#             return selected_value == correct_value.value if correct_value else False and selected_order == correct_order
-#         return False
-#     elif question.type.startswith('cus'):
-#         if question.type == 'cus_hotspot_single':
-#             selected_hotspots = answer_data.get('selected_hotspots')
-#             correct_hotspots = question.hotspot_items
-#             return selected_hotspots == correct_hotspots
-#         elif question.type == 'cus_hotspot_multiple':
-#             selected_hotspots = answer_data.get('selected_hotspots')
-#             correct_hotspots = question.hotspot_items
-#             return selected_hotspots == correct_hotspots
-#         elif question.type == 'cus_grid':
-#             selected_rows = answer_data.get('selected_rows')
-#             correct_rows = json.loads(question.grid_structure) if question.grid_structure else []
-#             return selected_rows == correct_rows
-#         elif question.type == 'cus_match':
-#             selected_pairs = answer_data.get('selected_pairs')
-#             correct_pairs = json.loads(question.match_structure) if question.match_structure else []
-#             return selected_pairs == correct_pairs
-        
-#         return False
-#         # return check_cus_correctness(question, answer_data)
-#     return False
-
-# @login_required
-# @require_http_methods(['POST'])
-# def validate_all_responses(request, session_id):
-#     session = get_object_or_404(AssessmentSession, id=session_id, user=request.user)
-#     responses = QuestionResponse.objects.filter(session=session)
-    
-#     with transaction.atomic():
-#         for response in responses:
-#             question = response.question
-#             is_correct = response. # check_answer_correctness(question, response.answer_data)
-#             response.is_correct = is_correct
-#             response.save()
-    
-#     return JsonResponse({
-#         'status': 'success',
-#         'message': 'All responses validated',
-#         'total_responses': responses.count(),
-#         'correct_responses': responses.filter(is_correct=True).count()
-#     })
-
 @login_required
 @require_http_methods(['POST'])
 def assessment_control(request, session_id):
@@ -709,13 +623,8 @@ def assessment_control(request, session_id):
         return resume_session(request, session_id)
     
     elif action == 'submit':
-        session.status = 'completed'
-        session.is_completed = True
-        session.end_time = timezone.now()
-        session.save()
-        
         # Calculate final scores
-        session.calculate_scores()
+        session.complete_assessment()
         
         return JsonResponse({'status': 'success', 'redirect_url': f'/assessment/complete/{session_id}/'})
     
@@ -725,6 +634,9 @@ def assessment_control(request, session_id):
 @login_required
 def assessment_complete(request, session_id):
     session = get_object_or_404(AssessmentSession, id=session_id, user=request.user)
+    
+    # Ensure scores are calculated
+    session.complete_assessment()
     
     # Get assessment summary
     summary = get_assessment_summary(session)
@@ -738,11 +650,13 @@ def assessment_complete(request, session_id):
         section = response.question.section_set.first()
         if section not in sections_with_responses:
             sections_with_responses[section] = []
+        is_psychometric = session.assessment.type == 'psychometric'
         sections_with_responses[section].append({
             'question': response.question,
             'answer_data': response.answer_data,
             'is_correct': response.is_correct,
-            'score': response.score
+            'score': response.score,
+            'psy_score': response.psy_score if is_psychometric else None,
         })
     
     context = {
@@ -752,86 +666,8 @@ def assessment_complete(request, session_id):
         'total_questions': responses.count(),
         'correct_answers': responses.filter(is_correct=True).count(),
         'assessment': session.assessment,
-        'section_scores': session.scores
+        'section_scores': session.scores,
+        'is_psychometric': is_psychometric
     }
     
     return render(request, 'assessment/complete.html', context)
-
-
-# def question_detail_api(request, pk):
-#     question = get_object_or_404(Question, pk=pk)
-    
-#     # Base question data
-#     data = {
-#         'question_id': question.id,
-#         'title': question.title,
-#         'type': question.type,
-#         'category_id': question.category.id,
-#         'category_name': question.category.name if question.category else None,
-#         'difficulty_level': question.difficulty_level,
-#         'cognitive_level': question.cognitive_level,
-#         'text': question.text.html if question.text else '',
-#         'objectives': question.objectives.html if question.objectives else '',
-#         'instructions': question.instructions.html if question.instructions else '',
-#         'exposure_limit': question.exposure_limit,
-#         'status': question.status,
-#     }
-    
-#     # Add type-specific data
-#     if question.type.startswith('mcq'):
-#         data['options'] = list(question.options.annotate(
-#             image_url=Case(
-#                 When(image='', then=Value('')),
-#                 default=Concat(Value('/media/'), F('image'), output_field=CharField()),
-#             )
-#         ).values('id', 'text', 'image_url', 'is_correct'))
-#     if question.type.startswith('fib'):
-#         data['blanks'] = question.get_fib_options()
-#     if question.type.endswith('image') or question.type.endswith('mixed'):
-#         data['image_url'] = question.image.url
-#     elif question.type.endswith('audio'):
-#         data['audio_url'] = question.audio.url
-#     elif question.type.endswith('video'):
-#         data['video_url'] = question.video.url
-#     if question.type.endswith('paragraph'):
-#         data['paragraph'] = question.paragraph.html if question.paragraph else ''
-#         data['display_time'] = question.paragraph_interval or 60
-#     elif question.type.endswith('flash'):
-#         data['flash_items'] = list(question.flash_options.annotate(
-#             image_url=Case(
-#                 When(image='', then=Value('')),
-#                 default=Concat(Value('/media/'), F('image'), output_field=CharField()),
-#             )
-#         ).values('id', 'text', 'image_url'))
-#         data['flash_time'] = question.flash_interval or 60 #flash_display_time
-#         data['flash_items_count'] = question.flash_items_count or 0
-    
-#     elif question.type.startswith('cus_hotspot'):
-#         data['image_url'] = question.image.url
-#         data['hotspots'] = question.hotspot_items
-#         data['multiple_selection'] = question.type == 'cus_hotspot_multiple'
-    
-#     elif question.type == 'cus_grid':
-#         data['grid_items'] = list(question.grid_options.annotate(
-#             image_url=Case(
-#                 When(image='', then=Value('')),
-#                 default=Concat(Value('/media/'), F('image'), output_field=CharField()),
-#             )
-#         ).values('id', 'text', 'image_url', 'row', 'col', 'is_correct'))
-#         data['grid_size'] = {'rows': question.grid_rows, 'cols': question.grid_cols}
-#         data['grid_type'] = question.grid_type
-    
-#     elif question.type == 'cus_match':
-#         data['pairs'] = list(question.match_options.values('id', 'left_item', 'right_item'))
-    
-#     elif question.type.startswith('psy'):
-#         # data['items'] = list(question.items.values())
-#         if question.type == 'psy_rating':
-#             data['rating_options'] = list(question.rating_options.values('id', 'text', 'value'))
-#         elif question.type == 'psy_ranking':
-#             data['ranking_options'] = json.loads(question.ranking_structure) if question.ranking_structure else None
-#         elif question.type == 'psy_rank_n_rate':
-#             data['rating_options'] = list(question.rating_options.values('id', 'text', 'value'))
-#             data['ranking_options'] = json.loads(question.ranking_structure) if question.ranking_structure else None
-    
-#     return JsonResponse(data, safe=False)

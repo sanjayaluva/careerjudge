@@ -1,0 +1,93 @@
+{% load assessment_tags %}
+
+<div id="question-wrapper" data-question-id="{{ question.id }}" data-question-type="psy_forced_two">
+    <div class="question-header">
+        <span class="question-number">Question {{ question.number }}</span>
+        <div class="question-text">{{ question.text.html|safe }}</div>
+    </div>
+    
+    <div class="forced-choice-groups row">
+        {% with structure=question.ranking_structure|json_decode %}
+        {% if structure %}
+        {% for group in structure.rightTree %}
+        <div class="forced-choice-group" data-group-id="{{ group.id }}">
+            <h3 class="group-title">{{ group.text }}</h3>
+            <div class="row">
+                <div class="col-9">
+                    <div class="statement-choices">
+                        {% for statement in group.children %}
+                        <div class="statement-choice" data-statement-id="{{ statement.data.originalId }}">
+                            <input type="radio" 
+                                   id="choice_{{ statement.data.originalId }}"
+                                   name="choice_{{ group.id }}" 
+                                   value="{{ statement.data.originalId }}"
+                                   {% if response.answer_data.choices|get_statement_choice:statement %}checked{% endif %}>
+                            <label for="choice_{{ statement.data.originalId }}">{{ statement.text }}</label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="col-3">
+                    <div class="rating-field">
+                        <button class="rating-trigger-btn btn py-0 px-1 btn btn-primary {% if response.answer_data.ratings|get_group_rating:group.id %}rated{% endif %}">
+                            {% if response.answer_data.ratings|get_group_rating:group.id %}
+                                Rated: {{ response.answer_data.ratings|get_group_rating:group.id }}
+                            {% else %}
+                                Rate
+                            {% endif %}
+                        </button>
+                        <div class="rating-popup">
+                            {% for option in question.rating_options.all %}
+                            <div class="rating-option" data-value="{{ option.value }}">
+                                <span class="rating-value">{{ option.value }}</span>
+                                <span class="rating-text">{{ option.text }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+    </div>
+</div>
+
+<style>
+    .rating-field {
+        position: relative;
+    }
+
+    .rating-trigger-btn.rated {
+        background-color: #28a745;
+        color: white;
+        border-color: #28a745;
+    }
+
+    .rating-popup {
+        display: none;
+        position: absolute;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        z-index: 1000;
+        min-width: 120px;
+    }
+
+    .rating-option {
+        display: flex;
+        align-items: center;
+        padding: 5px 10px;
+        cursor: pointer;
+    }
+
+    .rating-option:hover {
+        background: #f5f5f5;
+    }
+
+    .rating-value {
+        font-weight: bold;
+        margin-right: 10px;
+    }
+</style>

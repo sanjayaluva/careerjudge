@@ -1,15 +1,22 @@
 from django import template
 import json
 from django.utils.safestring import mark_safe
+import re
 
 register = template.Library()
 
 @register.filter
 def get_statement_rank(rankings, statement):
-    """Get the rank for a specific statement from rankings data"""
-    if rankings and isinstance(rankings, dict):
+    if not rankings:
+        return None
+        
+    # Handle when statement is directly the ID string
+    if isinstance(statement, str):
         return rankings.get(statement)
-    return None
+        
+    # Handle when statement is a dictionary object
+    statement_id = statement.get('data', {}).get('originalId')
+    return rankings.get(str(statement_id))
 
 @register.filter
 def parse_json(value):
@@ -67,6 +74,84 @@ def index(list_obj, i):
 def get_range(value):
     return range(value)
 
+# @register.filter
+# def get_item(dictionary, key):
+#     return dictionary.get(key, 0)
+
+
 @register.filter
 def get_item(dictionary, key):
-    return dictionary.get(key, 0)
+    return dictionary.get(key, {})
+
+@register.filter
+def remove_strike(text):
+    """Remove <s> and </s> tags from the text."""
+    if text:
+        return re.sub(r'</?s>', '', text)
+    return text
+
+@register.filter
+def get_statement_rating(ratings, statement):
+    if not ratings:
+        return None
+    # Handle statement as dictionary since it's coming from JSON data
+    statement_id = statement.get('data', {}).get('originalId') or statement.get('originalId')
+    return ratings.get(str(statement_id))
+
+@register.filter
+def get_statement_choice(choices, statement):
+    if not choices:
+        return False
+    statement_id = statement.get('data', {}).get('originalId')
+    return str(statement_id) in choices.values()
+
+@register.filter
+def get_group_rating(ratings, group_id):
+    if not ratings:
+        return None
+    return ratings.get(str(group_id))
+
+@register.filter
+def get_statement_choice(choices_dict, statement):
+    if isinstance(choices_dict, str):
+        try:
+            choices_dict = json.loads(choices_dict)
+        except:
+            choices_dict = {}
+    
+    if not choices_dict or not isinstance(choices_dict, dict):
+        return False
+        
+    statement_id = statement.get('data', {}).get('originalId')
+    return str(statement_id) in choices_dict.values()
+
+
+@register.filter
+def json_decode(value):
+    if value:
+        return json.loads(value)
+    return {}
+
+@register.filter
+def startswith(text, starts):
+    return text.startswith(starts)
+
+@register.filter
+def get_hotspot_by_id(hotspot_items, hotspot_id):
+    if isinstance(hotspot_items, str):
+        hotspot_items = json.loads(hotspot_items)
+    return next((item for item in hotspot_items if item['hotspotId'] == hotspot_id), None)
+
+@register.filter
+def get_option_text(option_id, options):
+    try:
+        return options.get(id=option_id).text
+    except:
+        return "No option selected"
+
+@register.filter
+def calculate_percentage(score, total_questions):
+    try:
+        return round((score / total_questions) * 100, 1)
+    except (TypeError, ZeroDivisionError):
+        return 0
