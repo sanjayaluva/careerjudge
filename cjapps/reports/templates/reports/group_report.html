@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+{% load report_filters %}
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>{{ configuration.title }} - Group Report</title>
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 1.5cm;
+        }
+        
+        body {
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            line-height: 1.5;
+            color: #333333;
+            margin: 0;
+            padding: 0;
+            font-size: 11pt;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .page {
+            page-break-after: always;
+            padding: 0;
+            position: relative;
+        }
+        
+        .page:last-child {
+            page-break-after: avoid;
+        }
+        
+        .logo {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 120px;
+        }
+        
+        h1 {
+            font-size: 26pt;
+            font-weight: bold;
+            color: #1a5276;
+            margin-bottom: 10px;
+        }
+        
+        h2 {
+            font-size: 20pt;
+            color: #2874a6;
+            margin-top: 25px;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #3498db;
+        }
+        
+        h3 {
+            font-size: 16pt;
+            color: #2e86c1;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+        
+        h4 {
+            font-size: 13pt;
+            color: #3498db;
+            margin-top: 15px;
+            margin-bottom: 8px;
+        }
+        
+        p {
+            margin-bottom: 10px;
+        }
+        
+        .report-title {
+            margin-top: 60px;
+            font-size: 28pt;
+            font-weight: bold;
+            color: #1a5276;
+        }
+        
+        .report-subtitle {
+            color: #2874a6;
+            margin-bottom: 40px;
+            font-size: 18pt;
+        }
+        
+        .section-title {
+            color: #1a5276;
+            border-bottom: 2px solid #3498db;
+            margin-top: 30px;
+            font-size: 22pt;
+        }
+        
+        .intro-image {
+            margin: 30px auto;
+            display: block;
+            max-width: 90%;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+        
+        img {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            color-adjust: exact;
+            max-width: 100%;
+            height: auto;
+        }
+        
+        table {
+            page-break-inside: auto;
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+        
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        
+        th {
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        
+        .force-page-break {
+            page-break-before: always;
+        }
+        
+        .text-center {
+            text-align: center;
+        }
+        
+        .text-right {
+            text-align: right;
+        }
+        
+        .report-footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 15px;
+            border-top: 1px solid #e0e0e0;
+            font-size: 9pt;
+            color: #666666;
+            font-style: italic;
+        }
+        
+        #footer {
+            text-align: center;
+            font-size: 9pt;
+            color: #666666;
+        }
+        
+        .clearfix::after {
+            content: "";
+            clear: both;
+            display: table;
+        }
+        
+        .score-high {
+            background-color: #d4edda;
+            color: #155724;
+            font-weight: bold;
+        }
+        
+        .score-medium {
+            background-color: #fff3cd;
+            color: #856404;
+            font-weight: bold;
+        }
+        
+        .score-low {
+            background-color: #f8d7da;
+            color: #721c24;
+            font-weight: bold;
+        }
+        
+        .summary-box {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-left: 5px solid #3498db;
+        }
+    </style>
+</head>
+<body>
+    <!-- Page 1: Cover Page -->
+    <div class="page" id="cover-page">
+        <!-- Logo with data URI fallback -->
+        {% if logo_data_uri %}
+        <img src="{{ logo_data_uri }}" alt="Company Logo" class="logo">
+        {% else %}
+        <img src="{{ logo_url }}" alt="Company Logo" class="logo">
+        {% endif %}
+        
+        <!-- Report Title -->
+        <div class="report-title">{{ configuration.title }}</div>
+        <div class="report-subtitle">Group Performance Report</div>
+        
+        <!-- Organization Information -->
+        <div style="margin-top: 50px; background-color: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 5px solid #3498db;">
+            <div style="font-size: 20pt; font-weight: bold; margin-bottom: 15px; color: #2874a6;">{{ organization_name|default:"Organization" }}</div>
+            <div style="font-size: 11pt; color: #555555; line-height: 1.6;">
+                <strong>Assessment:</strong> {{ assessment.title }}<br>
+                <strong>Total Candidates:</strong> {{ candidates|length }}<br>
+                <strong>Report Generated:</strong> {{ generated_date|date:"F d, Y" }}<br>
+                <strong>Generated By:</strong> {{ user.get_full_name }}
+            </div>
+        </div>
+    </div>
+
+    <!-- Page 2: Introduction -->
+    <div class="page" id="introduction-page">
+        <h3 class="section-title">Introduction</h3>
+        
+        <!-- Report Description Text -->
+        {% if formatted_description %}
+        <div class="report-description">
+            {{ formatted_description|safe }}
+        </div>
+        {% endif %}
+
+        <!-- Description Image -->
+        {% if configuration.description_img %}
+        <div class="text-center" style="margin-top: 10px;">
+            {% if description_img_data_uri %}
+            <img src="{{ description_img_data_uri }}" alt="Report Cover Image" 
+                 style="max-width: 75%; height: auto; margin: 0 auto; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
+            {% else %}
+            <img src="{{ base_url }}{{ configuration.description_img.url }}" alt="Report Cover Image" 
+                 style="max-width: 75%; height: auto; margin: 0 auto; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% if formatted_objectives %}
+        <div class="report-objectives">
+            <h4>Objectives:</h4>
+            {{ formatted_objectives|safe }}
+        </div>
+        {% endif %}
+        
+        <div class="summary-box">
+            <h4 style="margin-top: 0;">Report Summary</h4>
+            <p>This report provides a comprehensive overview of the performance of {{ candidates|length }} employees who completed the {{ assessment.title }} assessment. The report includes individual scores across different sections of the assessment, allowing for easy comparison and identification of strengths and areas for improvement.</p>
+            <p>Use this report to:</p>
+            <ul>
+                <li>Compare performance across team members</li>
+                <li>Identify high performers and those who may need additional support</li>
+                <li>Plan targeted training and development initiatives</li>
+                <li>Track progress over time when assessments are repeated</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Page 3: Group Performance Table -->
+    <div class="page" id="group-performance-page">
+        <h3 class="section-title">Group Performance Summary</h3>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Employee Name</th>
+                    <th>Email</th>
+                    <th>Department</th>
+                    <th>Completion Date</th>
+                    <th>Overall Score</th>
+                    {% for section in main_sections %}
+                    <th>{{ section.title }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for candidate in candidates %}
+                <tr>
+                    <td>{{ candidate.user.get_full_name }}</td>
+                    <td>{{ candidate.user.email }}</td>
+                    <td>{{ candidate.user.profile.department|default:"N/A" }}</td>
+                    <td>{{ candidate.session.end_time|date:"d/m/Y" }}</td>
+                    
+                    <!-- Calculate and display overall score -->
+                    {% with overall_score=candidate.scores|calculate_overall_score %}
+                    <td class="{% if overall_score >= 80 %}score-high{% elif overall_score >= 60 %}score-medium{% else %}score-low{% endif %}">
+                        {{ overall_score }}%
+                    </td>
+                    {% endwith %}
+                    
+                    <!-- Display section scores -->
+                    {% for section in main_sections %}
+                    {% with section_score=candidate.scores|get_section_score:section.id %}
+                    <td class="{% if section_score >= 80 %}score-high{% elif section_score >= 60 %}score-medium{% else %}score-low{% endif %}">
+                        {{ section_score }}%
+                    </td>
+                    {% endwith %}
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <div style="margin-top: 20px;">
+            <h4>Score Legend:</h4>
+            <div style="display: inline-block; margin-right: 20px;">
+                <span style="display: inline-block; width: 20px; height: 20px; background-color: #d4edda; vertical-align: middle;"></span>
+                <span style="vertical-align: middle; margin-left: 5px;">High (80-100%)</span>
+            </div>
+            <div style="display: inline-block; margin-right: 20px;">
+                <span style="display: inline-block; width: 20px; height: 20px; background-color: #fff3cd; vertical-align: middle;"></span>
+                <span style="vertical-align: middle; margin-left: 5px;">Medium (60-79%)</span>
+            </div>
+            <div style="display: inline-block;">
+                <span style="display: inline-block; width: 20px; height: 20px; background-color: #f8d7da; vertical-align: middle;"></span>
+                <span style="vertical-align: middle; margin-left: 5px;">Low (0-59%)</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Page 4: Section Performance Analysis -->
+    <!-- <div class="page" id="section-analysis-page">
+        <h3 class="section-title">Section Performance Analysis</h3>
+        
+        {% for section in main_sections %}
+        <h4>{{ section.title }}</h4>
+        <table>
+            <thead>
+                <tr>
+                    <th>Employee Name</th>
+                    <th>Score</th>
+                    <th>Performance Level</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for candidate in candidates %}
+                {% with section_score=candidate.scores|get_section_score:section.id %}
+                <tr>
+                    <td>{{ candidate.user.get_full_name }}</td>
+                    <td class="{% if section_score >= 80 %}score-high{% elif section_score >= 60 %}score-medium{% else %}score-low{% endif %}">
+                        {{ section_score }}%
+                    </td>
+                    <td>
+                        {% if section_score >= 80 %}
+                        High Performer
+                        {% elif section_score >= 60 %}
+                        Satisfactory
+                        {% else %}
+                        Needs Improvement
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endwith %}
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endfor %}
+    </div> -->
+
+    <!-- Report Footer -->
+    <div class="report-footer">
+        <p>
+            Report generated on {{ generated_date|date:"F d, Y" }} by {{ user.get_full_name }}<br>
+            CareerJudge Assessment Platform © {% now "Y" %}
+        </p>
+    </div>
+
+    <div id="footer">
+        <p>CareerJudge Assessment Platform © {% now "Y" %} - Confidential Report</p>
+    </div>
+</body>
+</html>

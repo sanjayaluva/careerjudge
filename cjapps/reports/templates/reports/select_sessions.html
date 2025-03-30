@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% block title %}Select Sessions for Bulk Reports{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Generate Bulk Reports: {{ config.title }}</h3>
+                    <div class="card-tools">
+                        <a href="{% url 'reports:report_configuration_list' %}" class="btn btn-sm btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Back
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'reports:generate_bulk_reports' pk=config.id %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="config_id" value="{{ config.id }}">
+                        
+                        <div class="form-group">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th><input type="checkbox" id="select-all"> Select</th>
+                                            <th>User</th>
+                                            <th>Completed On</th>
+                                            <th>Total Score</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for session in sessions %}
+                                        <tr>
+                                            <td><input type="checkbox" name="session_ids" value="{{ session.id }}" class="session-checkbox"></td>
+                                            <td>{{ session.user.email }}</td>
+                                            <td>{{ session.end_time|date:"M d, Y H:i" }}</td>
+                                            <td>{{ session.scores.total|default:"N/A" }}</td>
+                                        </tr>
+                                        {% empty %}
+                                        <tr>
+                                            <td colspan="4" class="text-center">No completed sessions found for this assessment.</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-primary" id="generate-btn" disabled>
+                                <i class="fas fa-file-pdf"></i> Generate Selected Reports
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function() {
+        // Handle select all checkbox
+        $('#select-all').change(function() {
+            $('.session-checkbox').prop('checked', $(this).prop('checked'));
+            updateGenerateButton();
+        });
+        
+        // Handle individual checkboxes
+        $('.session-checkbox').change(function() {
+            updateGenerateButton();
+        });
+        
+        function updateGenerateButton() {
+            // Enable generate button only if at least one session is selected
+            $('#generate-btn').prop('disabled', $('.session-checkbox:checked').length === 0);
+        }
+    });
+</script>
+{% endblock %}

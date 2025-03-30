@@ -45,6 +45,9 @@ class Assessment(models.Model):
     display_interval = models.PositiveIntegerField(default=0)
     duration_minutes = models.IntegerField(default=60)  # Default 60 minutes
 
+    def __str__(self):
+        return self.title
+
     def get_total_questions(self):
         def count_questions(section):
             if section is None:
@@ -119,10 +122,7 @@ class Section(models.Model):
             
         # Otherwise sum up children's timers
         return sum(child.get_total_timer() for child in self.children.all())
-    
-    class Meta:
-        ordering = ['order']   
-
+     
     def get_total_score(self):
         total = 0
         if self.question:
@@ -136,6 +136,9 @@ class Section(models.Model):
             total += child.get_total_score()
             
         return total 
+
+    class Meta:
+        ordering = ['order']  
 
 class AssessmentSession(models.Model):
     STATUS_CHOICES = [
@@ -165,12 +168,6 @@ class AssessmentSession(models.Model):
         elapsed = timezone.now() - self.start_time
         return max(0, self.assessment.duration_minutes * 60 - elapsed.seconds)
 
-    def resume(self):
-        if self.status == 'suspended':
-            self.start_time = timezone.now()
-            self.status = 'in_progress'
-            self.save()
-    
     @property
     def remaining_time_seconds(self):
         from django.utils import timezone
@@ -181,53 +178,75 @@ class AssessmentSession(models.Model):
         elapsed = timezone.now() - self.start_time
         remaining = (self.assessment.duration_minutes * 60) - elapsed.total_seconds()
         return max(0, int(remaining))
-      
+    
+    def resume(self):
+        if self.status == 'suspended':
+            self.start_time = timezone.now()
+            self.status = 'in_progress'
+            self.save()
+
     def calculate_scores(self):
+        """Calculate and store scores for each section and for the total assessment"""
+
         def calculate_section_scores(section):
-            total = 0
+            section_score = 0
+    
             if section.is_section:
-                # Calculate scores for child sections
+                # For section nodes, recursively calculate child scores
                 for child in section.children.all():
                     child_score = calculate_section_scores(child)
-                    total += child_score
-                    self.scores[f'section_{child.id}'] = child_score
+                    section_score += child_score
+            
+                # Save section score
+                self.scores[f'section_{section.id}'] = section_score
             else:
-                # Calculate score for question node
+                # For question nodes, get response score if available
                 response = QuestionResponse.objects.filter(
                     session=self,
                     question=section.question
                 ).first()
+        
                 if response:
+                    # Ensure answer is validated and score is calculated
                     response.validate_answer()
                     response.calculate_score()
-                    total = response.score
+                    section_score = response.score
+            
+                    # Store individual question score
+                    self.scores[f'question_{section.question.id}'] = section_score
+    
+            return section_score
 
-            return total
-
-        # Start calculation from root sections
+        # Begin calculation from root sections
         root_sections = Section.objects.filter(
             assessment=self.assessment,
             parent=None,
             is_section=True
         )
 
+        # Initialize scores dictionary if not exists
+        if not self.scores:
+            self.scores = {}
+
+        # Calculate score for each root section
         total_score = 0
         for section in root_sections:
             section_score = calculate_section_scores(section)
             total_score += section_score
-            self.scores[f'section_{section.id}'] = section_score
 
+        # Store total score
         self.scores['total'] = total_score
         self.save()
-        
+
     def complete_assessment(self):
+        """Mark assessment as completed and calculate final scores"""
         self.status = 'completed'
         self.is_completed = True
         self.end_time = timezone.now()
-        
+
         # Calculate scores for all root sections
         self.calculate_scores()
-            
+
         self.save()
 
 class QuestionResponse(models.Model):
@@ -258,13 +277,116 @@ class QuestionResponse(models.Model):
         self.save()
 
     def calculate_normal_score(self):
+        """Calculate scores for normal assessment questions based on question type"""
+        # Get scoring values from section or question
+        section = Section.objects.filter(question=self.question).first()
+        right_score = section.right_score or self.question.right_score or 1
+        wrong_score = section.wrong_score or self.question.wrong_score or 0
+        
+        question_type = self.question.type.split('_')[0]  # Get prefix (mcq, fib, cus, psy)
+        
+        if question_type == 'mcq':
+            return self._calculate_mcq_score(right_score, wrong_score)
+        elif question_type == 'fib':
+            return self._calculate_fib_score(right_score)
+        elif question_type == 'cus':
+            cus_type = self.question.type.split('_')[1]  # Get custom question subtype
+            if cus_type == 'grid':
+                return self._calculate_grid_score(right_score, wrong_score)
+            elif cus_type == 'match':
+                return self._calculate_match_score(right_score)
+            elif cus_type == 'hotspot':
+                if self.question.type == 'cus_hotspot_multiple':
+                    return self._calculate_hotspot_multiple_score(right_score, wrong_score)
+                else:  # Single hotspot
+                    return right_score if self.is_correct else 0
+        
+        # Default case
+        return right_score if self.is_correct else 0
+
+    def _calculate_mcq_score(self, right_score, wrong_score):
+        """Calculate score for multiple choice questions"""
         if self.is_correct:
-            section = Section.objects.filter(question=self.question).first()
-            return section.right_score or self.question.right_score or 1
-        else:
-            section = Section.objects.filter(question=self.question).first()
-            return -(section.wrong_score or self.question.wrong_score or 0)
+            return right_score
+        elif self.question.negative_score:
+            return -wrong_score
+        return 0
+
+    def _calculate_fib_score(self, right_score):
+        """Calculate score for fill in the blank questions
+        Each correct answer gets points"""
+        correct_count = self.answer_data.get('correct_count', 0)
+        total_blanks = self.answer_data.get('total_blanks', 1)
+        
+        # Return score based on number of correct answers
+        return correct_count * right_score
+
+    def _calculate_grid_score(self, right_score, wrong_score):
+        """Calculate score for grid questions
+        Correct options get positive scores, incorrect get negative
+        If more incorrect than correct, total score is 0"""
+        selected_cells = self.answer_data.get('selected_cells', [])
+        
+        # Get all correct grid options
+        # correct_options = set(opt.id for opt in self.question.grid_options.filter(is_correct=True))
+        correct_options = set(str(opt.id) for opt in self.question.grid_options.filter(is_correct=True))
+
+        # Count correct and incorrect selections
+        correct_selections = sum(1 for cell_id in selected_cells if cell_id in correct_options)
+        incorrect_selections = len(selected_cells) - correct_selections
+        
+        # Store these counts for display in the complete template
+        self.answer_data['correct_count'] = correct_selections
+        self.answer_data['total_count'] = len(correct_options)
+
+        # If wrong_score is 0, use 1 as the default penalty for incorrect selections
+        effective_wrong_score = wrong_score if wrong_score > 0 else 1
     
+        # Calculate raw score
+        raw_score = (correct_selections * right_score) - (incorrect_selections * effective_wrong_score)
+        
+        # If more incorrect than correct, return 0
+        return max(0, raw_score)
+
+    def _calculate_hotspot_multiple_score(self, right_score, wrong_score):
+        """Calculate score for multiple hotspot questions
+        Correct options get positive scores, incorrect get negative
+        If more incorrect than correct, total score is 0"""
+        selected_hotspots = self.answer_data.get('selected_hotspots', [])
+        
+        # Get all hotspot items
+        hotspot_items = self.question.hotspot_items or []
+        correct_hotspot_ids = {spot['hotspotId'] for spot in hotspot_items if spot.get('correct')}
+        
+        # Count correct and incorrect selections
+        selected_ids = {spot['hotspotId'] for spot in selected_hotspots}
+        correct_selections = len(selected_ids.intersection(correct_hotspot_ids))
+        incorrect_selections = len(selected_ids) - correct_selections
+        
+        # Store these counts for display in the complete template
+        self.answer_data['correct_count'] = correct_selections
+        self.answer_data['total_count'] = len(correct_hotspot_ids)
+
+        # Calculate raw score
+        raw_score = (correct_selections * right_score) - (incorrect_selections * wrong_score)
+        
+        # If more incorrect than correct, return 0
+        return max(0, raw_score)
+
+    def _calculate_match_score(self, right_score):
+        """Calculate score for match questions
+        Each correct match gets points"""
+        user_matches = self.answer_data.get('matches', {})
+        correct_matches = {str(item.id): item.right_item for item in self.question.match_options.all()}
+        
+        # Count correct matches
+        correct_count = sum(1 for item_id, matched_item in user_matches.items() 
+                        if item_id in correct_matches and matched_item == correct_matches[item_id])
+        
+        # Return score based on number of correct matches
+        return correct_count * right_score
+
+        
     def calculate_psy_score(self):
         if self.question.type == 'psy_rating':
             return self.calculate_rating_score()
@@ -474,17 +596,50 @@ class QuestionResponse(models.Model):
         for stmt_id, stmt_data in statements.items():
             stmt_info = statement_map.get(stmt_id)
             if stmt_info:
-                score = stmt_data['score']
+                # Calculate base score
+                base_score = stmt_data['score']
+                
+                # Apply rating multiplier for psy_forced_two
+                if with_rating and stmt_id in ratings:
+                    rating_value = ratings.get(stmt_id, 1)
+                    score = base_score * rating_value
+                else:
+                    score = base_score
+                    
                 scores['statements'][stmt_id] = score
                 scores['categories'][stmt_info['category_id']] += score
                 if 'subcategory_id' in stmt_info:
                     scores['subcategories'][stmt_info['subcategory_id']] += score
+
+        # Calculate percentage scores for subcategories (CV1 and CV2)
+        # Only for psy_forced_one with contrast_variable subtype
+        percentage_scores = {}
+        if self.question.type == 'psy_forced_one' and hasattr(self.question, 'forced_choice_subtype') and self.question.forced_choice_subtype == 'with_contrast_variable':
+            for category_id, category_info in category_map.items():
+                # Find all subcategories for this category
+                category_subcats = {sc_id: sc_info for sc_id, sc_info in subcategory_map.items() 
+                                if sc_info['category_id'] == category_id}
+                
+                # Count total statements per subcategory
+                subcat_statement_counts = defaultdict(int)
+                for stmt_id, stmt_info in statement_map.items():
+                    if 'subcategory_id' in stmt_info and stmt_info['category_id'] == category_id:
+                        subcat_statement_counts[stmt_info['subcategory_id']] += 1
+                
+                # Calculate percentage scores
+                for subcat_id, count in subcat_statement_counts.items():
+                    if count > 0:
+                        raw_score = scores['subcategories'].get(subcat_id, 0)
+                        # Each statement is worth (100 / total_statements) points
+                        percentage = (raw_score / count) * 100
+                        percentage_scores[subcat_id] = percentage
 
         return {
             'scores': {
                 'category_scores': dict(scores['categories']),
                 'subcategory_scores': dict(scores['subcategories']),
                 'statement_scores': dict(scores['statements']),
+                'percentage_scores': percentage_scores
             },
             'maps': {
                 'statement_map': statement_map,
@@ -492,6 +647,7 @@ class QuestionResponse(models.Model):
                 'category_map': category_map
             }
         }
+
     
     def validate_answer(self):
         # If no meaningful answer data, treat as skipped
@@ -516,25 +672,29 @@ class QuestionResponse(models.Model):
         selected = self.answer_data.get('selected_option')
         correct = self.question.options.filter(is_correct=True).first()
         return selected == str(correct.id) if correct else False
-
+    
     def _validate_fib(self):
         user_answers = self.answer_data.get('answers', [])
         correct_answers, _ = self.question.get_fib_info()
-        # return all(
-        #     user_answer.lower().strip() == correct_answer.lower().strip()
-        #     for user_answer, correct_answer in zip(user_answers, correct_answers)
-        # )
-        if self.question.case_sensitive:
-            return all(
-                user_answer.strip() == correct_answer.strip()
-                for user_answer, correct_answer in zip(user_answers, correct_answers)
-            )
-        else:
-            return all(
-                user_answer.lower().strip() == correct_answer.lower().strip()
-                for user_answer, correct_answer in zip(user_answers, correct_answers)
-            )
-
+    
+        # Count correct answers for partial scoring
+        correct_count = 0
+        for i, (user_answer, correct_answer) in enumerate(zip(user_answers, correct_answers)):
+            if self.question.case_sensitive:
+                is_correct = user_answer.strip() == correct_answer.strip()
+            else:
+                is_correct = user_answer.lower().strip() == correct_answer.lower().strip()
+        
+            if is_correct:
+                correct_count += 1
+    
+        # Store for scoring calculation
+        self.answer_data['correct_count'] = correct_count
+        self.answer_data['total_blanks'] = len(correct_answers)
+    
+        # Consider partially correct if at least one answer is correct
+        return correct_count > 0
+    
     def _validate_custom(self):
         if self.question.type == 'cus_hotspot_single':
             selected = self.answer_data.get('selected_hotspots', [])
@@ -560,6 +720,7 @@ class QuestionResponse(models.Model):
         return False
     
     def _validate_psy(self):
+        """Validate psychometric question responses"""
         if self.question.type == 'psy_rating':
             return True if self.answer_data.get('rating') is not None else False
         elif self.question.type == 'psy_ranking':
@@ -577,8 +738,34 @@ class QuestionResponse(models.Model):
             rankings = self.answer_data.get('rankings', {})
             ranked_statements = set(rankings.keys())
             
-            # Check if all required statements are ranked with unique values
-            # rank_values = list(rankings.values())
-            return ranked_statements == required_statements #and len(rank_values) == len(set(rank_values))
+            return ranked_statements == required_statements
+        elif self.question.type == 'psy_rank_rate':
+            # Similar to ranking but also check ratings
+            structure = json.loads(self.question.ranking_structure)
+            
+            required_statements = set()
+            for rankgroup in structure['rightTree']:
+                if rankgroup['type'] == 'rankgroup':
+                    for stmt in rankgroup['children']:
+                        if stmt['type'] == 'statement':
+                            required_statements.add(stmt['data']['originalId'])
+            
+            rankings = self.answer_data.get('rankings', {})
+            ratings = self.answer_data.get('ratings', {})
+            
+            ranked_statements = set(rankings.keys())
+            rated_statements = set(ratings.keys())
+            
+            return ranked_statements == required_statements and rated_statements == required_statements
+        elif self.question.type in ['psy_forced_one', 'psy_forced_two']:
+            # Check if statements have choices
+            statements = self.answer_data.get('statements', {})
+            
+            # For psy_forced_two, also check ratings
+            if self.question.type == 'psy_forced_two':
+                ratings = self.answer_data.get('ratings', {})
+                return len(statements) > 0 and len(ratings) > 0
+            
+            return len(statements) > 0
 
         return False

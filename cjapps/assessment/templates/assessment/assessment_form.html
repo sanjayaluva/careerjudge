@@ -69,6 +69,7 @@
                         <div class="mb-3">
                             <input type="text" id="search-input" class="form-control form-control-sm d-inline-block w-auto" placeholder="Search nodes">
                             <button type="button" id="add-main-section" class="btn btn-sm btn-primary">Add Main Section</button>
+                            <button type="button" id="refresh-tree" onclick="refreshTree();" class="btn btn-sm btn-primary">Refresh</button>
                             <button type="button" id="expand-all" class="btn btn-sm btn-secondary">Expand All</button>
                             <button type="button" id="collapse-all" class="btn btn-sm btn-secondary">Collapse All</button>
                         </div>
@@ -608,6 +609,9 @@
             window.refreshTree = function(nodeId=null) {
                 // $tree.jstree(true).refresh();  // Force full refresh
                 $tree.jstree(true).refresh(false, true);  // Force full refresh
+
+                // $tree.jstree(true).open_all();
+                // $tree.jstree(true).deselect_all();
                 
                 if (nodeId) {
                     // After refresh, select and scroll to the node

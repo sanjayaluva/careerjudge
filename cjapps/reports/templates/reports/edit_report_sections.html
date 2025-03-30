@@ -1,0 +1,1627 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Edit Report Sections - {{ configuration.title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.3.11/themes/default/style.min.css" />
+<style>
+      .section-editor {
+          margin-top: 20px;
+      }
+      .section-tree {
+          height: 400px;
+          overflow: auto;
+          border: 1px solid #ddd;
+          padding: 10px;
+      }
+      .editor-panel {
+          border: 1px solid #ddd;
+          padding: 15px;
+          margin-top: 10px;
+      }
+      .editor-title {
+          margin-bottom: 15px;
+          padding-bottom: 5px;
+          border-bottom: 1px solid #eee;
+      }
+      .band-item {
+          margin-bottom: 10px;
+          padding: 10px;
+          border: 1px solid #ddd;
+          border-radius: 4px;
+      }
+      .band-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+      }
+      .color-preview {
+          display: inline-block;
+          width: 20px;
+          height: 20px;
+          border-radius: 3px;
+          margin-right: 5px;
+          vertical-align: middle;
+      }
+      .subcategory-list {
+          margin-top: 20px;
+      }
+</style>
+<!-- Quill -->
+<link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+<style>
+    /* Existing styles */
+
+    /* Add styles for Quill editor */
+    .quill-editor {
+        height: 200px;
+        /* margin-bottom: 15px; */
+    }
+
+    .ql-container {
+        height: 150px;
+    }
+</style>
+<!-- <link rel="stylesheet" href="{% static 'libs/spectrum/spectrum.min.css' %}">
+<script src="{% static 'libs/spectrum/spectrum.min.js' %}"></script> -->
+{% endblock %}
+
+{% block content %}
+  <div class="container">
+      <h1>Edit Report Sections - {{ configuration.title }}</h1>
+      <p>Assessment: {{ assessment.title }}</p>
+    
+      <div class="row">
+          <div class="col-md-12">
+              <div class="card">
+                  <div class="card-header">
+                      <ul class="nav nav-tabs card-header-tabs" id="reportTabs" role="tablist">
+                          {% if configuration.has_cutoffs %}
+                          <li class="nav-item">
+                              <a class="nav-link active" id="cutoffs-tab" data-toggle="tab" href="#cutoffs" role="tab">Cutoffs</a>
+                          </li>
+                          {% elif configuration.has_bands %}
+                          <li class="nav-item">
+                              <a class="nav-link active" id="bands-tab" data-toggle="tab" href="#bands" role="tab">Bands</a>
+                          </li>
+                          {% elif configuration.has_contrast_variables %}
+                          <li class="nav-item">
+                              <a class="nav-link active" id="cv-tab" data-toggle="tab" href="#cv" role="tab">Contrast Variables</a>
+                          </li>
+                          {% endif %}
+                      </ul>
+                  </div>
+                
+                  <div class="card-body">
+                      <div class="tab-content" id="reportTabContent">
+                          {% if configuration.has_cutoffs %}
+                          <!-- Cutoffs Tab -->
+                          <div class="tab-pane fade show active" id="cutoffs" role="tabpanel">
+                              <div class="row">
+                                  <div class="col-md-4">
+                                      <h4>Assessment Sections</h4>
+                                      <div class="section-tree" id="cutoff-tree"></div>
+                                  </div>
+                                  <div class="col-md-8">
+                                      <div class="editor-panel" id="cutoff-editor">
+                                          <h4 class="editor-title">Select a section to configure cutoffs</h4>
+                                          <div id="cutoff-form-container" style="display: none;">
+                                              <form id="cutoff-form">
+                                                  <input type="hidden" id="cutoff-section-id">
+                                                  <input type="hidden" id="cutoff-id">
+                                                
+                                                  <div class="form-group">
+                                                      <label for="cutoff-score">Cutoff Score (%)</label>
+                                                      <input type="number" class="form-control" id="cutoff-score" min="0" max="100" required>
+                                                  </div>
+                                                
+                                                  <div class="form-group">
+                                                      <label for="cutoff-label">Cutoff Label</label>
+                                                      <input type="text" class="form-control" id="cutoff-label" required>
+                                                  </div>
+                                                
+                                                  <div class="form-group">
+                                                      <label for="above-cutoff-description">Above Cutoff Description</label>
+                                                      <div id="above-cutoff-description-editor" class="quill-editor"></div>
+                                                  </div>
+                                                
+                                                  <div class="form-group">
+                                                      <label for="below-cutoff-description">Below Cutoff Description</label>
+                                                      <div id="below-cutoff-description-editor" class="quill-editor"></div>
+                                                  </div>
+                                                
+                                                  <div class="form-group">
+                                                      <button type="submit" class="btn btn-primary">Save Cutoff</button>
+                                                      <button type="button" id="delete-cutoff" class="btn btn-danger">Delete Cutoff</button>
+                                                  </div>
+                                              </form>
+                                          </div>
+                                      </div>
+                                  </div>
+                              </div>
+                          </div>
+                          {% elif configuration.has_bands %}
+                          <!-- Bands Tab -->
+                          <div class="tab-pane fade show active" id="bands" role="tabpanel">
+                              <div class="row">
+                                  <div class="col-md-4">
+                                      <h4>Assessment Sections</h4>
+                                      <div class="section-tree" id="band-tree"></div>
+                                  </div>
+                                  <div class="col-md-8">
+                                      <div class="editor-panel" id="band-editor">
+                                          <h4 class="editor-title">Select a section to configure bands</h4>
+                                          <div id="band-list-container" style="display: none;">
+                                              <div id="band-list"></div>
+                                              <button type="button" id="add-band" class="btn btn-success mt-3">Add Band</button>
+                                          </div>
+                                        
+                                          <div id="band-form-container" style="display: none;">
+                                              <form id="band-form">
+                                                  <input type="hidden" id="band-section-id">
+                                                  <input type="hidden" id="band-id">
+                                                
+                                                  <div class="form-group">
+                                                      <label for="band-name">Band Name</label>
+                                                      <input type="text" class="form-control" id="band-name" required>
+                                                  </div>
+                                                
+                                                  <div class="form-group">
+                                                      <label for="band-min-range">Minimum Range (%)</label>
+                                                      <input type="number" class="form-control" id="band-min-range" min="0" max="100" required>
+                                                  </div>
+                                                
+                                                  <div class="form-group">
+                                                      <label for="band-max-range">Maximum Range (%)</label>
+                                                      <input type="number" class="form-control" id="band-max-range" min="0" max="100" required>
+                                                  </div>
+                                                
+                                                  <div class="form-group">
+                                                      <label for="band-color">Color</label>
+                                                      <input type="color" class="form-control" id="band-color" required>
+                                                  </div>
+                                                
+                                                  <div class="form-group">
+                                                      <label for="band-label">Label</label>
+                                                      <input type="text" class="form-control" id="band-label" required>
+                                                  </div>
+                                                
+                                                  <div class="form-group">
+                                                      <label for="band-description">Description</label>
+                                                      <div id="band-description-editor" class="quill-editor"></div>
+                                                      <small class="form-text text-muted">
+                                                          Use [[table]] to insert a score table and [[graph]] to insert a graph in the description.
+                                                      </small>
+                                                      <input type="hidden" id="band-description" name="band-description">
+                                                  </div>
+                                                
+                                                  <div class="form-group">
+                                                      <button type="submit" class="btn btn-primary">Save Band</button>
+                                                      <button type="button" id="cancel-band" class="btn btn-secondary">Cancel</button>
+                                                  </div>
+                                              </form>
+                                          </div>
+                                      </div>
+                                  </div>
+                              </div>
+                          </div>
+                          {% elif configuration.has_contrast_variables %}
+                          <!-- Contrast Variables Tab -->
+                          <div class="tab-pane fade show active" id="cv" role="tabpanel">
+                              <div class="row">
+                                  <div class="col-md-4">
+                                      <h4>Subcategories</h4>
+                                      <div class="section-tree" id="subcategory-tree"></div>
+                                  </div>
+                                  <div class="col-md-8">
+                                      <div class="editor-panel" id="cv-editor">
+                                          <h4 class="editor-title">Select a subcategory to configure contrast variable</h4>
+                                          <div id="cv-form-container" style="display: none;">
+                                              <form id="cv-form">
+                                                  <input type="hidden" id="cv-subcategory">
+                                                  <input type="hidden" id="cv-id">
+                                                
+                                                  <div class="form-group">
+                                                      <label for="cv-name">Contrast Variable Name</label>
+                                                      <input type="text" class="form-control" id="cv-name" required>
+                                                  </div>
+                                                
+                                                  <div class="form-group">
+                                                      <label for="cv-code">Type Code (1-2 characters)</label>
+                                                      <input type="text" class="form-control" id="cv-code" maxlength="2" required>
+                                                  </div>
+                                                
+                                                  <div class="form-group">
+                                                      <label for="cv-color">Color</label>
+                                                      <input type="color" class="form-control" id="cv-color" required>
+                                                  </div>
+                                                
+                                                  <div class="form-group">
+                                                      <label for="cv-description">Description</label>
+                                                      <div id="cv-description-editor" class="quill-editor"></div>
+                                                      <input type="hidden" id="cv-description" name="cv-description">
+                                                  </div>
+                                                
+                                                  <div class="form-group">
+                                                      <button type="submit" class="btn btn-primary">Save Contrast Variable</button>
+                                                      <button type="button" id="delete-cv" class="btn btn-danger">Delete Contrast Variable</button>
+                                                  </div>
+                                              </form>
+                                          </div>
+                                        
+                                          <div id="type-bands-container" style="display: none;">
+                                              <h5 class="mt-4">Type Bands</h5>
+                                              <div id="type-band-list"></div>
+                                              <button type="button" id="add-type-band" class="btn btn-success mt-3">Add Type Band</button>
+                                            
+                                              <div id="type-band-form-container" style="display: none;">
+                                                  <form id="type-band-form" class="mt-3">
+                                                      <input type="hidden" id="type-band-cv-id">
+                                                      <input type="hidden" id="type-band-id">
+                                                    
+                                                      <div class="form-group">
+                                                          <label for="type-band-name">Band Name</label>
+                                                          <input type="text" class="form-control" id="type-band-name" required>
+                                                      </div>
+                                                    
+                                                      <div class="form-group">
+                                                          <label for="type-band-min-range">Minimum Range (%)</label>
+                                                          <input type="number" class="form-control" id="type-band-min-range" min="0" max="100" required>
+                                                      </div>
+                                                    
+                                                      <div class="form-group">
+                                                          <label for="type-band-max-range">Maximum Range (%)</label>
+                                                          <input type="number" class="form-control" id="type-band-max-range" min="0" max="100" required>
+                                                      </div>
+                                                    
+                                                      <div class="form-group">
+                                                          <label for="type-band-color">Color</label>
+                                                          <input type="color" class="form-control" id="type-band-color" required>
+                                                      </div>
+                                                    
+                                                      <div class="form-group">
+                                                          <label for="type-band-label">Label</label>
+                                                          <input type="text" class="form-control" id="type-band-label" required>
+                                                      </div>
+                                                    
+                                                      <div class="form-group">
+                                                          <label for="type-band-description">Description</label>
+                                                          <div id="type-band-description-editor" class="quill-editor"></div>
+                                                          <small class="form-text text-muted">
+                                                              Use [[table]] to insert a score table and [[graph]] to insert a graph in the description.
+                                                          </small>
+                                                          <input type="hidden" id="type-band-description" name="type-band-description">
+                                                      </div>
+                                                    
+                                                      <div class="form-group">
+                                                          <button type="submit" class="btn btn-primary">Save Type Band</button>
+                                                          <button type="button" id="cancel-type-band" class="btn btn-secondary">Cancel</button>
+                                                      </div>
+                                                  </form>
+                                              </div>
+                                          </div>
+                                      </div>
+                                  </div>
+                              </div>
+                          </div>
+                          {% endif %}
+                      </div>
+                  </div>
+              </div>
+          </div>
+      </div>
+    
+      <div class="mt-4">
+          <a href="{% url 'reports:report_configuration_list' %}" class="btn btn-secondary">Back to Report Configurations</a>
+      </div>
+  </div>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.3.11/jstree.min.js"></script>
+  <!-- Add Quill JS -->
+  <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+  <script>
+    // Quill editor instances
+    // Global variables for Quill editors
+    let aboveCutoffQuill;
+    let belowCutoffQuill;
+    let bandDescriptionQuill;
+    let cvDescriptionQuill;
+    let typeBandDescriptionQuill;
+
+    
+    // Function to initialize Quill editors
+    function initQuillEditors() {
+        // For cutoff descriptions
+        if (document.getElementById('above-cutoff-description-editor')) {
+            aboveCutoffQuill = new Quill('#above-cutoff-description-editor', {
+                theme: 'snow',
+                modules: {
+                    toolbar: [
+                        ['bold', 'italic', 'underline', 'strike'],
+                        ['blockquote', 'code-block'],
+                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                        [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+                        ['link', 'image'],
+                        ['clean']
+                    ]
+                }
+            });
+        }
+
+        if (document.getElementById('below-cutoff-description-editor')) {
+            belowCutoffQuill = new Quill('#below-cutoff-description-editor', {
+                theme: 'snow',
+                modules: {
+                    toolbar: [
+                        ['bold', 'italic', 'underline', 'strike'],
+                        ['blockquote', 'code-block'],
+                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                        [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+                        ['link', 'image'],
+                        ['clean']
+                    ]
+                }
+            });
+        }
+
+        // For band descriptions
+        if (document.getElementById('band-description-editor')) {
+            bandDescriptionQuill = new Quill('#band-description-editor', {
+                theme: 'snow',
+                modules: {
+                    toolbar: [
+                        ['bold', 'italic', 'underline', 'strike'],
+                        ['blockquote', 'code-block'],
+                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                        [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+                        ['link', 'image'],
+                        ['clean']
+                    ]
+                }
+            });
+        }
+
+        // For contrast variable descriptions
+        if (document.getElementById('cv-description-editor')) {
+            cvDescriptionQuill = new Quill('#cv-description-editor', {
+                theme: 'snow',
+                modules: {
+                    toolbar: [
+                        ['bold', 'italic', 'underline', 'strike'],
+                        ['blockquote', 'code-block'],
+                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                        [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+                        ['link', 'image'],
+                        ['clean']
+                    ]
+                }
+            });
+        }
+
+        // For type band descriptions
+        if (document.getElementById('type-band-description-editor')) {
+            typeBandDescriptionQuill = new Quill('#type-band-description-editor', {
+                theme: 'snow',
+                modules: {
+                    toolbar: [
+                        ['bold', 'italic', 'underline', 'strike'],
+                        ['blockquote', 'code-block'],
+                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                        [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+                        ['link', 'image'],
+                        ['clean']
+                    ]
+                }
+            });
+        }
+    }
+
+
+    
+    // Initialize Quill editors after DOM is ready
+    $(document).ready(function() {
+        // Initialize Quill editors if they don't exist yet
+        initQuillEditors();
+
+
+        {% if configuration.has_cutoffs %}
+        // Initialize jstree for cutoffs
+        $('#cutoff-tree').jstree({
+            'core': {
+                'data': {
+                    'url': '{% url "reports:get_assessment_sections" assessment.id %}',
+                    'data': function(node) {
+                        return { 'id': node.id };
+                    }
+                },
+                'themes': {
+                    'icons': true
+                }
+            },
+            'types': {
+                'section': {
+                    'icon': 'fa fa-folder'
+                }
+            },
+            'plugins': ['types']
+        }).on('select_node.jstree', function(e, data) {
+            const sectionId = data.node.a_attr['data-id'];
+            loadCutoff(sectionId);
+        });
+        
+        // Handle cutoff form submission
+        $('#cutoff-form').on('submit', function(e) {
+            e.preventDefault();
+            saveCutoff();
+        });
+        
+        // Handle cutoff deletion
+        $('#delete-cutoff').on('click', function() {
+            deleteCutoff();
+        });
+
+        {% elif configuration.has_bands %}
+
+        // Initialize jstree for bands
+        $('#band-tree').jstree({
+            'core': {
+                'data': {
+                    'url': '{% url "reports:get_assessment_sections" assessment.id %}',
+                    'data': function(node) {
+                        return { 'id': node.id };
+                    }
+                },
+                'themes': {
+                    'icons': true
+                }
+            },
+            'types': {
+                'section': {
+                    'icon': 'fa fa-folder'
+                }
+            },
+            'plugins': ['types']
+        }).on('select_node.jstree', function(e, data) {
+            const sectionId = data.node.a_attr['data-id'];
+            loadBands(sectionId);
+        });
+        
+        // Handle band form submission
+        $('#band-form').on('submit', function(e) {
+            e.preventDefault();
+            saveBand();
+        });
+        
+        // Handle add band button
+        $('#add-band').on('click', function() {
+            showBandForm(true);
+        });
+        
+        // Handle cancel band button
+        $('#cancel-band').on('click', function() {
+            hideBandForm();
+        });
+
+        {% elif configuration.has_contrast_variables %}
+
+        // Initialize jstree for subcategories
+        $('#subcategory-tree').jstree({
+            'core': {
+                'data': {
+                    'url': '{% url "reports:get_subcategories" assessment.id %}',
+                    'data': function(node) {
+                        return { 'id': node.id };
+                    }
+                },
+                'themes': {
+                    'icons': true
+                }
+            },
+            'types': {
+                'category': {
+                    'icon': 'fa fa-folder',
+                    'valid_children': ['subcategory']
+                },
+                'subcategory': {
+                    'icon': 'fa fa-folder-open',
+                    'valid_children': []
+                }
+            },
+            'plugins': ['types']
+        }).on('select_node.jstree', function(e, data) {
+            const nodeType = data.node.a_attr['data-type'];
+        
+            // Only allow setting up contrast variables for subcategories
+            if (nodeType === 'subcategory') {
+                const subcategoryId = data.node.a_attr['data-id'];
+                loadContrastVariable(subcategoryId);
+                $('#type-bands-container').show();
+            } else {
+                // For categories, just show a message
+                $('#cv-form-container').hide();
+                $('#type-bands-container').hide();
+                $('#cv-editor h4.editor-title').text('Please select a subcategory to configure contrast variable');
+            }
+        });
+        
+        // Handle CV form submission
+        $('#cv-form').on('submit', function(e) {
+            e.preventDefault();
+            saveContrastVariable();
+        });
+        
+        // Handle CV deletion
+        $('#delete-cv').on('click', function() {
+            deleteContrastVariable();
+        });
+        
+        // Handle type band form submission
+        $('#type-band-form').on('submit', function(e) {
+            e.preventDefault();
+            saveTypeBand();
+        });
+        
+        // Handle add type band button
+        $('#add-type-band').on('click', function() {
+            showTypeBandForm();
+        });
+        
+        // Handle cancel type band button
+        $('#cancel-type-band').on('click', function() {
+            hideTypeBandForm();
+        });
+        
+        {% endif %}
+    
+    });
+    
+
+
+    // Load cutoff for a section
+    function loadCutoff(sectionId) {
+        $.ajax({
+            url: '{% url "reports:manage_cutoff" configuration.id %}',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                action: 'get',
+                section_id: sectionId
+            }),
+            success: function(response) {
+                if (response.status === 'success') {
+                    $('#cutoff-section-id').val(sectionId);
+                    $('#cutoff-id').val(response.cutoff.id);
+                    $('#cutoff-score').val(response.cutoff.cutoff_score);
+                    $('#cutoff-label').val(response.cutoff.cutoff_label);
+                    
+                    // Set Quill editor content
+                    if (aboveCutoffQuill) {
+                        aboveCutoffQuill.root.innerHTML = response.cutoff.above_cutoff_description || '';
+                    }
+                    
+                    if (belowCutoffQuill) {
+                        belowCutoffQuill.root.innerHTML = response.cutoff.below_cutoff_description || '';
+                    }
+                    
+                    // Get the section name from jstree
+                    let sectionName = '';
+                    try {
+                        if ($('#section-tree').jstree(true) && 
+                            typeof $('#section-tree').jstree(true).get_node === 'function') {
+                            
+                            const sectionNode = $('#section-tree').jstree(true).get_node('section_' + sectionId);
+                            sectionName = sectionNode ? sectionNode.text : '';
+                        }
+                    } catch (e) {
+                        console.error('Error accessing jstree:', e);
+                    }
+                    
+                    // Update the section title in the cutoff editor
+                    $('#cutoff-section-title').text(sectionName || 'Section');
+                    
+                    $('#cutoff-form-container').show();
+                } else {
+                    // No cutoff exists yet
+                    $('#cutoff-section-id').val(sectionId);
+                    $('#cutoff-id').val('');
+                    $('#cutoff-score').val('70');  // Default value
+                    $('#cutoff-label').val('Pass');  // Default value
+                    
+                    // Clear Quill editors
+                    if (aboveCutoffQuill) {
+                        aboveCutoffQuill.root.innerHTML = '';
+                    }
+                    
+                    if (belowCutoffQuill) {
+                        belowCutoffQuill.root.innerHTML = '';
+                    }
+                    
+                    // Get the section name from jstree
+                    let sectionName = '';
+                    try {
+                        if ($('#section-tree').jstree(true) && 
+                            typeof $('#section-tree').jstree(true).get_node === 'function') {
+                            
+                            const sectionNode = $('#section-tree').jstree(true).get_node('section_' + sectionId);
+                            sectionName = sectionNode ? sectionNode.text : '';
+                        }
+                    } catch (e) {
+                        console.error('Error accessing jstree:', e);
+                    }
+                    
+                    // Update the section title in the cutoff editor
+                    $('#cutoff-section-title').text(sectionName || 'Section');
+                    
+                    $('#cutoff-form-container').show();
+                }
+            },
+            error: function(xhr) {
+                alert('Error loading cutoff: ' + xhr.responseText);
+            }
+        });
+    }
+
+    // Save cutoff
+    function saveCutoff() {
+        const sectionId = $('#cutoff-section-id').val();
+        const cutoffId = $('#cutoff-id').val();
+        const cutoffScore = $('#cutoff-score').val();
+        const cutoffLabel = $('#cutoff-label').val();
+        
+        // Get Quill content
+        let aboveCutoffDescription = '';
+        if (aboveCutoffQuill) {
+            const html = aboveCutoffQuill.root.innerHTML;
+            const delta = aboveCutoffQuill.getContents();
+            aboveCutoffDescription = JSON.stringify({
+                html: html,
+                delta: delta
+            });
+        }
+        
+        let belowCutoffDescription = '';
+        if (belowCutoffQuill) {
+            const html = belowCutoffQuill.root.innerHTML;
+            const delta = belowCutoffQuill.getContents();
+            belowCutoffDescription = JSON.stringify({
+                html: html,
+                delta: delta
+            });
+        }
+        
+        const action = cutoffId ? 'update' : 'create';
+        
+        $.ajax({
+            url: '{% url "reports:manage_cutoff" configuration.id %}',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                action: action,
+                cutoff_id: cutoffId,
+                section_id: sectionId,
+                cutoff_score: cutoffScore,
+                cutoff_label: cutoffLabel,
+                above_cutoff_description: aboveCutoffDescription,
+                below_cutoff_description: belowCutoffDescription
+            }),
+            success: function(response) {
+                if (response.status === 'success') {
+                    alert('Cutoff saved successfully');
+                    $('#cutoff-form-container').hide();
+                    
+                    // Safely update the section in the tree to show it has a cutoff
+                    try {
+                        const jstreeInstance = $('#section-tree').jstree(true);
+                        if (jstreeInstance && typeof jstreeInstance.get_node === 'function') {
+                            const nodeId = 'section_' + sectionId;
+                            const node = jstreeInstance.get_node(nodeId);
+                            if (node) {
+                                jstreeInstance.set_icon(node, 'fa fa-check-circle text-success');
+                            } else {
+                                console.warn('Node not found:', nodeId);
+                            }
+                        } else {
+                            console.warn('jstree not fully initialized');
+                        }
+                    } catch (e) {
+                        console.error('Error updating jstree node:', e);
+                    }
+                } else {
+                    alert('Error: ' + response.message);
+                }
+            },
+            error: function(xhr) {
+                alert('Error saving cutoff: ' + xhr.responseText);
+            }
+        });
+    }
+
+    function deleteCutoff() {
+        const cutoffId = $('#cutoff-id').val();
+        
+        if (!cutoffId) {
+            alert('No cutoff to delete');
+            return;
+        }
+        
+        if (!confirm('Are you sure you want to delete this cutoff?')) {
+            return;
+        }
+        
+        $.ajax({
+            url: '{% url "reports:manage_cutoff" configuration.id %}',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                action: 'delete',
+                cutoff_id: cutoffId
+            }),
+            success: function(response) {
+                if (response.status === 'success') {
+                    alert('Cutoff deleted successfully');
+                    $('#cutoff-form-container').hide();
+                } else {
+                    alert('Error: ' + response.message);
+                }
+            },
+            error: function(xhr) {
+                alert('Error deleting cutoff: ' + xhr.responseText);
+            }
+        });
+    }
+
+    // Load bands for a section
+    function loadBands(sectionId) {
+        $.ajax({
+            url: '{% url "reports:manage_band" configuration.id %}',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                action: 'get',
+                section_id: sectionId
+            }),
+            success: function(response) {
+                if (response.status === 'success') {
+                    // Store the current section ID
+                    $('#band-section-id').val(sectionId);
+                    
+                    // Get the section name from jstree
+                    let sectionName = '';
+                    try {
+                        if ($('#section-tree').jstree(true) && 
+                            typeof $('#section-tree').jstree(true).get_node === 'function') {
+                            
+                            const sectionNode = $('#section-tree').jstree(true).get_node('section_' + sectionId);
+                            sectionName = sectionNode ? sectionNode.text : '';
+                        }
+                    } catch (e) {
+                        console.error('Error accessing jstree:', e);
+                    }
+                    
+                    // Update the section title in the band editor
+                    $('#band-section-title').text(sectionName || 'Section');
+                    
+                    // Render the bands
+                    renderBands(response.bands);
+                    
+                    // Show the band form
+                    $('#band-list-container').show();
+                } else {
+                    // No bands exist yet
+                    $('#band-section-id').val(sectionId);
+                    $('#band-list').empty();
+                    
+                    // Get the section name from jstree
+                    let sectionName = '';
+                    try {
+                        if ($('#section-tree').jstree(true) && 
+                            typeof $('#section-tree').jstree(true).get_node === 'function') {
+                            
+                            const sectionNode = $('#section-tree').jstree(true).get_node('section_' + sectionId);
+                            sectionName = sectionNode ? sectionNode.text : '';
+                        }
+                    } catch (e) {
+                        console.error('Error accessing jstree:', e);
+                    }
+                    
+                    // Update the section title in the band editor
+                    $('#band-section-title').text(sectionName || 'Section');
+                    
+                    $('#band-form-container').show();
+                }
+            },
+            error: function(xhr) {
+                alert('Error loading bands: ' + xhr.responseText);
+            }
+        });
+    }
+
+    // Render bands in the UI
+    function renderBands(bands) {
+        const bandList = $('#band-list');
+        bandList.empty();
+        
+        if (bands.length === 0) {
+            bandList.append('<div class="alert alert-info">No bands defined for this section. Add your first band below.</div>');
+            return;
+        }
+        
+        // Sort bands by min_range
+        bands.sort((a, b) => parseFloat(a.min_range) - parseFloat(b.min_range));
+        
+        // Create a table to display bands
+        const table = $('<table class="table table-striped">').appendTo(bandList);
+        const thead = $('<thead>').appendTo(table);
+        const tbody = $('<tbody>').appendTo(table);
+        
+        // Add table header
+        thead.append(`
+            <tr>
+                <th>Name</th>
+                <th>Range</th>
+                <th>Color</th>
+                <th>Label</th>
+                <th>Actions</th>
+            </tr>
+        `);
+        
+        // Add each band to the table
+        bands.forEach(band => {
+            const row = $('<tr>').appendTo(tbody);
+            
+            row.append(`<td>${band.name}</td>`);
+            row.append(`<td>${band.min_range}% - ${band.max_range}%</td>`);
+            row.append(`<td><span class="color-box" style="background-color: ${band.color}; display: inline-block; width: 20px; height: 20px;"></span></td>`);
+            row.append(`<td>${band.label}</td>`);
+            
+            // Add action buttons
+            const actions = $('<td>').appendTo(row);
+            
+            $('<button class="btn btn-sm btn-primary mr-1">Edit</button>')
+                .appendTo(actions)
+                .click(function() {
+                    editBand(band);
+                });
+                
+            $('<button class="btn btn-sm btn-danger">Delete</button>')
+                .appendTo(actions)
+                .click(function() {
+                    deleteBand(band.id);
+                });
+        });
+    }
+
+    // Edit a band
+    function editBand(band) {
+        // Populate the form with band data
+        $('#band-id').val(band.id);
+        $('#band-name').val(band.name);
+        $('#band-min-range').val(band.min_range);
+        $('#band-max-range').val(band.max_range);
+        $('#band-label').val(band.label);
+        
+        $('#band-color').val(band.color);
+        // Set the color
+        // setColorValue('#band-color', band.color);
+        
+        // Set the description in the Quill editor
+        if (bandDescriptionQuill) {
+            if (band.description) {
+                try {
+                    // Try to parse as JSON first (for newer entries)
+                    const descriptionData = JSON.parse(band.description);
+                    bandDescriptionQuill.root.innerHTML = descriptionData.html || '';
+                } catch (e) {
+                    // If not valid JSON, use as HTML directly (for older entries)
+                    bandDescriptionQuill.root.innerHTML = band.description;
+                }
+            } else {
+                bandDescriptionQuill.root.innerHTML = '';
+            }
+        }
+        
+        // Show the form
+        $('#band-form-container').show();
+        $('#band-form-title').text('Edit Band');
+        
+        // Scroll to the form
+        $('html, body').animate({
+            scrollTop: $('#band-form').offset().top - 100
+        }, 500);
+    }
+
+    // Delete a band
+    function deleteBand(bandId) {
+        if (confirm('Are you sure you want to delete this band?')) {
+            $.ajax({
+                url: '{% url "reports:manage_band" configuration.id %}',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    action: 'delete',
+                    band_id: bandId
+                }),
+                success: function(response) {
+                    if (response.status === 'success') {
+                        // Reload the bands
+                        loadBands($('#band-section-id').val());
+                    } else {
+                        alert('Error: ' + response.message);
+                    }
+                },
+                error: function(xhr) {
+                    alert('Error deleting band: ' + xhr.responseText);
+                }
+            });
+        }
+    }
+
+    // Save a band
+    function saveBand() {
+        const sectionId = $('#band-section-id').val();
+        const bandId = $('#band-id').val();
+        const name = $('#band-name').val();
+        const minRange = $('#band-min-range').val();
+        const maxRange = $('#band-max-range').val();
+        const color = $('#band-color').val();
+        const label = $('#band-label').val();
+        
+        // Get description from Quill editor
+        let description = '';
+        if (bandDescriptionQuill) {
+            const html = bandDescriptionQuill.root.innerHTML;
+            const delta = bandDescriptionQuill.getContents();
+            description = JSON.stringify({
+                html: html,
+                delta: delta
+            });
+        }
+        
+        // Determine if this is a create or update action
+        const action = bandId ? 'update' : 'create';
+        
+        // Prepare the data
+        const data = {
+            action: action,
+            section_id: sectionId,
+            name: name,
+            min_range: minRange,
+            max_range: maxRange,
+            color: color,
+            label: label,
+            description: description
+        };
+        
+        // Add band_id for updates
+        if (bandId) {
+            data.band_id = bandId;
+        }
+        
+        // Send the request
+        $.ajax({
+            url: '{% url "reports:manage_band" configuration.id %}',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            success: function(response) {
+                if (response.status === 'success') {
+                    // Reset the form
+                    resetBandForm();
+                    
+                    // Hide the form
+                    hideBandForm();
+                    
+                    // Reload the bands
+                    loadBands(sectionId);
+                    
+                    // Update the section in the tree to show it has bands
+                    try {
+                        const jstreeInstance = $('#section-tree').jstree(true);
+                        if (jstreeInstance && typeof jstreeInstance.get_node === 'function') {
+                            const nodeId = 'section_' + sectionId;
+                            const node = jstreeInstance.get_node(nodeId);
+                            if (node) {
+                                jstreeInstance.set_icon(node, 'fa fa-check-circle text-success');
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Error updating jstree node:', e);
+                    }
+                } else {
+                    alert('Error: ' + response.message);
+                }
+            },
+            error: function(xhr) {
+                alert('Error saving band: ' + xhr.responseText);
+            }
+        });
+    }
+
+    // // Initialize jstree for sections
+    // function initSectionTree() {
+    //     $('.section-tree').jstree({
+    //         'core': {
+    //             'data': {
+    //                 'url': '{% url "reports:get_assessment_sections" assessment.id %}',
+    //                 'data': function(node) {
+    //                     return { 'id': node.id };
+    //                 }
+    //             },
+    //             'themes': {
+    //                 'icons': true
+    //             }
+    //         },
+    //         'types': {
+    //             'section': {
+    //                 'icon': 'fa fa-folder'
+    //             }
+    //         },
+    //         'plugins': ['types']
+    //     }).on('ready.jstree', function() {
+    //         console.log('Section tree jstree is now fully loaded');
+    //     }).on('select_node.jstree', function(e, data) {
+    //         const sectionId = data.node.a_attr['data-id'];
+            
+    //         {% if configuration.has_cutoffs %}
+    //         loadCutoff(sectionId);
+    //         {% elif configuration.has_bands %}
+    //         loadBands(sectionId);
+    //         {% endif %}
+    //     });
+    // }
+
+    // // Initialize jstree for subcategories
+    // function initSubcategoryTree() {
+    //     {% if configuration.has_contrast_variables %}
+    //     $('#subcategory-tree').jstree({
+    //         'core': {
+    //             'data': {
+    //                 'url': '{% url "reports:get_subcategories" assessment.id %}',
+    //                 'data': function(node) {
+    //                     return { 'id': node.id };
+    //                 }
+    //             },
+    //             'themes': {
+    //                 'icons': true
+    //             }
+    //         },
+    //         'types': {
+    //             'category': {
+    //                 'icon': 'fa fa-folder',
+    //                 'valid_children': ['subcategory']
+    //             },
+    //             'subcategory': {
+    //                 'icon': 'fa fa-folder-open',
+    //                 'valid_children': []
+    //             }
+    //         },
+    //         'plugins': ['types']
+    //     }).on('ready.jstree', function() {
+    //         console.log('Subcategory tree jstree is now fully loaded');
+    //     }).on('select_node.jstree', function(e, data) {
+    //         const nodeType = data.node.a_attr['data-type'];
+        
+    //         // Only allow setting up contrast variables for subcategories
+    //         if (nodeType === 'subcategory') {
+    //             const subcategoryId = data.node.a_attr['data-id'];
+    //             loadContrastVariable(subcategoryId);
+    //             $('#type-bands-container').show();
+    //         } else {
+    //             // For categories, just show a message
+    //             $('#cv-form-container').hide();
+    //             $('#type-bands-container').hide();
+    //             $('#cv-editor h4.editor-title').text('Please select a subcategory to configure contrast variable');
+    //         }
+    //     });
+    //     {% endif %}
+    // }
+
+    function hideBandForm() {
+        $('#band-form-container').hide();
+    }
+
+    function showBandForm(clean=true) {
+        if (clean) {
+            resetBandForm();
+        }
+        $('#band-form-container').show();
+    }
+
+    function resetBandForm() {
+        $('#band-form')[0].reset();
+        $('#band-id').val('');
+        if (bandDescriptionQuill) {
+            bandDescriptionQuill.root.innerHTML = '';
+        }
+    }
+
+
+    // Safely access jstree node
+    function safeGetJstreeNode(treeSelector, nodeId) {
+        try {
+            const jstreeInstance = $(treeSelector).jstree(true);
+            if (jstreeInstance && typeof jstreeInstance.get_node === 'function') {
+                return jstreeInstance.get_node(nodeId);
+            }
+        } catch (e) {
+            console.error('Error accessing jstree node:', e);
+        }
+        return null;
+    }
+
+    // Safely update jstree node icon
+    function safeUpdateJstreeNodeIcon(treeSelector, nodeId, iconClass) {
+        try {
+            const jstreeInstance = $(treeSelector).jstree(true);
+            if (jstreeInstance && typeof jstreeInstance.get_node === 'function' && 
+                typeof jstreeInstance.set_icon === 'function') {
+                
+                const node = jstreeInstance.get_node(nodeId);
+                if (node) {
+                    jstreeInstance.set_icon(node, iconClass);
+                } else {
+                    console.warn('Node not found:', nodeId);
+                }
+            } else {
+                console.warn('jstree not fully initialized');
+            }
+        } catch (e) {
+            console.error('Error updating jstree node icon:', e);
+        }
+    }
+
+    
+    // Load contrast variable for a subcategory
+    function loadContrastVariable(subcategoryId) {
+        $.ajax({
+            url: '{% url "reports:manage_contrast_variable" configuration.id %}',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                action: 'get',
+                subcategory: subcategoryId
+            }),
+            success: function(response) {
+                if (response.status === 'success') {
+                    // Populate the form with contrast variable data
+                    $('#cv-subcategory').val(subcategoryId);
+                    $('#cv-id').val(response.contrast_variable.id);
+                    $('#cv-name').val(response.contrast_variable.name);
+                    $('#cv-code').val(response.contrast_variable.code);
+                    $('#cv-color').val(response.contrast_variable.color);
+                    
+                    // Set the description in the Quill editor
+                    if (cvDescriptionQuill) {
+                        cvDescriptionQuill.root.innerHTML = response.contrast_variable.description || '';
+                    }
+                    
+                    // Get the subcategory name from jstree
+                    let subcategoryName = '';
+                    try {
+                        const node = $('#subcategory-tree').jstree(true).get_node('subcategory_' + subcategoryId);
+                        subcategoryName = node ? node.text : '';
+                    } catch (e) {
+                        console.error('Error accessing jstree:', e);
+                    }
+                    
+                    // Update the editor title
+                    $('#cv-editor h4.editor-title').text('Configure Contrast Variable for ' + subcategoryName);
+                    
+                    // Show the form
+                    $('#cv-form-container').show();
+                    
+                    // Load type bands for this contrast variable
+                    loadTypeBands(response.contrast_variable.id);
+                } else {
+                    // No contrast variable exists yet
+                    $('#cv-subcategory').val(subcategoryId);
+                    $('#cv-id').val('');
+                    
+                    // Try to get subcategory name from the tree
+                    let subcategoryName = '';
+                    try {
+                        const node = $('#subcategory-tree').jstree(true).get_node('subcategory_' + subcategoryId);
+                        subcategoryName = node ? node.text : '';
+                    } catch (e) {
+                        console.error('Error accessing jstree:', e);
+                    }
+                    
+                    // Set default values
+                    $('#cv-name').val(subcategoryName);  // Use subcategory name as default
+                    $('#cv-code').val(subcategoryName.substring(0, 1).toUpperCase());  // First letter as code
+                    $('#cv-color').val('#007bff');  // Default color
+                    
+                    // Clear the description
+                    if (cvDescriptionQuill) {
+                        cvDescriptionQuill.root.innerHTML = '';
+                    }
+                    
+                    // Update the editor title
+                    $('#cv-editor h4.editor-title').text('Configure Contrast Variable for ' + subcategoryName);
+                    
+                    // Show the form
+                    $('#cv-form-container').show();
+                    
+                    // Hide type bands container since there's no CV yet
+                    $('#type-bands-container').hide();
+                }
+            },
+            error: function(xhr) {
+                alert('Error loading contrast variable: ' + xhr.responseText);
+            }
+        });
+    }
+
+    // Save contrast variable
+    function saveContrastVariable() {
+        const subcategoryId = $('#cv-subcategory').val();
+        const cvId = $('#cv-id').val();
+        const name = $('#cv-name').val();
+        const code = $('#cv-code').val();
+        const color = $('#cv-color').val();
+        
+        // Get description from Quill editor
+        let description = '';
+        if (cvDescriptionQuill) {
+            const html = cvDescriptionQuill.root.innerHTML;
+            const delta = cvDescriptionQuill.getContents();
+            description = JSON.stringify({
+                html: html,
+                delta: delta
+            });
+        }
+        
+        // Determine if this is a create or update action
+        const action = cvId ? 'update' : 'create';
+        
+        // Send the request
+        $.ajax({
+            url: '{% url "reports:manage_contrast_variable" configuration.id %}',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                action: action,
+                cv_id: cvId,
+                subcategory: subcategoryId,
+                name: name,
+                code: code,
+                color: color,
+                description: description
+            }),
+            success: function(response) {
+                if (response.status === 'success') {
+                    alert('Contrast variable saved successfully');
+                    
+                    // Update the form with the new ID
+                    $('#cv-id').val(response.contrast_variable.id);
+                    
+                    // Show type bands container
+                    $('#type-bands-container').show();
+                    
+                    // Load type bands for this contrast variable
+                    loadTypeBands(response.contrast_variable.id);
+                    
+                    // Update the node in the tree to show it has a contrast variable
+                    try {
+                        const jstreeInstance = $('#subcategory-tree').jstree(true);
+                        if (jstreeInstance && typeof jstreeInstance.get_node === 'function') {
+                            const nodeId = 'subcategory_' + subcategoryId;
+                            const node = jstreeInstance.get_node(nodeId);
+                            if (node) {
+                                jstreeInstance.set_icon(node, 'fa fa-check-circle text-success');
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Error updating jstree node:', e);
+                    }
+                } else {
+                    alert('Error: ' + response.message);
+                }
+            },
+            error: function(xhr) {
+                alert('Error saving contrast variable: ' + xhr.responseText);
+            }
+        });
+    }
+
+    // Delete contrast variable
+    function deleteContrastVariable() {
+        const cvId = $('#cv-id').val();
+        
+        if (!cvId) {
+            alert('No contrast variable to delete');
+            return;
+        }
+        
+        if (!confirm('Are you sure you want to delete this contrast variable?')) {
+            return;
+        }
+        
+        $.ajax({
+            url: '{% url "reports:manage_contrast_variable" configuration.id %}',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                action: 'delete',
+                cv_id: cvId
+            }),
+            success: function(response) {
+                if (response.status === 'success') {
+                    alert('Contrast variable deleted successfully');
+                    $('#cv-form-container').hide();
+                    $('#type-bands-container').hide();
+                    
+                    // Reset the form
+                    $('#cv-form')[0].reset();
+                    $('#cv-id').val('');
+                    if (cvDescriptionQuill) {
+                        cvDescriptionQuill.root.innerHTML = '';
+                    }
+                    
+                    // Update the node in the tree
+                    try {
+                        const jstreeInstance = $('#subcategory-tree').jstree(true);
+                        if (jstreeInstance && typeof jstreeInstance.get_node === 'function') {
+                            const nodeId = 'subcategory_' + $('#cv-subcategory').val();
+                            const node = jstreeInstance.get_node(nodeId);
+                            if (node) {
+                                jstreeInstance.set_icon(node, 'fa fa-folder-open');
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Error updating jstree node:', e);
+                    }
+                } else {
+                    alert('Error: ' + response.message);
+                }
+            },
+            error: function(xhr) {
+                alert('Error deleting contrast variable: ' + xhr.responseText);
+            }
+        });
+    }
+
+    // Load type bands for a contrast variable
+    function loadTypeBands(cvId) {
+        $.ajax({
+            url: '{% url "reports:manage_type_band" configuration.id %}',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                action: 'get',
+                cv_id: cvId
+            }),
+            success: function(response) {
+                if (response.status === 'success') {
+                    // Store the current CV ID
+                    $('#type-band-cv-id').val(cvId);
+                    
+                    // Render the bands
+                    renderTypeBands(response.bands);
+                } else {
+                    // No bands exist yet
+                    $('#type-band-cv-id').val(cvId);
+                    $('#type-band-list').empty();
+                    $('#type-band-list').append('<div class="alert alert-info">No type bands defined for this contrast variable. Add your first band below.</div>');
+                }
+            },
+            error: function(xhr) {
+                alert('Error loading type bands: ' + xhr.responseText);
+            }
+        });
+    }
+
+    // Render type bands in the UI
+    function renderTypeBands(bands) {
+        const bandList = $('#type-band-list');
+        bandList.empty();
+        
+        if (bands.length === 0) {
+            bandList.append('<div class="alert alert-info">No type bands defined for this contrast variable. Add your first band below.</div>');
+            return;
+        }
+        
+        // Sort bands by min_range
+        bands.sort((a, b) => parseFloat(a.min_range) - parseFloat(b.min_range));
+        
+        // Create a table to display bands
+        const table = $('<table class="table table-striped">').appendTo(bandList);
+        const thead = $('<thead>').appendTo(table);
+        const tbody = $('<tbody>').appendTo(table);
+        
+        // Add table header
+        thead.append(`
+            <tr>
+                <th>Name</th>
+                <th>Range</th>
+                <th>Color</th>
+                <th>Label</th>
+                <th>Actions</th>
+            </tr>
+        `);
+        
+        // Add each band to the table
+        bands.forEach(band => {
+            const row = $('<tr>').appendTo(tbody);
+            
+            row.append(`<td>${band.name}</td>`);
+            row.append(`<td>${band.min_range}% - ${band.max_range}%</td>`);
+            row.append(`<td><span class="color-box" style="background-color: ${band.color}; display: inline-block; width: 20px; height: 20px;"></span></td>`);
+            row.append(`<td>${band.label}</td>`);
+            
+            // Add action buttons
+            const actions = $('<td>').appendTo(row);
+            
+            $('<button class="btn btn-sm btn-primary mr-1">Edit</button>')
+                .appendTo(actions)
+                .click(function() {
+                    editTypeBand(band);
+                });
+                
+            $('<button class="btn btn-sm btn-danger">Delete</button>')
+                .appendTo(actions)
+                .click(function() {
+                    deleteTypeBand(band.id);
+                });
+        });
+    }
+
+    
+    // Show type band form
+    function showTypeBandForm() {
+        // Reset the form
+        $('#type-band-form')[0].reset();
+        $('#type-band-id').val('');
+        
+        // Clear the Quill editor
+        if (typeBandDescriptionQuill) {
+            typeBandDescriptionQuill.root.innerHTML = '';
+        }
+        
+        // Set default values
+        $('#type-band-color').val('#007bff');  // Default color
+        
+        // Show the form
+        $('#type-band-form-container').show();
+        
+        // Scroll to the form
+        $('html, body').animate({
+            scrollTop: $('#type-band-form-container').offset().top - 100
+        }, 500);
+    }
+
+    // Hide type band form
+    function hideTypeBandForm() {
+        $('#type-band-form-container').hide();
+    }
+
+    // Edit a type band
+    function editTypeBand(band) {
+        // Populate the form with band data
+        $('#type-band-id').val(band.id);
+        $('#type-band-name').val(band.name);
+        $('#type-band-min-range').val(band.min_range);
+        $('#type-band-max-range').val(band.max_range);
+        $('#type-band-label').val(band.label);
+        $('#type-band-color').val(band.color);
+        
+        // Set the description in the Quill editor
+        if (typeBandDescriptionQuill) {
+            if (band.description) {
+                try {
+                    // Try to parse as JSON first (for newer entries)
+                    const descriptionData = JSON.parse(band.description);
+                    typeBandDescriptionQuill.root.innerHTML = descriptionData.html || '';
+                } catch (e) {
+                    // If not valid JSON, use as HTML directly (for older entries)
+                    typeBandDescriptionQuill.root.innerHTML = band.description;
+                }
+            } else {
+                typeBandDescriptionQuill.root.innerHTML = '';
+            }
+        }
+        
+        // Show the form
+        $('#type-band-form-container').show();
+        
+        // Scroll to the form
+        $('html, body').animate({
+            scrollTop: $('#type-band-form-container').offset().top - 100
+        }, 500);
+    }
+
+    // Delete a type band
+    function deleteTypeBand(bandId) {
+        if (confirm('Are you sure you want to delete this type band?')) {
+            $.ajax({
+                url: '{% url "reports:manage_type_band" configuration.id %}',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    action: 'delete',
+                    band_id: bandId
+                }),
+                success: function(response) {
+                    if (response.status === 'success') {
+                        // Reload the bands
+                        loadTypeBands($('#type-band-cv-id').val());
+                    } else {
+                        alert('Error: ' + response.message);
+                    }
+                },
+                error: function(xhr) {
+                    alert('Error deleting type band: ' + xhr.responseText);
+                }
+            });
+        }
+    }
+
+    // Save a type band
+    function saveTypeBand() {
+        const cvId = $('#type-band-cv-id').val();
+        const bandId = $('#type-band-id').val();
+        const name = $('#type-band-name').val();
+        const minRange = $('#type-band-min-range').val();
+        const maxRange = $('#type-band-max-range').val();
+        const color = $('#type-band-color').val();
+        const label = $('#type-band-label').val();
+        
+        // Get description from Quill editor
+        let description = '';
+        if (typeBandDescriptionQuill) {
+            const html = typeBandDescriptionQuill.root.innerHTML;
+            const delta = typeBandDescriptionQuill.getContents();
+            description = JSON.stringify({
+                html: html,
+                delta: delta
+            });
+        }
+        
+        // Determine if this is a create or update action
+        const action = bandId ? 'update' : 'create';
+        
+        // Prepare the data
+        const data = {
+            action: action,
+            cv_id: cvId,
+            name: name,
+            min_range: minRange,
+            max_range: maxRange,
+            color: color,
+            label: label,
+            description: description
+        };
+        
+        // Add band_id for updates
+        if (bandId) {
+            data.band_id = bandId;
+        }
+        
+        // Send the request
+        $.ajax({
+            url: '{% url "reports:manage_type_band" configuration.id %}',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            success: function(response) {
+                if (response.status === 'success') {
+                    // Hide the form
+                    hideTypeBandForm();
+                    
+                    // Reload the bands
+                    loadTypeBands(cvId);
+                } else {
+                    alert('Error: ' + response.message);
+                }
+            },
+            error: function(xhr) {
+                alert('Error saving type band: ' + xhr.responseText);
+            }
+        });
+    }
+
+</script>
+{% endblock %}

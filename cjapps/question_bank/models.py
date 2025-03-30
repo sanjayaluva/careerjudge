@@ -40,6 +40,11 @@ class Question(models.Model):
         ('psy_forced_one', 'Psychometric Forced-Choice Scale - Single Level Rating'),
         ('psy_forced_two', 'Psychometric Forced-Choice Scale - Two-Level Rating'),
     ]
+
+    FORCED_CHOICE_SUBTYPES = [
+        ('standard', 'Standard (No Contrast Variables)'),
+        ('with_contrast_variable', 'With Contrast Variables (CV1 & CV2)'),
+    ]
     
     DIFFICULTY_LEVELS = [
         ('veasy', 'Very Easy'),
@@ -75,6 +80,13 @@ class Question(models.Model):
     video = models.FileField(upload_to='question_media/', null=True, blank=True)
     paragraph = QuillField(null=True, blank=True) #models.TextField(null=True, blank=True)
     paragraph_interval = models.PositiveIntegerField(default=10, null=True, blank=True, help_text="Interval in seconds")
+    
+    forced_choice_subtype = models.CharField(
+        max_length=30, 
+        choices=FORCED_CHOICE_SUBTYPES,
+        default='standard',
+        help_text="Only applies to Forced-Choice Single Level questions"
+    )
     
     answer = models.TextField(null=True, blank=True)
     is_multiple_answer = models.BooleanField(default=False)

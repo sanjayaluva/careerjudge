@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+{% load static report_filters %}
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>{{ configuration.title }}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 1.5cm;
+        }
+        
+        body {
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            line-height: 1.5;
+            color: #333333;
+            margin: 0;
+            padding: 0;
+            font-size: 11pt;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .page {
+            page-break-after: always;
+            padding: 0;
+            position: relative;
+        }
+        
+        .page:last-child {
+            page-break-after: avoid;
+        }
+        
+        .logo {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 120px;
+        }
+        
+        h1 {
+            font-size: 26pt;
+            font-weight: bold;
+            color: #1a5276;
+            margin-bottom: 10px;
+        }
+        
+        h2 {
+            font-size: 20pt;
+            color: #2874a6;
+            margin-top: 25px;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #3498db;
+        }
+        
+        h3 {
+            font-size: 16pt;
+            color: #2e86c1;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+        
+        h4 {
+            font-size: 13pt;
+            color: #3498db;
+            margin-top: 15px;
+            margin-bottom: 8px;
+        }
+        
+        p {
+            margin-bottom: 10px;
+        }
+        
+        .report-title {
+            margin-top: 60px;
+            font-size: 28pt;
+            font-weight: bold;
+            color: #1a5276;
+        }
+        
+        .report-subtitle {
+            color: #2874a6;
+            margin-bottom: 40px;
+            font-size: 18pt;
+        }
+        
+        .candidate-info {
+            margin-top: 50px;
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 5px solid #3498db;
+        }
+        
+        .candidate-name {
+            font-size: 20pt;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #2874a6;
+        }
+        
+        .candidate-details {
+            font-size: 11pt;
+            color: #555555;
+            line-height: 1.6;
+        }
+        
+        .assessment-date {
+            position: absolute;
+            bottom: 50px;
+            right: 40px;
+            font-style: italic;
+            color: #666666;
+            padding: 8px 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        
+        .section-title {
+            color: #1a5276;
+            border-bottom: 2px solid #3498db;
+            margin-top: 30px;
+            font-size: 22pt;
+        }
+        
+        .intro-image {
+            margin: 30px auto;
+            display: block;
+            max-width: 90%;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+        
+        .summary-graph {
+            margin: 30px auto;
+            text-align: center;
+            max-width: 95%;
+        }
+        
+        .summary-graph img {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            color-adjust: exact;
+            max-width: 100%;
+            height: auto;
+        }
+        
+        img {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            color-adjust: exact;
+            max-width: 100%;
+            height: auto;
+        }
+        
+        table {
+            page-break-inside: auto;
+            width: 100%;
+        }
+        
+        tr {
+            page-break-inside: avoid;
+            page-break-after: auto;
+        }
+        
+        .force-page-break {
+            page-break-before: always;
+        }
+        
+        .summary-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+        
+        .summary-table th, .summary-table td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        
+        .summary-table th {
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .summary-table tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        
+        .cutoff-indicator {
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-weight: bold;
+            display: inline-block;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        
+        .cutoff-pass {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .cutoff-fail {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        .section-card {
+            margin-bottom: 30px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .section-card-header {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-bottom: 1px solid #e0e0e0;
+            background: linear-gradient(to right, #f8f9fa, #e9f7fe);
+        }
+        
+        .section-card-body {
+            padding: 20px;
+        }
+        
+        .overall-summary {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-top: 3px solid #3498db;
+        }
+        
+        .score-display {
+            font-size: 22pt;
+            font-weight: bold;
+            color: #2874a6;
+        }
+        
+        .score-label {
+            font-size: 11pt;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+        
+        .text-center {
+            text-align: center;
+        }
+        
+        .row {
+            display: block;
+            width: 100%;
+            clear: both;
+            margin-bottom: 15px;
+        }
+        
+        .col {
+            float: left;
+            width: 33%;
+            text-align: center;
+        }
+        
+        .report-footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 15px;
+            border-top: 1px solid #e0e0e0;
+            font-size: 9pt;
+            color: #666666;
+            font-style: italic;
+        }
+        
+        #footer {
+            text-align: center;
+            font-size: 9pt;
+            color: #666666;
+        }
+        
+        .clearfix::after {
+            content: "";
+            clear: both;
+            display: table;
+        }
+    </style>
+</head>
+<body>
+    <!-- Page 1: Cover Page -->
+    <div class="page" id="cover-page">
+        <!-- Logo with data URI fallback -->
+        {% if logo_data_uri %}
+        <img src="{{ logo_data_uri }}" alt="Company Logo" class="logo">
+        {% else %}
+        <img src="{{ logo_url }}" alt="Company Logo" class="logo">
+        {% endif %}
+        
+        <!-- Report Title -->
+        <div class="report-title">{{ configuration.title }}</div>
+        <div class="report-subtitle">{{ configuration.get_report_type_display }} Report</div>
+        
+        <!-- Candidate Information -->
+        <div class="candidate-info">
+            <div class="candidate-name">{{ user.get_full_name }}</div>
+            <div class="candidate-details">
+                <strong>Age:</strong> {{ user.profile.age|default:"N/A" }}<br>
+                <strong>Gender:</strong> {{ user.profile.gender|default:"N/A" }}<br>
+                <strong>Institution:</strong> {{ user.profile.institution_name|default:"N/A" }}<br>
+                <strong>Location:</strong> {{ user.profile.institution_place|default:"N/A" }}<br>
+                <strong>State:</strong> {{ user.profile.state|default:"N/A" }}<br>
+                <strong>Country:</strong> {{ user.profile.country|default:"N/A" }}
+            </div>
+        </div>
+        
+        <!-- Assessment Date -->
+        <div class="assessment-date">
+            Assessment Date: {{ session.end_time|date:"F d, Y" }}
+        </div>
+    </div>
+
+    <!-- Page 2: Introduction -->
+    <div class="page" id="introduction-page">
+        <h3 class="section-title">Introduction</h3>
+        
+        <!-- Report Description Text -->
+        {% if formatted_description %}
+        <div class="report-description">
+            {{ formatted_description|safe }}
+        </div>
+        {% endif %}
+
+        <!-- Description Image -->
+        {% if configuration.description_img %}
+        <div class="text-center" style="margin-top: 10px;">
+            {% if description_img_data_uri %}
+            <img src="{{ description_img_data_uri }}" alt="Report Cover Image" 
+                 style="max-width: 75%; height: auto; margin: 0 auto; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
+            {% else %}
+            <img src="{{ base_url }}{{ configuration.description_img.url }}" alt="Report Cover Image" 
+                 style="max-width: 75%; height: auto; margin: 0 auto; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% if formatted_objectives %}
+        <div class="report-objectives">
+            <h4>Objectives:</h4>
+            {{ formatted_objectives|safe }}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Page 3: Summary Report -->
+    <div class="page" id="summary-page">
+        <h3 class="section-title">Summary Report</h3>
+        
+        <!-- Overall Score Summary -->
+        <div class="overall-summary clearfix">
+            <div class="row">
+                <div class="col">
+                    <div class="score-display">{{ overall_score }}%</div>
+                    <div class="score-label">Overall Score</div>
+                </div>
+                <div class="col">
+                    <div class="score-display">{{ total_sections }}</div>
+                    <div class="score-label">Total Sections</div>
+                </div>
+                <div class="col">
+                    <div class="score-display">{{ passed_sections }}/{{ total_sections }}</div>
+                    <div class="score-label">Sections Passed</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Summary Table -->
+        <table class="summary-table">
+            <thead>
+                <tr>
+                    <th>Section Name</th>
+                    <th>Score</th>
+                    <th>Cutoff</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for section_id, cutoff_data in cutoffs.items %}
+                <tr>
+                    <td>{{ cutoff_data.section.title }}</td>
+                    <td>{{ cutoff_data.score }}%</td>
+                    <td>{{ cutoff_data.cutoff_score }}%</td>
+                    <td>
+                        <span class="cutoff-indicator {% if cutoff_data.is_above_cutoff %}cutoff-pass{% else %}cutoff-fail{% endif %}">
+                            {% if cutoff_data.is_above_cutoff %}Pass{% else %}Needs Improvement{% endif %}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Detailed Section Analysis -->
+    {% for section_id, cutoff_data in cutoffs.items %}
+    <div class="page">
+        <h3 class="section-title">{{ cutoff_data.section.title }}</h3>
+        
+        <div class="section-card">
+            <div class="section-card-header">
+                <h4 style="margin: 0;">Performance Analysis</h4>
+            </div>
+            <div class="section-card-body">
+                <div class="row clearfix">
+                    <div style="float: left; width: 40%;">
+                        <div class="score-display">{{ cutoff_data.score }}%</div>
+                        <div class="score-label">Section Score</div>
+                        <div style="margin-top: 15px;">
+                            <span class="cutoff-indicator {% if cutoff_data.is_above_cutoff %}cutoff-pass{% else %}cutoff-fail{% endif %}">
+                                {{ cutoff_data.cutoff_label }}
+                            </span>
+                            <div class="score-label">Cutoff: {{ cutoff_data.cutoff_score }}%</div>
+                        </div>
+                    </div>
+                    <div style="float: right; width: 60%;">
+                        {% if cutoff_graphs and section_id in cutoff_graphs %}
+                        <img src="{{ cutoff_graphs|get_item:section_id }}" alt="{{ cutoff_data.section.title }} Performance Chart" 
+                             style="max-width: 100%; height: auto;">
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div style="clear: both; margin-top: 20px;">
+                    {% if cutoff_data.is_above_cutoff %}
+                    <div class="cutoff-description">
+                        {{ cutoff_data.description|safe }}
+                    </div>
+                    {% else %}
+                    <div class="cutoff-description">
+                        {{ cutoff_data.description|safe }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+    <!-- Report Footer -->
+    <div class="report-footer">
+        <p>
+            Report generated on {{ generated_date|date:"F d, Y" }} for {{ user.get_full_name }}<br>
+            CareerJudge Assessment Platform © {% now "Y" %}
+        </p>
+    </div>
+
+    <div id="footer">
+        <p>CareerJudge Assessment Platform © {% now "Y" %} - Confidential Report</p>
+    </div>
+</body>
+</html>
+

@@ -62,6 +62,7 @@
                 <div class="row">
                     <div class="col-md-3">{{ basic_form.right_score|as_crispy_field }}</div>
                     <div class="col-md-3">{{ basic_form.wrong_score|as_crispy_field }}</div>
+                    <div class="col-md-6">{{ basic_form.forced_choice_subtype|as_crispy_field }}</div>
                 </div>
             </div>
             <div class="tab-pane fade" id="category" role="tabpanel">
@@ -300,12 +301,12 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="card">
-                                    <div class="card-header d-flex justify-content-between align-items-center">
-                                        <h5 class="mb-0">Categories & Statements</h5>
+                                    <div class="card-header d-flex justify-content-between align-items-center px-2">
+                                        <h6 class="mb-0">Categories & Statements</h6>
                                         <div class="btn-group">
                                             <button type="button" class="btn btn-sm btn-primary" id="addForcedCategory">Add Category</button>
-                                            <button type="button" class="btn btn-sm btn-primary" id="addForcedSubcategory">Add Subcategory</button>
-                                            <button type="button" class="btn btn-sm btn-primary" id="addForcedStatement">Add Statement</button>
+                                            <button type="button" class="btn btn-sm btn-primary" id="addForcedSubcategory">Subcategory</button>
+                                            <button type="button" class="btn btn-sm btn-primary" id="addForcedStatement">Statement</button>
                                         </div>
                                     </div>
                                     <div class="card-body">
@@ -316,7 +317,7 @@
                             <div class="col-md-6">
                                 <div class="card">
                                     <div class="card-header d-flex justify-content-between align-items-center">
-                                        <h5 class="mb-0">Choice Groups</h5>
+                                        <h6 class="mb-0">Choice Groups</h6>
                                         <button type="button" class="btn btn-sm btn-primary" id="addForcedChoiceGroup">Add Choice Group</button>
                                     </div>
                                     <div class="card-body">
@@ -394,17 +395,6 @@
 {% block extra_css %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.3.12/themes/default/style.min.css" />
 
-<!--link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/nestable2/1.6.0/nestable.min.css"-->
-<style>
-    /*.container {
-        display: flex;
-        justify-content: space-between;
-    }
-    .panel {
-        width: 45%;
-    }*/
-</style>
 {% endblock %}
 
 {% block extra_js %}
@@ -412,9 +402,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
-
 <script>
-
     // validate and submit form if the submit button is outside the form.
     function outside_form_submit(form_id = '') {
         var questionText = $('#quill-id_text .ql-editor').html();
@@ -1212,6 +1200,8 @@
                 $('#forced-fields').show();
                 $('#rating-fields').show();
                 initForcedTrees();
+                
+                $('#id_forced_choice_subtype').val('standard');
             }
             
         }
@@ -1819,16 +1809,54 @@
                             alert('A choice group can only have 2 statements');
                             return false;
                         }
+
+                        const subtype = getForcedChoiceSubtype();
+                        const nodeData = node.data || {};
                         
+                        // Get existing statements in the choice group
                         const existingStatements = choiceGroup.children.map(id => {
-                            const node = this.get_node(id);
-                            return node.data?.categoryId;
+                            const existingNode = this.get_node(id);
+                            return {
+                                id: existingNode.id,
+                                categoryId: existingNode.data?.categoryId,
+                                subcategoryId: existingNode.data?.subcategoryId
+                            };
                         });
                         
-                        if (existingStatements.includes(node.data?.categoryId)) {
-                            alert('Statements in a choice group must be from different categories');
-                            return false;
+                        if (subtype === 'with_contrast_variable') {
+                            // With contrast variable: statements must be from same category but different subcategories
+                            if (existingStatements.length > 0) {
+                                const existingStatement = existingStatements[0];
+                                
+                                // Check if categories match
+                                if (existingStatement.categoryId !== nodeData.categoryId) {
+                                    alert('For contrast variable type, statements must be from the same category');
+                                    return false;
+                                }
+                                
+                                // Check if subcategories are different
+                                if (existingStatement.subcategoryId === nodeData.subcategoryId) {
+                                    alert('For contrast variable type, statements must be from different subcategories');
+                                    return false;
+                                }
+                            }
+                        } else {
+                            // Without contrast variable (standard): statements must be from different categories
+                            if (existingStatements.some(stmt => stmt.categoryId === nodeData.categoryId)) {
+                                alert('For standard forced choice, statements must be from different categories');
+                                return false;
+                            }
                         }
+                        
+                        // const existingStatements = choiceGroup.children.map(id => {
+                        //     const node = this.get_node(id);
+                        //     return node.data?.categoryId;
+                        // });
+                        
+                        // if (existingStatements.includes(node.data?.categoryId)) {
+                        //     alert('Statements in a choice group must be from different categories');
+                        //     return false;
+                        // }
                     }
                     return true;
                 }
@@ -1843,64 +1871,11 @@
             },
         });
 
-        // Event handlers with renamed elements
-        $('#addForcedCategory').click(function() {
-            let newNode = {
-                id: 'fcat_' + Date.now(),
-                text: 'New Category',
-                type: 'category',
-                children: []
-            };
-            let category = $('#forcedLeftTree').jstree('create_node', '#', newNode, 'last');
-            $('#forcedLeftTree').jstree('edit', category);
-        });
 
-        $('#addForcedChoiceGroup').click(function() {
-            let newNode = {
-                id: 'fchoice_' + Date.now(),
-                text: 'New Choice Group',
-                type: 'choicegroup',
-                children: []
-            };
-            let group = $('#forcedRightTree').jstree('create_node', '#', newNode, 'last');
-            $('#forcedRightTree').jstree('edit', group);
-        });
+        // Display the rules based on current subtype
+        displayForcedChoiceRules();
 
-        $('#addForcedSubcategory').click(function() {
-            let selectedNode = $('#forcedLeftTree').jstree('get_selected')[0];
-            if (!selectedNode || $('#forcedLeftTree').jstree(true).get_node(selectedNode).type !== 'category') {
-                alert('Please select a category first');
-                return;
-            }
-            let newNode = {
-                id: 'fsub_' + Date.now(),
-                text: 'New Subcategory',
-                type: 'subcategory',
-                children: []
-            };
-            let subcategory = $('#forcedLeftTree').jstree('create_node', selectedNode, newNode, 'last');
-            $('#forcedLeftTree').jstree('edit', subcategory);
-        });
 
-        $('#addForcedStatement').click(function() {
-            let selectedNode = $('#forcedLeftTree').jstree('get_selected')[0];
-            if (!selectedNode || !['category', 'subcategory'].includes($('#forcedLeftTree').jstree(true).get_node(selectedNode).type)) {
-                alert('Please select a category or subcategory first');
-                return;
-            }
-            let newNode = {
-                id: 'fstmt_' + Date.now(),
-                text: 'New Statement',
-                type: 'statement',
-                data: {
-                    categoryId: $('#forcedLeftTree').jstree(true).get_node(selectedNode).type === 'category' ? selectedNode : $('#forcedLeftTree').jstree(true).get_node(selectedNode).parent,
-                    subcategoryId: $('#forcedLeftTree').jstree(true).get_node(selectedNode).type === 'subcategory' ? selectedNode : null
-                }
-            };
-            let statement = $('#forcedLeftTree').jstree('create_node', selectedNode, newNode, 'last');
-            $('#forcedLeftTree').jstree('edit', statement);
-        });
-        
         // Save tree data on changes
         $('#forcedRightTree, #forcedLeftTree').on('create_node.jstree rename_node.jstree delete_node.jstree move_node.jstree', function() {
             updateForcedTreeData();
@@ -2013,6 +1988,12 @@
         return submenu;
     }
 
+
+    // Add this function to check the forced choice subtype
+    function getForcedChoiceSubtype() {
+        return $('#id_forced_choice_subtype').val() || 'standard';
+    }
+
     function addStatementToForcedChoiceGroup(statementNode, choiceGroupId) {
         const choiceGroup = $('#forcedRightTree').jstree(true).get_node(choiceGroupId);
         
@@ -2021,26 +2002,82 @@
             return;
         }
 
+        // Get the subtype to determine the validation strategy
+        const subtype = getForcedChoiceSubtype();
+        
+        // Get node data
+        const nodeData = statementNode.data || {};
+        const categoryId = nodeData.categoryId;
+        const subcategoryId = nodeData.subcategoryId;
+        
+        // Get existing statements in the choice group
         const existingStatements = choiceGroup.children.map(id => {
             const node = $('#forcedRightTree').jstree(true).get_node(id);
-            return node.data?.categoryId;
+            return {
+                id: node.id,
+                categoryId: node.data?.categoryId,
+                subcategoryId: node.data?.subcategoryId
+            };
         });
-
-        if (existingStatements.includes(statementNode.data?.categoryId)) {
-            alert('Statements in a choice group must be from different categories');
-            return;
+        
+        // Apply validation based on subtype
+        if (subtype === 'with_contrast_variable') {
+            // With contrast variable: statements must be from same category but different subcategories
+            if (existingStatements.length > 0) {
+                const existingStatement = existingStatements[0];
+                
+                // Check if categories match
+                if (existingStatement.categoryId !== categoryId) {
+                    alert('For contrast variable type, statements must be from the same category');
+                    return;
+                }
+                
+                // Check if subcategories are different
+                if (existingStatement.subcategoryId === subcategoryId) {
+                    alert('For contrast variable type, statements must be from different subcategories');
+                    return;
+                }
+            }
+        } else {
+            // Without contrast variable (standard): statements must be from different categories
+            if (existingStatements.some(stmt => stmt.categoryId === categoryId)) {
+                alert('For standard forced choice, statements must be from different categories');
+                return;
+            }
         }
 
+        // Create the new node reference
         let newNode = {
             id: 'fref_' + statementNode.id,
             text: statementNode.text,
             type: 'statement',
             data: { 
                 originalId: statementNode.id,
-                categoryId: statementNode.data.categoryId,
-                subcategoryId: statementNode.data.subcategoryId
+                categoryId: categoryId,
+                subcategoryId: subcategoryId
             }
         };
+
+        // const existingStatements = choiceGroup.children.map(id => {
+        //     const node = $('#forcedRightTree').jstree(true).get_node(id);
+        //     return node.data?.categoryId;
+        // });
+
+        // if (existingStatements.includes(statementNode.data?.categoryId)) {
+        //     alert('Statements in a choice group must be from different categories');
+        //     return;
+        // }
+
+        // let newNode = {
+        //     id: 'fref_' + statementNode.id,
+        //     text: statementNode.text,
+        //     type: 'statement',
+        //     data: { 
+        //         originalId: statementNode.id,
+        //         categoryId: statementNode.data.categoryId,
+        //         subcategoryId: statementNode.data.subcategoryId
+        //     }
+        // };
         
         $('#forcedLeftTree').jstree('set_text', statementNode, '<s>' + statementNode.text + '</s>');
         $('#forcedLeftTree').jstree('disable_node', statementNode);
@@ -2073,5 +2110,141 @@
         $('#forced_data').val(JSON.stringify(data));
     }
 
+</script>
+
+<script>
+    $(document).ready(function() {
+        function toggleQuestionFields() {
+            const questionType = $('#id_type').val();
+            
+            // Hide all conditional fields first
+            $('.forced-choice-one-field').parent().hide();
+            
+            // Show fields based on question type
+            if (questionType === 'psy_forced_one') {
+                $('.forced-choice-one-field').parent().show();
+            }
+        }
+        
+        // Run on page load and when question type changes
+        toggleQuestionFields();
+        $('#id_type').change(toggleQuestionFields);
+    });
+
+
+    // Call this function when initializing trees and when subtype changes
+    $(document).ready(function() {
+        $('#id_forced_choice_subtype').change(displayForcedChoiceRules);
+    
+        // Also call when question type changes to forced choice
+        $('#id_type').change(function() {
+            if ($(this).val().startsWith('psy_forced')) {
+                setTimeout(displayForcedChoiceRules, 100);
+            }
+        });
+    });
+
+    // Add an event listener to update the trees when the forced choice subtype changes
+    $(document).ready(function() {
+        $('#id_forced_choice_subtype').change(function() {
+            // Clear the right tree when changing subtypes to avoid invalid combinations
+            if ($('#forcedRightTree').jstree(true)) {
+                const rightTreeNodes = $('#forcedRightTree').jstree(true).get_json('#', {flat: true});
+                
+                // Remove all statements from choice groups and restore them in the left tree
+                rightTreeNodes.forEach(node => {
+                    if (node.type === 'statement') {
+                        removeForcedStrikethrough(node.id);
+                        $('#forcedRightTree').jstree('delete_node', node.id);
+                    }
+                });
+                
+                // Update the tree data
+                updateForcedTreeData();
+            }
+        });
+    });
+
+    // Add a helper function to display the current subtype rules
+    function displayForcedChoiceRules() {
+        const subtype = getForcedChoiceSubtype();
+        let rulesText = '';
+        
+        if (subtype === 'with_contrast_variable') {
+            rulesText = 'Contrast Variable Mode: Pair statements from the same category but different subcategories';
+        } else {
+            rulesText = 'Standard Mode: Pair statements from different categories';
+        }
+        
+        // Add a rules display element if it doesn't exist
+        if ($('#forcedChoiceRules').length === 0) {
+            $('#forced-fields').prepend('<div id="forcedChoiceRules" class="alert alert-info mb-3 p-2"></div>');
+        }
+        
+        $('#forcedChoiceRules').text(rulesText);
+    }
+    
+</script>
+
+<script>
+    $(document).ready(function() {
+        // Use event delegation for all the forced choice buttons
+        $(document).on('click', '#addForcedCategory', function() {
+            let newNode = {
+                id: 'fcat_' + Date.now(),
+                text: 'New Category',
+                type: 'category',
+                children: []
+            };
+            let category = $('#forcedLeftTree').jstree('create_node', '#', newNode, 'last');
+            $('#forcedLeftTree').jstree('edit', category);
+        });
+
+        $(document).on('click', '#addForcedSubcategory', function() {
+            let selectedNode = $('#forcedLeftTree').jstree('get_selected')[0];
+            if (!selectedNode || $('#forcedLeftTree').jstree(true).get_node(selectedNode).type !== 'category') {
+                alert('Please select a category first');
+                return;
+            }
+            let newNode = {
+                id: 'fsub_' + Date.now(),
+                text: 'New Subcategory',
+                type: 'subcategory',
+                children: []
+            };
+            let subcategory = $('#forcedLeftTree').jstree('create_node', selectedNode, newNode, 'last');
+            $('#forcedLeftTree').jstree('edit', subcategory);
+        });
+
+        $(document).on('click', '#addForcedStatement', function() {
+            let selectedNode = $('#forcedLeftTree').jstree('get_selected')[0];
+            if (!selectedNode || !['category', 'subcategory'].includes($('#forcedLeftTree').jstree(true).get_node(selectedNode).type)) {
+                alert('Please select a category or subcategory first');
+                return;
+            }
+            let newNode = {
+                id: 'fstmt_' + Date.now(),
+                text: 'New Statement',
+                type: 'statement',
+                data: {
+                    categoryId: $('#forcedLeftTree').jstree(true).get_node(selectedNode).type === 'category' ? selectedNode : $('#forcedLeftTree').jstree(true).get_node(selectedNode).parent,
+                    subcategoryId: $('#forcedLeftTree').jstree(true).get_node(selectedNode).type === 'subcategory' ? selectedNode : null
+                }
+            };
+            let statement = $('#forcedLeftTree').jstree('create_node', selectedNode, newNode, 'last');
+            $('#forcedLeftTree').jstree('edit', statement);
+        });
+
+        $(document).on('click', '#addForcedChoiceGroup', function() {
+            let newNode = {
+                id: 'fchoice_' + Date.now(),
+                text: 'New Choice Group',
+                type: 'choicegroup',
+                children: []
+            };
+            let group = $('#forcedRightTree').jstree('create_node', '#', newNode, 'last');
+            $('#forcedRightTree').jstree('edit', group);
+        });
+    });
 </script>
 {% endblock %}

@@ -68,7 +68,7 @@ INSTALLED_APPS = [
     'training',
     'question_bank',
     'assessment',
-    # 'course',
+    'reports',
 
 ]
 

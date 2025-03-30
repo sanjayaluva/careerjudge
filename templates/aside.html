@@ -140,6 +140,13 @@
 			</li>
 			{#% endif %#}
 
+			{% url 'reports:report_configuration_list' as report_list %}
+			{#% if perms.reports.list_report %#}
+			<li class="{% if request.path == report_list %}active{% endif %}">
+				<a href="{% url 'reports:report_configuration_list' %}"><i class="fas fa-file-signature"></i>Reports</a>
+			</li>
+			{#% endif %#}
+
 			<!-- {% url 'question_bank:deletion_requests_list' as deletion_requests_list %}
 			{#% if perms.question_bank.deletion_requests_list %#}
 			<li class="{% if request.path == deletion_requests_list %}active{% endif %}">

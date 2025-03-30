@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% block title %}Generated Reports{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Generated Reports: {{ config.title }}</h3>
+                    <div class="card-tools">
+                        <a href="{% url 'reports:report_configuration_list' %}" class="btn btn-sm btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Back
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover">
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Generated On</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for report in reports %}
+                                <tr>
+                                    <td>{{ report.assessment_session.user.email }}</td>
+                                    <td>{{ report.generated_at|date:"M d, Y H:i" }}</td>
+                                    <td>
+                                        <div class="button-group">
+                                            <a href="{{ report.report_file.url }}" class="btn btn-sm btn-success" target="_blank" title="View Report">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="{{ report.report_file.url }}" class="btn btn-sm btn-primary" title="Download Report">
+                                                <i class="fas fa-download"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="3" class="text-center">No reports have been generated yet.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

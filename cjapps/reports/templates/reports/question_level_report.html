@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+{% load static report_filters %}
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>{{ configuration.title }}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 1.5cm;
+        }
+        
+        body {
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            line-height: 1.5;
+            color: #333333;
+            margin: 0;
+            padding: 0;
+            font-size: 11pt;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .page {
+            page-break-after: always;
+            padding: 0;
+            position: relative;
+        }
+        
+        .page:last-child {
+            page-break-after: avoid;
+        }
+        
+        .logo {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 120px;
+        }
+        
+        h1 {
+            font-size: 26pt;
+            font-weight: bold;
+            color: #1a5276;
+            margin-bottom: 10px;
+        }
+        
+        h2 {
+            font-size: 20pt;
+            color: #2874a6;
+            margin-top: 25px;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #3498db;
+        }
+        
+        h3 {
+            font-size: 16pt;
+            color: #2e86c1;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+        
+        h4 {
+            font-size: 13pt;
+            color: #3498db;
+            margin-top: 15px;
+            margin-bottom: 8px;
+        }
+        
+        p {
+            margin-bottom: 10px;
+        }
+        
+        .report-title {
+            margin-top: 60px;
+            font-size: 28pt;
+            font-weight: bold;
+            color: #1a5276;
+        }
+        
+        .report-subtitle {
+            color: #2874a6;
+            margin-bottom: 40px;
+            font-size: 18pt;
+        }
+        
+        .candidate-info {
+            margin-top: 50px;
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 5px solid #3498db;
+        }
+        
+        .candidate-name {
+            font-size: 20pt;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #2874a6;
+        }
+        
+        .candidate-details {
+            font-size: 11pt;
+            color: #555555;
+            line-height: 1.6;
+        }
+        
+        .assessment-date {
+            position: absolute;
+            bottom: 50px;
+            right: 40px;
+            font-style: italic;
+            color: #666666;
+            padding: 8px 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        
+        .section-title {
+            color: #1a5276;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+            margin-bottom: 25px;
+            margin-top: 30px;
+            font-size: 22pt;
+        }
+        
+        .question-card {
+            margin-bottom: 30px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            page-break-inside: avoid;
+        }
+        
+        .question-card-header {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-bottom: 1px solid #e0e0e0;
+            background: linear-gradient(to right, #f8f9fa, #e9f7fe);
+        }
+        
+        .question-card-body {
+            padding: 20px;
+        }
+        
+        .question-meta {
+            margin-bottom: 15px;
+            font-size: 10pt;
+            color: #666;
+        }
+        
+        .question-text {
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        
+        .question-options {
+            margin-bottom: 20px;
+        }
+        
+        .option {
+            margin-bottom: 8px;
+            padding: 8px;
+            border-radius: 4px;
+        }
+        
+        .selected-option {
+            background-color: #e9f7fe;
+            border-left: 3px solid #3498db;
+        }
+        
+        .correct-option {
+            background-color: #d4edda;
+            border-left: 3px solid #28a745;
+        }
+        
+        .incorrect-option {
+            background-color: #f8d7da;
+            border-left: 3px solid #dc3545;
+        }
+        
+        .question-explanation {
+            margin-top: 15px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            border-left: 3px solid #6c757d;
+        }
+        
+        .question-score {
+            font-weight: bold;
+            text-align: right;
+            margin-top: 15px;
+            font-size: 14pt;
+            color: #2874a6;
+        }
+        
+        .report-footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 15px;
+            border-top: 1px solid #e0e0e0;
+            font-size: 9pt;
+            color: #666666;
+            font-style: italic;
+        }
+        
+        #footer {
+            text-align: center;
+            font-size: 9pt;
+            color: #666666;
+        }
+        
+        .summary-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+        
+        .summary-table th, .summary-table td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        
+        .summary-table th {
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .summary-table tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        
+        .clearfix::after {
+            content: "";
+            clear: both;
+            display: table;
+        }
+    </style>
+</head>
+<body>
+    <!-- Page 1: Cover Page -->
+    <div class="page" id="cover-page">
+        <!-- Logo with data URI fallback -->
+        {% if logo_data_uri %}
+        <img src="{{ logo_data_uri }}" alt="Company Logo" class="logo">
+        {% else %}
+        <img src="{{ logo_url }}" alt="Company Logo" class="logo">
+        {% endif %}
+        
+        <!-- Report Title -->
+        <div class="report-title">{{ configuration.title }}</div>
+        <div class="report-subtitle">Question Level Report</div>
+        
+        <!-- Supporting Art Image -->
+        {% if configuration.description_img %}
+        <div class="text-center" style="margin-top: 60px;">
+            {% if description_img_data_uri %}
+            <img src="{{ description_img_data_uri }}" alt="Report Cover Image" 
+                 style="max-width: 75%; height: auto; margin: 0 auto; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
+            {% else %}
+            <img src="{{ base_url }}{{ configuration.description_img.url }}" alt="Report Cover Image" 
+                 style="max-width: 75%; height: auto; margin: 0 auto; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        <!-- Candidate Information -->
+        <div class="candidate-info">
+            <div class="candidate-name">{{ user.get_full_name }}</div>
+            <div class="candidate-details">
+                <strong>Email:</strong> {{ user.email }}<br>
+                {% if user.profile.age %}
+                <strong>Age:</strong> {{ user.profile.age }}<br>
+                {% endif %}
+                {% if user.profile.gender %}
+                <strong>Gender:</strong> {{ user.profile.gender }}<br>
+                {% endif %}
+                {% if user.profile.institution_name %}
+                <strong>Institution:</strong> {{ user.profile.institution_name }}<br>
+                {% endif %}
+                {% if user.profile.institution_place %}
+                <strong>Location:</strong> {{ user.profile.institution_place }}<br>
+                {% endif %}
+                {% if user.profile.state %}
+                <strong>State:</strong> {{ user.profile.state }}<br>
+                {% endif %}
+                {% if user.profile.country %}
+                <strong>Country:</strong> {{ user.profile.country }}
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Assessment Date -->
+        <div class="assessment-date">
+            Assessment Date: {{ session.end_time|date:"F d, Y" }}
+        </div>
+    </div>
+
+    <!-- Page 2: Introduction -->
+    <div class="page" id="introduction-page">
+        <h2 class="section-title">Introduction</h2>
+        
+        <!-- Report Description Text -->
+        {% if configuration.description %}
+        <div class="report-description">
+            {{ formatted_description|safe }}
+        </div>
+        {% endif %}
+        
+        <!-- Assessment Overview -->
+        <h3>Assessment Overview</h3>
+        <p>This report provides a detailed analysis of your responses to each question in the {{ assessment.title }} assessment. It includes:</p>
+        <ul>
+            <li>The question text and instructions</li>
+            <li>Your selected answer</li>
+            <li>The correct answer</li>
+            <li>Explanations for each question</li>
+            <li>Your score for each question</li>
+        </ul>
+        
+        <!-- Summary Statistics -->
+        <h3>Performance Summary</h3>
+        <table class="summary-table">
+            <thead>
+                <tr>
+                    <th>Total Questions</th>
+                    <th>Correct Answers</th>
+                    <th>Incorrect Answers</th>
+                    <th>Overall Score</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>{{ question_responses|length }}</td>
+                    <td>{{ correct_count }}</td>
+                    <td>{{ incorrect_count }}</td>
+                    <td>{{ overall_score }}%</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Page 3+: Question Details -->
+    <div class="page" id="question-details">
+        <h2 class="section-title">Question Details</h2>
+        
+        {% for response in question_responses %}
+        <div class="">
+            <div class="">
+                <h3>Question {{ forloop.counter }}</h3>
+                <div class="question-meta">
+                    <strong>Type:</strong> {{ response.question.get_type_display }}<br>
+                    <strong>Category:</strong> {{ response.question.category.name }}<br>
+                    {% if response.question.difficulty_level %}
+                    <strong>Difficulty:</strong> {{ response.question.get_difficulty_level_display }}<br>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="">
+                <!-- Question Instructions -->
+                {% if response.question.instructions %}
+                <div class="instructions">
+                    <h4>Instructions</h4>
+                    <p>{{ response.question.instructions.html|safe }}</p>
+                </div>
+                {% endif %}
+                
+                <!-- Question Text -->
+                <div class="question-text">
+                    <h4>Question text</h4>
+                    <p>{{ response.question.text.html|safe }}</p>
+                </div>
+                
+                <!-- Question Options -->
+                <div class="question-options">
+                    <h4>Options</h4>
+                    {% if response.question.type|slice:":3" == "mcq" %}
+                        {% for option in response.question.options.all %}
+                            <div class="option 
+                                {% if response.answer_data.selected_option == option.id %}selected-option
+                                    {% if response.is_correct %}correct-option{% else %}incorrect-option{% endif %}
+                                {% elif option.is_correct %}correct-option{% endif %}">
+                                {{ option.option_text|safe }}
+                                {% if response.answer_data.selected_option == option.id %}
+                                    <span style="float: right;">[Your Answer]</span>
+                                {% endif %}
+                                {% if option.is_correct %}
+                                    <span style="float: right;">[Correct Answer]</span>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    {% elif response.question.type|slice:":3" == "fib" %}
+                        <div class="option {% if response.is_correct %}correct-option{% else %}incorrect-option{% endif %}">
+                            <strong>Your Answer:</strong> {{ response.answer_data.answer_text|default:response.answer_data|safe }}<br>
+                            <strong>Correct Answer:</strong> {{ response.question.correct_answer|safe }}
+                        </div>
+                    {% elif response.question.type|slice:":3" == "psy" %}
+                        <div class="option selected-option">
+                            <strong>Your Response:</strong> 
+                            {% if response.answer_data.selected_rating %}
+                                {{ response.answer_data.selected_rating }}
+                            {% elif response.answer_data.selected_option %}
+                                {{ response.answer_data.selected_option }}
+                            {% else %}
+                                {{ response.answer_data|safe }}
+                            {% endif %}
+                        </div>
+                    {% elif response.question.type|slice:":4" == "cus_" %}
+                        <!-- Handle custom question types -->
+                        {% if response.question.type == "cus_hotspot_single" or response.question.type == "cus_hotspot_multiple" %}
+                        <div class="option selected-option">
+                            <strong>Your Selected Hotspots:</strong><br>
+                            {% if response.answer_data.selected_hotspots %}
+                            <ul>
+                                {% for hotspot in response.answer_data.selected_hotspots %}
+                                    {% with hotspot_item=response.question.hotspot_items|get_hotspot_by_id:hotspot.hotspotId %}
+                                        <li>
+                                            {% if hotspot_item and hotspot_item.name %}
+                                                {{ hotspot_item.name }}
+                                            {% else %}
+                                                Hotspot ID: {{ hotspot.hotspotId }}
+                                            {% endif %}
+                                        </li>
+                                    {% endwith %}
+                                {% endfor %}
+                            </ul>
+                            {% else %}
+                                {{ response.answer_data|safe }}
+                            {% endif %}
+                        </div>                        
+                        {% elif response.question.type == "cus_grid" %}
+                            <div class="option selected-option">
+                                <strong>Your Grid Selections:</strong><br>
+                                {% if response.answer_data.selected_cells %}
+                                    <ul>
+                                    {% for cell_id in response.answer_data.selected_cells %}
+                                        {% with grid_option=response.question.grid_options.all|get_by_id:cell_id %}
+                                            <li>
+                                                {% if grid_option %}
+                                                    {% if grid_option.text %}
+                                                        {{ grid_option.text }} (Row: {{ grid_option.row }}, Column: {{ grid_option.col }})
+                                                    {% else %}
+                                                        Grid option ID: {{ cell_id }}
+                                                    {% endif %}
+                                                {% else %}
+                                                    Grid option ID: {{ cell_id }}
+                                                {% endif %}
+                                            </li>
+                                        {% endwith %}
+                                    {% endfor %}
+                                    </ul>
+                                {% else %}
+                                    {{ response.answer_data|safe }}
+                                {% endif %}
+                            </div>
+                        {% elif response.question.type == "cus_match" %}
+                            <div class="option selected-option">
+                                <strong>Your Matches:</strong><br>
+                                {% if response.answer_data.matches %}
+                                    <ul>
+                                    {% for match in response.answer_data.matches %}
+                                        <li>{{ match.left }} → {{ match.right }}</li>
+                                    {% endfor %}
+                                    </ul>
+                                {% else %}
+                                    {{ response.answer_data|safe }}
+                                {% endif %}
+                            </div>
+                            <div class="option correct-option">
+                                <strong>Correct Matches:</strong><br>
+                                {% if response.question.correct_matches %}
+                                    <ul>
+                                    {% for match in response.question.correct_matches %}
+                                        <li>{{ match.left }} → {{ match.right }}</li>
+                                    {% endfor %}
+                                    </ul>
+                                {% endif %}
+                            </div>
+                        {% else %}
+                            <!-- Fallback for other custom types -->
+                            <div class="option">
+                                <strong>Your Answer:</strong> {{ response.answer_data|safe }}
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        <div class="option">
+                            <strong>Your Answer:</strong> {{ response.answer_data|safe }}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Explanation -->
+                {% if response.question.objectives %}
+                <div class="question-objectives">
+                    <h4>Objectives</h4>
+                    <p>{{ response.question.objectives.html|safe }}</p>
+                </div>
+                {% endif %}
+                
+                <!-- Score -->
+                <div class="question-score">
+                    Score: {{ response.score }}
+                    {% if response.question.max_score %}
+                        / {{ response.question.max_score }}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Report Footer -->
+    <div class="report-footer">
+        <p>
+            Report generated on {{ generated_date|date:"F d, Y" }} for {{ user.get_full_name }}<br>
+            CareerJudge Assessment Platform © {% now "Y" %}
+        </p>
+    </div>
+
+    <div id="footer">
+        <p>CareerJudge Assessment Platform © {% now "Y" %} - Confidential Report</p>
+    </div>
+</body>
+</html>

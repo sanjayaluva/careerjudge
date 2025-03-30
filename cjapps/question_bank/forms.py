@@ -16,6 +16,9 @@ class QuestionBasicForm(forms.ModelForm):
         
         self.fields['flash_interval'].required = False
         self.fields['paragraph_interval'].required = False
+        
+        self.fields['forced_choice_subtype'].required = False
+        self.fields['forced_choice_subtype'].widget.attrs['class'] = 'forced-choice-one-field'
 
         # edit mode
         instance = getattr(self, 'instance', None)
@@ -41,7 +44,7 @@ class QuestionBasicForm(forms.ModelForm):
         fields = [
             'title', 'type', 'instructions', 'objectives', 'exposure_limit', 'difficulty_level', 'cognitive_level', 'case_sensitive',
             'text', 'paragraph', 'image', 'audio', 'video', 'hotspot_items', 'grid_cols', 'grid_rows', 'grid_type', 'flash_items_count', 'flash_interval',
-            'category', 'paragraph_interval', 'right_score', 'wrong_score'
+            'category', 'paragraph_interval', 'right_score', 'wrong_score', 'forced_choice_subtype'
         ]
         widgets = {
             'instructions': QuillFormField(),

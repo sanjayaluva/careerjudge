@@ -6,5 +6,5 @@
 <p class="mb-0"><b>Objectives:</b> {{ training.objectives | linebreaks }}</p>
 <p class="mb-0"><b>Description:</b> {{ training.desc_text | linebreaks }}</p>
 {% if training.desc_img %}
-<img src="{{ training.desc_img }}" class="" alt="Training description image">
+<img src="{{ training.desc_img.url }}" class="img-fluid" alt="Training description image">
 {% endif %}

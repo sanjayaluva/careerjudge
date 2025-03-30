@@ -150,8 +150,17 @@ def get_option_text(option_id, options):
         return "No option selected"
 
 @register.filter
-def calculate_percentage(score, total_questions):
-    try:
-        return round((score / total_questions) * 100, 1)
-    except (TypeError, ZeroDivisionError):
+def calculate_percentage(value, total):
+    """Calculate percentage of value out of total"""
+    if not total or total == 0:
         return 0
+    percentage = (float(value) / float(total)) * 100
+    return round(percentage, 1)
+
+@register.filter
+def get_grid_option_by_id(grid_options, option_id):
+    """Get grid option by ID"""
+    for option in grid_options:
+        if str(option.id) == str(option_id):
+            return option
+    return None

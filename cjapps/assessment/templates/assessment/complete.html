@@ -10,10 +10,10 @@
             <h4>Score Summary</h4>
             <p class="mb-0">Total Questions: {{ total_questions }}</p>
             {% if not is_psychometric %}
-            <p class="mb-0">Correct Answers: {{ correct_answers }}</p>
-            <!-- <p class="mb-0">Score: {{ session.score }}%</p> -->
-            <p class="mb-0">Total Points: {{ session.scores.total|default:0 }}</p>
-            <p class="mb-0">Score: {{ session.scores.total|calculate_percentage:summary.total_questions }}%</p>
+            <p class="mb-0">Questions With Correct Answers: {{ correct_responses_count }}</p>
+            <p class="mb-0">Total Points Earned: {{ session.scores.total|default:0 }}</p>
+            <p class="mb-0">Maximum Possible Points: {{ maximum_possible_score }}</p>
+            <p class="mb-0">Percentage Score: {{ session.scores.total|calculate_percentage:maximum_possible_score }}%</p>
             {% endif %}
         </div>
     </div>
@@ -25,7 +25,21 @@
                 <!-- <h3>{{ section.title }}</h3> -->
                 
                 {% for response in responses %}
-                    <div class="question {% if not is_psychometric %}{%if response.is_correct %}correct{% else %}incorrect{% endif %}{% endif %}">
+                    <!-- <div class="question {% if not is_psychometric %}{%if response.is_correct %}correct{% else %}incorrect{% endif %}{% endif %}"> -->
+                    <div class="question {% if not is_psychometric %}
+                            {% if response.question.type == 'cus_grid' or response.question.type == 'cus_hotspot_multiple' or response.question.type == 'cus_match' or response.question.type|startswith:'fib' %}
+                                {% if response.score > 0 %}
+                                    {% with correct_count=response.answer_data.correct_count|default:0 total_count=response.answer_data.total_count|default:1 %}
+                                        {% if correct_count == total_count %}fully-correct{% else %}partially-correct{% endif %}
+                                    {% endwith %}
+                                {% else %}
+                                    incorrect
+                                {% endif %}
+                            {% else %}
+                                {% if response.is_correct %}correct{% else %}incorrect{% endif %}
+                            {% endif %}
+                        {% endif %}">
+
                         <h4>{{ response.question.title }}</h4>
                         
                         <!-- Display question text -->
@@ -87,7 +101,27 @@
                                     {% endfor %}
                                 {% elif response.question.type|startswith:'cus_' %}
                                     {% if response.question.type == 'cus_grid' %}
-                                        Selected cells: {{ response.answer_data.selected_cells|length }}
+                                        <!-- Selected cells: {{ response.answer_data.selected_cells|length }} -->
+                                        <div class="grid-result">
+                                            <h5>Selected Cells:</h5>
+                                            <ul class="list-unstyled">
+                                                {% for cell_id in response.answer_data.selected_cells %}
+                                                    <li>
+                                                        {% with grid_option=response.question.grid_options.all|get_grid_option_by_id:cell_id %}
+                                                            <span class="badge {% if grid_option.is_correct %}bg-success{% else %}bg-danger{% endif %}">
+                                                                Cell #{{ forloop.counter }}: {{ grid_option.text|default:"" }}
+                                                                {% if grid_option.is_correct %}
+                                                                    <i class="fas fa-check"></i>
+                                                                {% else %}
+                                                                    <i class="fas fa-times"></i>
+                                                                {% endif %}
+                                                            </span>
+                                                        {% endwith %}
+                                                    </li>
+                                                {% endfor %}
+                                            </ul>
+                                            <p>Score: {{ response.score }}</p>
+                                        </div>
                                     {% elif response.question.type == 'cus_match' %}
                                         Matched pairs: {{ response.answer_data.matches|length }}
                                     {% elif response.question.type == 'cus_hotspot_single' or response.question.type == 'cus_hotspot_multiple' %}
@@ -113,25 +147,38 @@
                             {% endif %}
                         </div>
 
-                        {% if not is_psychometric %}
                         <!-- Display correct/incorrect status -->
                         <div class="answer-status">
-                            {% if response.is_correct %}
-                                <span class="correct">Correct ✓</span>
+                            {% if response.question.type == 'cus_grid' or response.question.type == 'cus_hotspot_multiple' or response.question.type == 'cus_match' or response.question.type|startswith:'fib' %}
+                                {% if response.score > 0 %}
+                                    {% with correct_count=response.answer_data.correct_count|default:0 total_count=response.answer_data.total_count|default:1 %}
+                                        {% if correct_count == total_count %}
+                                            <span class="fully-correct">Fully Correct ✓</span>
+                                        {% else %}
+                                            <span class="partially-correct">Partially Correct ✓/✗</span>
+                                            <small class="text-muted">({{ correct_count }} of {{ total_count }} correct)</small>
+                                        {% endif %}
+                                    {% endwith %}
+                                {% else %}
+                                    <span class="incorrect">Incorrect ✗</span>
+                                {% endif %}
                             {% else %}
-                                <span class="incorrect">Incorrect ✗</span>
+                                {% if response.is_correct %}
+                                    <span class="correct">Correct ✓</span>
+                                {% else %}
+                                    <span class="incorrect">Incorrect ✗</span>
+                                {% endif %}
                             {% endif %}
                         </div>
-                        {% endif %}
                     </div>
                 {% endfor %}
             </div>
         {% endfor %}
-
     </div>
 </div>
+
 <style>
-    .correct {
+    .correct, .fully-correct {
         color: green;
         border-left: 4px solid green;
         padding-left: 10px;
@@ -140,6 +187,12 @@
     .incorrect {
         color: red;
         border-left: 4px solid red;
+        padding-left: 10px;
+    }
+    
+    .partially-correct {
+        color: orange;
+        border-left: 4px solid orange;
         padding-left: 10px;
     }
 
@@ -155,6 +208,12 @@
         padding: 10px;
         margin: 10px 0;
         border-radius: 4px;
+    }
+    
+    .answer-status small {
+        display: block;
+        margin-top: 5px;
+        font-size: 0.85em;
     }
 </style>
 
@@ -178,6 +237,7 @@
         padding-left: 0;
     }
 </style>
+
 <script>
     function toggleVisibility(id) {
         var element = document.getElementById(id);

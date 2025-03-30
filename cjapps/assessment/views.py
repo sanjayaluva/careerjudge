@@ -624,32 +624,63 @@ def assessment_control(request, session_id):
     
     elif action == 'submit':
         # Calculate final scores
-        session.complete_assessment()
+        # session.complete_assessment()
         
         return JsonResponse({'status': 'success', 'redirect_url': f'/assessment/complete/{session_id}/'})
     
     return JsonResponse({'status': 'error', 'message': 'Invalid action'})
 
-
 @login_required
 def assessment_complete(request, session_id):
     session = get_object_or_404(AssessmentSession, id=session_id, user=request.user)
-    
+
     # Ensure scores are calculated
     session.complete_assessment()
-    
+
     # Get assessment summary
     summary = get_assessment_summary(session)
-    
+
     # Get all responses with questions
     responses = QuestionResponse.objects.filter(session=session).select_related('question')
-    
+
+    # Calculate maximum possible score and count responses with positive scores
+    maximum_possible_score = 0
+    correct_responses_count = 0
+
+    for response in responses:
+        section = Section.objects.filter(question=response.question).first()
+        if section:
+            if response.question.type.startswith('cus_grid'):
+                # For grid questions, max score is the number of correct grid options times right_score
+                correct_options_count = response.question.grid_options.filter(is_correct=True).count()
+                maximum_possible_score += correct_options_count * section.right_score
+            elif response.question.type == 'cus_match':
+                # For match questions, max score is the number of matches times right_score
+                match_count = response.question.match_options.count()
+                maximum_possible_score += match_count * section.right_score
+            elif response.question.type.startswith('fib_'):
+                # For FIB questions, max score is the number of blanks times right_score
+                blanks_count = len(response.question.get_fib_info()[0])
+                maximum_possible_score += blanks_count * section.right_score
+            elif response.question.type == 'cus_hotspot_multiple':
+                # For multiple hotspot questions, max score is the number of correct hotspots times right_score
+                correct_hotspots_count = sum(1 for spot in response.question.hotspot_items if spot.get('correct'))
+                maximum_possible_score += correct_hotspots_count * section.right_score
+            else:
+                # For single-answer questions
+                maximum_possible_score += section.right_score
+            
+        # Count responses with a positive score
+        if response.score > 0:
+            correct_responses_count += 1
+
     # Organize responses by section
     sections_with_responses = {}
     for response in responses:
         section = response.question.section_set.first()
         if section not in sections_with_responses:
             sections_with_responses[section] = []
+    
         is_psychometric = session.assessment.type == 'psychometric'
         sections_with_responses[section].append({
             'question': response.question,
@@ -658,16 +689,18 @@ def assessment_complete(request, session_id):
             'score': response.score,
             'psy_score': response.psy_score if is_psychometric else None,
         })
-    
+
     context = {
         'session': session,
         'sections': sections_with_responses,
         'summary': summary,
         'total_questions': responses.count(),
         'correct_answers': responses.filter(is_correct=True).count(),
+        'correct_responses_count': correct_responses_count,
+        'maximum_possible_score': maximum_possible_score,
         'assessment': session.assessment,
         'section_scores': session.scores,
         'is_psychometric': is_psychometric
     }
-    
+
     return render(request, 'assessment/complete.html', context)

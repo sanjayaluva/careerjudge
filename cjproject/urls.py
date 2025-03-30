@@ -29,8 +29,8 @@ urlpatterns = [
     path('', include('question_bank.urls')),
     path('', include('assessment.urls')),
     # url('^inbox/notifications/', include(notifications.urls, namespace='notifications')),
+    path('reports/', include('reports.urls', namespace='reports')),
 ]
-
 
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

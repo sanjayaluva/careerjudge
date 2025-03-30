@@ -1,0 +1,288 @@
+{% extends 'base.html' %}
+{% load static crispy_forms_tags %}
+
+{% block title %}
+{% if configuration %}Edit Report Configuration{% else %}Create Report Configuration{% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'vendor/select2/css/select2.min.css' %}" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'vendor/select2/css/select2-bootstrap4.min.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        {% if configuration %}Edit Report Configuration{% else %}Create Report Configuration{% endif %}
+                    </h3>
+                </div>
+                <form method="POST" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="card-body">
+                        {% if form.errors %}
+                        <div class="alert alert-danger">
+                            Please correct the errors below.
+                        </div>
+                        {% endif %}
+
+                        <div class="row">
+                            <!-- Left Column -->
+                            <div class="col-md-6">
+                                
+                                <div class="form-group">
+                                    {{ form.title|as_crispy_field }}
+                                    {% if form.title.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.title.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="form-group">
+                                    {{ form.assessment|as_crispy_field }}
+                                    {% if form.assessment.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.assessment.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="form-group">
+                                    {{ form.report_type|as_crispy_field }}
+                                    {% if form.report_type.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.report_type.errors }}</div>
+                                    {% endif %}
+                                    <small class="form-text text-muted">
+                                        <ul>
+                                            <li><strong>Descriptive:</strong> Simple report with cutoff scores and descriptions</li>
+                                            <li><strong>Interpretative:</strong> Report with score bands and interpretations</li>
+                                            <li><strong>Typological:</strong> Personality type report (for psychometric assessments)</li>
+                                            <li><strong>Group:</strong> Comparative report for multiple candidates</li>
+                                            <li><strong>Question Level:</strong> Detailed report with question-by-question analysis</li>
+                                        </ul>
+                                    </small>
+                                </div>
+                                
+                                <!-- Replace the score_level form group with this -->
+                                <div class="form-group">
+                                    <label for="{{ form.score_level.id_for_label }}">Score Level</label>
+                                    {{ form.score_level }}
+                                    <small class="form-text text-muted">
+                                        Select which levels of scores to include in the report
+                                    </small>
+                                    {% if form.score_level.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.score_level.errors }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Replace the score_conversion form group with this -->
+                                <div class="form-group">
+                                    <label for="{{ form.score_conversion.id_for_label }}">Score Conversion</label>
+                                    {{ form.score_conversion }}
+                                    <small class="form-text text-muted">
+                                        <ul>
+                                            <li><strong>Raw:</strong> Display actual scores without conversion</li>
+                                            <li><strong>Percentage:</strong> Convert scores to percentages</li>
+                                            <li><strong>Percentile:</strong> Convert scores to percentile ranks</li>
+                                            <li><strong>STEN:</strong> Convert to STEN scores (1-10)</li>
+                                            <li><strong>STENINE:</strong> Convert to STENINE scores (1-9)</li>
+                                        </ul>
+                                    </small>
+                                    {% if form.score_conversion.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.score_conversion.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="form-group">
+                                    <div class="form-check">
+                                        {{ form.is_default|as_crispy_field }}
+                                        <label class="form-check-label" for="{{ form.is_default.id_for_label }}">
+                                            Set as default report for this assessment
+                                        </label>
+                                    </div>
+                                    {% if form.is_default.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.is_default.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                            </div>
+                            <!-- Right Column -->
+                            <div class="col-md-6">
+
+                                <div class="form-group">
+                                    {{ form.objectives|as_crispy_field }}
+                                    {% if form.objectives.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.objectives.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="form-group">
+                                    {{ form.description|as_crispy_field }}
+                                    {% if form.description.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.description.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="form-group">
+                                    {{ form.description_img|as_crispy_field }}
+                                    {% if form.description_img.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.description_img.errors }}</div>
+                                    {% endif %}
+                                    {% if configuration and configuration.description_img %}
+                                    <p class="mt-2">Current image: <a href="{{ configuration.description_img.url }}" target="_blank">View</a></p>
+                                    {% endif %}
+                                </div>
+
+                                <div id="candidate-selection-card" class="card mt-4" style="display: none;">
+                                    <div class="card-header">
+                                        <h5 class="card-title">Select Candidates for Group Report</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="form-group">
+                                            <label for="id_candidates">Candidates:</label>
+                                            <select name="candidates" id="id_candidates" class="form-control select2" multiple>
+                                                {% if candidate_form %}
+                                                    {% for candidate in candidate_form.fields.candidates.queryset %}
+                                                        <option value="{{ candidate.id }}" 
+                                                            {% if candidate in candidate_form.initial.candidates %}selected{% endif %}>
+                                                            {{ candidate.get_full_name }} ({{ candidate.email }})
+                                                        </option>
+                                                    {% endfor %}
+                                                {% endif %}
+                                            </select>
+                                            <small class="form-text text-muted">
+                                                Select the candidates to include in this group report. Only candidates who have completed the assessment are shown.
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <button type="submit" class="btn btn-primary">Save</button>
+                        <a href="{% url 'reports:report_configuration_list' %}" class="btn btn-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_head %}
+{% include 'django_quill/media.html' %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'vendor/select2/js/select2.min.js' %}"></script>
+<script>
+    $(document).ready(function() {
+        $('.select2').select2({
+            theme: 'bootstrap4'
+        });
+        
+        // Show/hide relevant fields based on report type
+        $('#id_report_type').change(function() {
+            var reportType = $(this).val();
+            
+            // Reset all fields
+            $('.form-group').show();
+            
+            // Hide fields based on report type
+            if (reportType == 'descriptive') {
+                // Show all fields for descriptive reports
+            } else if (reportType == 'interpretative') {
+                // Show all fields for interpretative reports
+            } else if (reportType == 'typological') {
+                // Show required fields for typological reports
+            } else if (reportType == 'group') {
+                // Show required fields for group reports
+            } else if (reportType == 'question_level') {
+                // Show required fields for question level reports
+            }
+        });
+        
+        // Trigger change event on page load
+        $('#id_report_type').trigger('change');
+    });
+</script>
+
+<script>
+    $(document).ready(function() {
+        // Initialize Select2 for candidate selection
+        $('.select2').select2({
+            placeholder: 'Select candidates',
+            allowClear: true,
+            width: '100%'
+        });
+        
+        // Show/hide candidate selection based on report type
+        $('#id_report_type').change(function() {
+            if ($(this).val() === 'group') {
+                $('#candidate-selection-card').show();
+                // Load candidates if assessment is selected
+                if ($('#id_assessment').val()) {
+                    loadCandidates($('#id_assessment').val());
+                }
+            } else {
+                $('#candidate-selection-card').hide();
+            }
+        });
+        
+        // Load candidates when assessment changes
+        $('#id_assessment').change(function() {
+            if ($('#id_report_type').val() === 'group') {
+                loadCandidates($(this).val());
+            }
+        });
+        
+        // Function to load candidates via AJAX
+        function loadCandidates(assessmentId) {
+            if (!assessmentId) return;
+            
+            $.ajax({
+                url: "{% url 'reports:load_candidates' %}",
+                data: {
+                    'assessment_id': assessmentId
+                },
+                dataType: 'json',
+                success: function(data) {
+                    // Clear existing options
+                    $('#id_candidates').empty();
+                    
+                    // Add new options
+                    if (data.candidates && data.candidates.length > 0) {
+                        $.each(data.candidates, function(index, candidate) {
+                            $('#id_candidates').append(
+                                $('<option></option>')
+                                    .attr('value', candidate.id)
+                                    .text(candidate.text)
+                            );
+                        });
+                    } else {
+                        // Show message if no candidates
+                        $('#id_candidates').append(
+                            $('<option></option>')
+                                .attr('disabled', true)
+                                .text('No candidates have completed this assessment')
+                        );
+                    }
+                    
+                    // Refresh Select2
+                    $('#id_candidates').trigger('change');
+                },
+                error: function(xhr, status, error) {
+                    console.error("Error loading candidates:", error);
+                    alert("Error loading candidates. Please try again.");
+                }
+            });
+        }
+        
+        // Trigger change on page load to set initial state
+        $('#id_report_type').trigger('change');
+    });
+</script>
+{% endblock %}
+
+
