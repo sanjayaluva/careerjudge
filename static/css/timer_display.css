@@ -1,0 +1,96 @@
+.question-mcq-text,
+.question-mcq-image,
+.question-mcq-mixed,
+.question-hotspot,
+.question-grid,
+.question-match,
+.question-psy {
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.options-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+}
+
+.option-image img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+}
+
+.hotspot-container {
+    position: relative;
+    width: 100%;
+}
+
+.hotspot-point {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: rgba(255, 0, 0, 0.5);
+    cursor: pointer;
+}
+
+/******/
+
+
+.timed-content-container {
+    position: relative;
+    padding: 20px;
+}
+
+.timer-bar {
+    height: 4px;
+    background: #eee;
+    margin-bottom: 15px;
+}
+
+.timer-progress {
+    height: 100%;
+    width: 100%;
+    background: #2196F3;
+}
+
+.timer-text {
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    background: #f5f5f5;
+    padding: 5px 10px;
+    border-radius: 3px;
+}
+
+.flash-content-container {
+    text-align: center;
+    padding: 30px;
+}
+
+.flash-display {
+    position: relative;
+    min-height: 200px;
+}
+
+.flash-progress {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 14px;
+}
+
+.flash-item {
+    font-size: 24px;
+    margin: 40px 0;
+}
+
+.flash-timer {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 18px;
+    color: #666;
+}
